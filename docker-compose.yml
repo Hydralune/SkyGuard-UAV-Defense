@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  # 后端API服务
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app # 挂载代码和结果
+    depends_on:
+      - redis
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # 前端服务 (用一个简单的Nginx来托管)
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
+    depends_on:
+      - backend
+
+  # Redis 消息队列
+  redis:
+    image: redis:6.2-alpine
+
+  # Celery 计算节点 (需要GPU支持)
+  worker:
+    build: ./backend
+    command: celery -A celery_app.celery_app worker -l info
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+    # 如果需要GPU，需要配置runtime
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
