@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Link } from 'react-router-dom'
 import {
   Shield,
   Sword,
@@ -93,82 +94,87 @@ export default function Dashboard() {
         <TabsList>
           <TabsTrigger value="overview">系统概览</TabsTrigger>
           <TabsTrigger value="principles">攻防原理</TabsTrigger>
-          <TabsTrigger value="architecture">系统架构</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Sword className="h-5 w-5 text-red-500" />
-                  <CardTitle className="text-lg">攻击场景选择</CardTitle>
-                </div>
-                <CardDescription>
-                  配置对抗攻击和光电干扰场景
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">对抗攻击</span>
-                    <Badge variant="secondary">PGD, FGSM, C&W</Badge>
+            <Link to="/attack-scenarios">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Sword className="h-5 w-5 text-red-500" />
+                    <CardTitle className="text-lg">攻击场景选择</CardTitle>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">光电干扰</span>
-                    <Badge variant="secondary">亮度, 噪声, 扭曲</Badge>
+                  <CardDescription>
+                    配置对抗攻击和光电干扰场景
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">对抗攻击</span>
+                      <Badge variant="secondary">PGD, FGSM, C&W</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">光电干扰</span>
+                      <Badge variant="secondary">亮度, 噪声, 扭曲</Badge>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <ShieldCheck className="h-5 w-5 text-green-500" />
-                  <CardTitle className="text-lg">防御场景选择</CardTitle>
-                </div>
-                <CardDescription>
-                  选择和配置防御算法策略
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">对抗训练</span>
-                    <Badge variant="secondary">PGDtraining</Badge>
+            <Link to="/defense-scenarios">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <ShieldCheck className="h-5 w-5 text-green-500" />
+                    <CardTitle className="text-lg">防御场景选择</CardTitle>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">鲁棒性增强</span>
-                    <Badge variant="secondary">FGM, YOPO</Badge>
+                  <CardDescription>
+                    选择和配置防御算法策略
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">对抗训练</span>
+                      <Badge variant="secondary">PGDtraining</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">鲁棒性增强</span>
+                      <Badge variant="secondary">FGM, YOPO</Badge>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Eye className="h-5 w-5 text-blue-500" />
-                  <CardTitle className="text-lg">攻防过程可视化</CardTitle>
-                </div>
-                <CardDescription>
-                  实时监控攻防过程和结果
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">样本对比</span>
-                    <Badge variant="outline">实时</Badge>
+            <Link to="/visualization">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Eye className="h-5 w-5 text-blue-500" />
+                    <CardTitle className="text-lg">攻防过程可视化</CardTitle>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">结果分析</span>
-                    <Badge variant="outline">可视化</Badge>
+                  <CardDescription>
+                    实时监控攻防过程和结果
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">样本对比</span>
+                      <Badge variant="outline">实时</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">结果分析</span>
+                      <Badge variant="outline">可视化</Badge>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </TabsContent>
 
@@ -233,56 +239,6 @@ export default function Dashboard() {
                         结合多种防御策略构建多层防护体系
                       </p>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="architecture" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>系统架构</CardTitle>
-              <CardDescription>
-                分布式高性能攻防演练平台架构
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-3">
-                <div className="text-center space-y-4">
-                  <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                    <Cpu className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">异构处理单元</h3>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      CPU + GPU + TPU 异构计算架构，支持大规模并行处理
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-center space-y-4">
-                  <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                    <HardDrive className="h-8 w-8 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">高性能存储单元</h3>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      分布式存储系统，支持海量数据的高速读写
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-center space-y-4">
-                  <div className="mx-auto w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                    <Network className="h-8 w-8 text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">网络服务单元</h3>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      高带宽低延迟网络，支持实时数据传输和协作
-                    </p>
                   </div>
                 </div>
               </div>

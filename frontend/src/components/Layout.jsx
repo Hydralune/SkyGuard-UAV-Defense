@@ -16,10 +16,7 @@ import {
   Eye,
   Menu,
   Zap,
-  Target,
-  Cpu,
-  HardDrive,
-  Network
+  Target
 } from 'lucide-react'
 
 const navigation = [
@@ -109,25 +106,6 @@ function Sidebar({ className }) {
                 <span>{item.name}</span>
               </Link>
             ))}
-          </div>
-        </div>
-      </div>
-      
-      {/* 系统架构组件 */}
-      <div className="px-3 py-2 border-t">
-        <h3 className="text-sm font-medium mb-3 text-muted-foreground">系统架构</h3>
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-            <Cpu className="h-3 w-3" />
-            <span>异构处理单元</span>
-          </div>
-          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-            <HardDrive className="h-3 w-3" />
-            <span>高性能存储单元</span>
-          </div>
-          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-            <Network className="h-3 w-3" />
-            <span>网络服务单元</span>
           </div>
         </div>
       </div>
