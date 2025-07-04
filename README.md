@@ -1,153 +1,158 @@
-# SkyGuard-UAV-Defense
+# SkyGuard UAV Defense System
 
-低空无人智能体智能对抗攻防演练系统，用于研究和应对低空无人智能体的安全挑战。
+SkyGuard是一个针对低空无人机威胁的智能防御系统，使用计算机视觉和对抗学习技术来检测、识别和防御恶意无人机。
 
 ## 项目概述
 
-SkyGuard-UAV-Defense是一个现代化的无人机智能安全平台，专注于：
-- 无人机目标检测模型的对抗攻击与防御
-- 环境干扰条件下的鲁棒性增强
-- 场景跃变情况下的适应性优化
+SkyGuard系统包含以下主要功能：
 
-系统提供了完整的攻防演练功能，包括攻击场景选择、防御策略配置、实时可视化、演练态势监控、评分报告等核心模块。
+- 无人机目标检测和识别
+- 对抗攻击模拟（FGSM、PGD等）
+- 防御策略实现和评估
+- 可视化分析工具
+- 模型训练和评估
 
-## 核心功能模块
+## 系统架构
 
-1. **系统概览 (Dashboard)**
-   - 攻防原理介绍
-   - 系统状态监控
-   - 快速操作入口
+- **前端**：基于React的Web界面，使用Tailwind CSS进行样式设计
+- **后端**：FastAPI + Celery异步任务队列
+- **模型**：基于YOLOv5的目标检测模型，支持对抗训练
 
-2. **攻击场景选择**
-   - 对抗攻击配置 (PGD、FGSM、C&W、DeepFool、AdvPatch、DPatch)
-   - 光电干扰设置 (亮度、高斯噪声、对比度、扭曲、场景跃变)
+## 快速开始
 
-3. **防御场景选择**
-   - 对抗训练 (PGD Training、FGM、FreeAT、YOPO、FreeLB)
-   - 预处理防御 (高斯模糊、中值滤波、JPEG压缩、位深度降低)
-   - 检测防御 (统计检测、神经网络检测、特征压缩)
+### 使用Docker
 
-4. **自定义场景**
-   - 复合攻击场景配置
-   - 执行调度管理
+最简单的方式是使用Docker Compose启动整个系统：
 
-5. **攻防过程可视化**
-   - 样本对比分析
-   - 差异图和热力图
-   - 攻击过程动画
-
-6. **演练态势监控**
-   - 实时状态监控
-   - 性能指标展示
-
-7. **评分报告**
-   - 攻击成功率统计
-   - 防御效果评估
-
-8. **组队管理**
-   - 团队创建和管理
-   - 成员权限控制
-
-9. **运维管理**
-   - 任务监控
-   - 系统管理
-
-## 安装指南
-
-### 环境要求
-- Docker 和 Docker Compose
-- NVIDIA GPU (推荐用于AI计算)
-- NVIDIA Container Toolkit (需要GPU支持)
-- Node.js 18+ (前端开发)
-
-### 安装步骤
-1. 克隆仓库
-```
-git clone https://github.com/yourusername/SkyGuard-UAV-Defense.git
-cd SkyGuard-UAV-Defense
+```bash
+docker-compose up
 ```
 
-2. 下载模型权重
-```
-sh scripts/download_weights.sh
+### 手动安装
+
+1. 安装后端依赖：
+
+```bash
+cd backend
+pip install -r requirements.txt
 ```
 
-3. 使用Docker Compose启动所有服务
-```
-sh scripts/run_docker.sh
-```
+2. 安装前端依赖：
 
-或直接使用
-```
-docker-compose up --build
-```
-
-### 前端开发
-
-1. 安装依赖
-```
+```bash
 cd frontend
 npm install
 ```
 
-2. 启动开发服务器
+3. 启动后端服务：
+
+```bash
+cd backend
+uvicorn main:app --reload
 ```
+
+4. 启动Celery worker：
+
+```bash
+cd backend
+celery -A celery_app worker --loglevel=info
+```
+
+5. 启动前端开发服务器：
+
+```bash
+cd frontend
 npm run dev
 ```
 
-## 使用说明
+## 数据集
 
-1. 启动服务后，访问 http://localhost:8080 打开前端界面
-2. 导航到"系统概览"页面，了解系统功能
-3. 在"攻击场景选择"中配置对抗攻击或光电干扰参数
-4. 在"防御场景选择"中配置防御算法和策略
-5. 启动演练并在"可视化"页面监控攻防过程
-6. 演练完成后在"评分报告"页面查看结果分析
+系统支持多种无人机数据集，可以使用以下命令下载：
 
-## 技术架构
-
-### 前端
-- **框架**: React 18
-- **构建工具**: Vite
-- **样式**: Tailwind CSS
-- **组件库**: shadcn/ui
-- **状态管理**: React Hooks
-- **路由**: React Router
-
-### 后端
-- **API**: Python + FastAPI
-- **异步任务**: Celery + Redis
-- **AI核心**: PyTorch + Torchattacks + OpenCV-Python
-- **部署**: Docker + Docker Compose
-
-## 项目结构
-```
-SkyGuard-UAV-Defense/
-├── backend/             # 后端API服务
-│   ├── assets/          # 测试图像等资源
-│   ├── celery_app.py    # Celery配置
-│   ├── main.py          # FastAPI主程序
-│   ├── tasks.py         # Celery任务定义
-│   └── results/         # 存储任务结果
-├── docs/                # 项目文档
-├── frontend/            # React前端应用
-│   ├── components/      # 通用组件
-│   ├── pages/           # 页面组件
-│   └── public/          # 静态资源
-├── scripts/             # 辅助脚本
-└── src/                 # AI模型代码
-    ├── train.py         # 模型训练
-    ├── eval.py          # 模型评估
-    └── inference.py     # 模型推理
+```bash
+cd backend
+python download_dataset.py drone_detection_maciullo  # 下载DroneDetectionDataset
+python download_dataset.py anti_uav  # 下载Anti-UAV数据集
+python download_dataset.py all  # 下载所有数据集
 ```
 
-## 浏览器兼容性
+可用的数据集包括：
+- drone_detection_maciullo: DroneDetectionDataset - 包含无人机图像和标注
+- drone_detection_test: DroneDetectionDataset测试集
+- anti_uav: Anti-UAV数据集，包含红外和可见光无人机图像
+- halmstad_drone: Halmstad Drone Dataset，包含红外、可见光和音频数据
+- yolov7_drone: YOLOv7 Drone Detection数据集
 
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
+## 模型训练
+
+使用以下命令训练无人机检测模型：
+
+```bash
+cd backend
+python train_model.py --model yolov5s --dataset drone_detection_maciullo --epochs 50
+```
+
+支持对抗训练：
+
+```bash
+python train_model.py --model yolov5s --dataset drone_detection_maciullo --adv-training --adv-method pgd
+```
+
+## API接口
+
+系统提供了丰富的REST API接口：
+
+- `/api/start-training`: 启动模型训练
+- `/api/get-training-status/{task_id}`: 获取训练状态
+- `/api/run-attack`: 执行对抗攻击
+- `/api/run-defense`: 执行防御方法
+- `/api/evaluate-defense`: 评估防御效果
+- `/api/generate-visualization`: 生成可视化结果
+
+完整API文档可访问：http://localhost:8000/docs
+
+## 攻击方法
+
+系统支持多种对抗攻击方法：
+
+- FGSM (Fast Gradient Sign Method)
+- PGD (Projected Gradient Descent)
+- 环境干扰攻击（亮度、噪声、对比度、模糊）
+
+## 防御方法
+
+系统实现了多种防御策略：
+
+- 高斯模糊
+- 中值滤波
+- JPEG压缩
+- 位深度降低
+
+## 后端开发指南
+
+### 添加新的攻击方法
+
+1. 在`backend/tasks.py`中添加新的Celery任务函数
+2. 在`backend/main.py`的`run_attack`API中添加对应的处理逻辑
+3. 在`backend/main.py`的`get_attack_types`API中添加新攻击类型的描述
+
+### 添加新的防御方法
+
+1. 在`backend/defense.py`中扩展`run_defense_task`函数
+2. 在`backend/main.py`的`get_defense_types`API中添加新防御类型的描述
+
+### 添加新的评估指标
+
+在`backend/evaluate.py`中扩展`evaluate_defense_task`函数，添加新的评估指标。
+
+## 前端开发指南
+
+前端使用React + Tailwind CSS开发，UI组件基于Shadcn UI。
+
+## 贡献指南
+
+欢迎提交Pull Request或Issue来改进SkyGuard系统。
 
 ## 许可证
 
-本项目仅供学习和研究使用。
+MIT
