@@ -3,8 +3,8 @@ from celery import Celery
 # 创建Celery应用
 celery_app = Celery(
     "skyguard",
-    broker="redis://redis:6379/0",  # Redis作为消息代理
-    backend="redis://redis:6379/1"  # Redis作为结果后端
+    broker="redis://localhost:6379/0",  # Redis作为消息代理
+    backend="redis://localhost:6379/1"  # Redis作为结果后端
 )
 
 # 配置Celery

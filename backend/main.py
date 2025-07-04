@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 # 挂载静态文件服务
-app.mount("/api/images", StaticFiles(directory="/app/results"), name="images")
+app.mount("/api/images", StaticFiles(directory="backend/results"), name="images")
 
 # API模型
 class DrillResponse(BaseModel):
@@ -50,7 +50,7 @@ async def start_basic_drill():
 @app.get("/api/get-result/{task_id}", response_model=ResultResponse)
 async def get_result(task_id: str):
     """获取演练结果"""
-    result_path = f"/app/results/{task_id}"
+    result_path = os.path.join("backend", "results", task_id)
     
     # 检查结果是否已经生成
     if not os.path.exists(result_path):
