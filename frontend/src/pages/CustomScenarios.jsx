@@ -162,7 +162,7 @@ export default function CustomScenarios() {
             </TabsList>
 
             <TabsContent value="basic" className="space-y-4">
-              <Card>
+              <Card className="card-hover">
                 <CardHeader>
                   <CardTitle>场景基础信息</CardTitle>
                   <CardDescription>设置场景的基本属性和描述</CardDescription>
@@ -245,7 +245,7 @@ export default function CustomScenarios() {
             </TabsContent>
 
             <TabsContent value="attacks" className="space-y-4">
-              <Card>
+              <Card className="card-hover">
                 <CardHeader>
                   <CardTitle>攻击方法配置</CardTitle>
                   <CardDescription>选择和配置攻击算法</CardDescription>
@@ -319,7 +319,7 @@ export default function CustomScenarios() {
             </TabsContent>
 
             <TabsContent value="defenses" className="space-y-4">
-              <Card>
+              <Card className="card-hover">
                 <CardHeader>
                   <CardTitle>防御方法配置</CardTitle>
                   <CardDescription>选择和配置防御策略</CardDescription>
@@ -403,7 +403,7 @@ export default function CustomScenarios() {
             </TabsContent>
 
             <TabsContent value="schedule" className="space-y-4">
-              <Card>
+              <Card className="card-hover">
                 <CardHeader>
                   <CardTitle>执行调度配置</CardTitle>
                   <CardDescription>设置攻防序列的执行顺序和时间</CardDescription>
@@ -483,7 +483,7 @@ export default function CustomScenarios() {
 
         {/* 右侧场景列表 */}
         <div className="space-y-6">
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>已保存的场景</CardTitle>
               <CardDescription>管理和使用自定义场景</CardDescription>
@@ -531,7 +531,7 @@ export default function CustomScenarios() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>场景模板</CardTitle>
               <CardDescription>使用预定义的场景模板</CardDescription>
@@ -558,7 +558,7 @@ export default function CustomScenarios() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>场景统计</CardTitle>
             </CardHeader>

@@ -115,7 +115,7 @@ export default function AttackScenarios() {
         {/* 左侧配置面板 */}
         <div className="lg:col-span-2 space-y-6">
           {/* 场景类型选择 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Target className="h-5 w-5 mr-2" />
@@ -209,7 +209,7 @@ export default function AttackScenarios() {
           </Card>
 
           {/* 算法参数配置 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Settings className="h-5 w-5 mr-2" />
@@ -343,7 +343,7 @@ export default function AttackScenarios() {
           </Card>
 
           {/* 可视化配置 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Eye className="h-5 w-5 mr-2" />
@@ -379,7 +379,7 @@ export default function AttackScenarios() {
         {/* 右侧控制面板 */}
         <div className="space-y-6">
           {/* 执行控制 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>执行控制</CardTitle>
               <CardDescription>启动和控制攻击过程</CardDescription>
@@ -433,7 +433,7 @@ export default function AttackScenarios() {
           </Card>
 
           {/* 当前配置摘要 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>配置摘要</CardTitle>
               <CardDescription>当前选择的配置信息</CardDescription>
@@ -504,7 +504,7 @@ export default function AttackScenarios() {
           </Card>
 
           {/* 日志输出 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <FileText className="h-4 w-4 mr-2" />

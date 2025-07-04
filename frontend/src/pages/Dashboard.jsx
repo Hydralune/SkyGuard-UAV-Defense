@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Shield,
   Sword,
@@ -19,10 +21,107 @@ import {
   Network,
   AlertTriangle,
   CheckCircle,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react'
 
 export default function Dashboard() {
+  const [taskId, setTaskId] = useState(null)
+  const [taskStatus, setTaskStatus] = useState(null) // 'PENDING', 'PROCESSING', 'COMPLETED', 'ERROR'
+  const [results, setResults] = useState({
+    beforeImageUrl: null,
+    afterImageUrl: null
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // 开始基础演练
+  const startBasicDrill = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      setTaskStatus('PENDING')
+      
+      const response = await fetch('http://localhost:8000/api/start-basic-drill', {
+        method: 'POST',
+      })
+      
+      const data = await response.json()
+      setTaskId(data.task_id)
+      
+      // 开始轮询任务状态
+      pollTaskStatus(data.task_id)
+    } catch (err) {
+      setError('启动演练失败: ' + err.message)
+      setLoading(false)
+      setTaskStatus('ERROR')
+    }
+  }
+
+  // 轮询任务状态
+  const pollTaskStatus = async (id) => {
+    // 设置轮询间隔
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/get-result/${id}`)
+        const data = await response.json()
+        
+        setTaskStatus(data.status)
+        
+        if (data.status === 'COMPLETED') {
+          // 任务完成，停止轮询
+          clearInterval(interval)
+          setLoading(false)
+          
+          // 设置结果图片
+          setResults({
+            beforeImageUrl: `http://localhost:8000${data.before_image_url}`,
+            afterImageUrl: `http://localhost:8000${data.after_image_url}`
+          })
+        } else if (data.status === 'ERROR') {
+          // 任务出错，停止轮询
+          clearInterval(interval)
+          setLoading(false)
+          setError('任务执行过程中出现错误')
+        }
+      } catch (err) {
+        clearInterval(interval)
+        setLoading(false)
+        setError('获取任务状态失败: ' + err.message)
+        setTaskStatus('ERROR')
+      }
+    }, 3000) // 每3秒轮询一次
+    
+    // 清理函数，组件卸载时取消轮询
+    return () => clearInterval(interval)
+  }
+
+  // 状态显示文本
+  const getStatusText = () => {
+    switch(taskStatus) {
+      case 'PENDING': return '任务等待中...'
+      case 'PROCESSING': return '正在执行演练...'
+      case 'COMPLETED': return '演练完成'
+      case 'ERROR': return '演练失败'
+      default: return null
+    }
+  }
+
+  // 状态图标
+  const getStatusIcon = () => {
+    switch(taskStatus) {
+      case 'PENDING': 
+      case 'PROCESSING': 
+        return <Loader2 className="h-4 w-4 animate-spin" />
+      case 'COMPLETED': 
+        return <CheckCircle className="h-4 w-4 text-green-500" />
+      case 'ERROR': 
+        return <AlertTriangle className="h-4 w-4 text-red-500" />
+      default: 
+        return null
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* 页面标题 */}
@@ -34,10 +133,70 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button>开始演练</Button>
+          <Button onClick={startBasicDrill} disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            开始演练
+          </Button>
           <Button variant="outline">查看报告</Button>
         </div>
       </div>
+
+      {/* 演练状态和结果 */}
+      {taskId && (
+        <Card className="border-2 border-blue-200">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>演练状态</CardTitle>
+              <div className="flex items-center space-x-2">
+                {getStatusIcon()}
+                <span className={`text-sm ${taskStatus === 'COMPLETED' ? 'text-green-500' : 
+                                          taskStatus === 'ERROR' ? 'text-red-500' : 
+                                          'text-blue-500'}`}>
+                  {getStatusText()}
+                </span>
+              </div>
+            </div>
+            <CardDescription>
+              任务ID: {taskId}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            {taskStatus === 'COMPLETED' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">攻击前</h3>
+                  <img 
+                    src={results.beforeImageUrl} 
+                    alt="攻击前图像" 
+                    className="w-full rounded-md border"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium mb-2">攻击后</h3>
+                  <img 
+                    src={results.afterImageUrl} 
+                    alt="攻击后图像" 
+                    className="w-full rounded-md border"
+                  />
+                </div>
+              </div>
+            )}
+            
+            {(taskStatus === 'PENDING' || taskStatus === 'PROCESSING') && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="h-12 w-12 text-blue-500 animate-spin mb-4" />
+                <p className="text-muted-foreground">正在处理图像对抗攻击，请稍候...</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* 系统状态概览 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -248,7 +407,7 @@ export default function Dashboard() {
       </Tabs>
 
       {/* 最近活动 */}
-      <Card>
+      <Card className="card-hover">
         <CardHeader>
           <CardTitle>最近活动</CardTitle>
           <CardDescription>系统最新的演练活动和状态更新</CardDescription>

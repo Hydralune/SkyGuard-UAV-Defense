@@ -132,7 +132,7 @@ export default function DefenseScenarios() {
         {/* 左侧配置面板 */}
         <div className="lg:col-span-2 space-y-6">
           {/* 防御类型选择 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <ShieldCheck className="h-5 w-5 mr-2" />
@@ -230,7 +230,7 @@ export default function DefenseScenarios() {
           </Card>
 
           {/* 防御参数配置 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Settings className="h-5 w-5 mr-2" />
@@ -416,7 +416,7 @@ export default function DefenseScenarios() {
           </Card>
 
           {/* 可视化配置 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Eye className="h-5 w-5 mr-2" />
@@ -461,7 +461,7 @@ export default function DefenseScenarios() {
         {/* 右侧控制面板 */}
         <div className="space-y-6">
           {/* 训练控制 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>训练控制</CardTitle>
               <CardDescription>启动和控制防御模型训练</CardDescription>
@@ -513,7 +513,7 @@ export default function DefenseScenarios() {
           </Card>
 
           {/* 当前配置摘要 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>配置摘要</CardTitle>
               <CardDescription>当前选择的防御配置</CardDescription>
@@ -585,7 +585,7 @@ export default function DefenseScenarios() {
           </Card>
 
           {/* 训练日志 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <FileText className="h-4 w-4 mr-2" />
@@ -627,7 +627,7 @@ export default function DefenseScenarios() {
           </Card>
 
           {/* 模型性能 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>模型性能</CardTitle>
               <CardDescription>当前模型的防御效果</CardDescription>

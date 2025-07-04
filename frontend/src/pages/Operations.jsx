@@ -105,7 +105,7 @@ export default function Operations() {
 
       {/* 系统概览 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">CPU使用率</CardTitle>
             <Cpu className="h-4 w-4 text-muted-foreground" />
@@ -119,7 +119,7 @@ export default function Operations() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">内存使用率</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
@@ -133,7 +133,7 @@ export default function Operations() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">GPU使用率</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
@@ -147,7 +147,7 @@ export default function Operations() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">存储使用率</CardTitle>
             <HardDrive className="h-4 w-4 text-muted-foreground" />
@@ -161,7 +161,7 @@ export default function Operations() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">网络负载</CardTitle>
             <Network className="h-4 w-4 text-muted-foreground" />
@@ -187,7 +187,7 @@ export default function Operations() {
 
         <TabsContent value="monitoring" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle>系统性能趋势</CardTitle>
                 <CardDescription>过去24小时的系统资源使用情况</CardDescription>
@@ -208,7 +208,7 @@ export default function Operations() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle>活跃任务</CardTitle>
                 <CardDescription>当前正在执行和排队的任务</CardDescription>
@@ -265,74 +265,72 @@ export default function Operations() {
         </TabsContent>
 
         <TabsContent value="scheduling" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>资源分配策略</CardTitle>
-                <CardDescription>配置系统资源的自动分配规则</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">自动负载均衡</h4>
-                    <p className="text-sm text-muted-foreground">根据任务优先级自动分配资源</p>
-                  </div>
-                  <Switch defaultChecked />
+          <Card className="card-hover">
+            <CardHeader>
+              <CardTitle>资源分配策略</CardTitle>
+              <CardDescription>配置系统资源的自动分配规则</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">自动负载均衡</h4>
+                  <p className="text-sm text-muted-foreground">根据任务优先级自动分配资源</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">GPU优先分配</h4>
-                    <p className="text-sm text-muted-foreground">优先为高优先级任务分配GPU</p>
-                  </div>
-                  <Switch defaultChecked />
+                <Switch defaultChecked />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">GPU优先分配</h4>
+                  <p className="text-sm text-muted-foreground">优先为高优先级任务分配GPU</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">内存预留</h4>
-                    <p className="text-sm text-muted-foreground">为系统保留20%内存</p>
-                  </div>
-                  <Switch defaultChecked />
+                <Switch defaultChecked />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">内存预留</h4>
+                  <p className="text-sm text-muted-foreground">为系统保留20%内存</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">任务队列管理</h4>
-                    <p className="text-sm text-muted-foreground">智能排队和优先级调整</p>
-                  </div>
-                  <Switch defaultChecked />
+                <Switch defaultChecked />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">任务队列管理</h4>
+                  <p className="text-sm text-muted-foreground">智能排队和优先级调整</p>
                 </div>
-              </CardContent>
-            </Card>
+                <Switch defaultChecked />
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>资源使用统计</CardTitle>
-                <CardDescription>各类任务的资源消耗分析</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={[
-                    { name: '攻击演练', cpu: 65, memory: 70, gpu: 85 },
-                    { name: '防御测试', cpu: 45, memory: 55, gpu: 60 },
-                    { name: '模型训练', cpu: 80, memory: 85, gpu: 95 },
-                    { name: '数据处理', cpu: 55, memory: 75, gpu: 40 }
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="cpu" fill="#3b82f6" name="CPU" />
-                    <Bar dataKey="memory" fill="#22c55e" name="内存" />
-                    <Bar dataKey="gpu" fill="#f59e0b" name="GPU" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="card-hover">
+            <CardHeader>
+              <CardTitle>资源使用统计</CardTitle>
+              <CardDescription>各类任务的资源消耗分析</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={[
+                  { name: '攻击演练', cpu: 65, memory: 70, gpu: 85 },
+                  { name: '防御测试', cpu: 45, memory: 55, gpu: 60 },
+                  { name: '模型训练', cpu: 80, memory: 85, gpu: 95 },
+                  { name: '数据处理', cpu: 55, memory: 75, gpu: 40 }
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="cpu" fill="#3b82f6" name="CPU" />
+                  <Bar dataKey="memory" fill="#22c55e" name="内存" />
+                  <Bar dataKey="gpu" fill="#f59e0b" name="GPU" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -382,7 +380,7 @@ export default function Operations() {
 
         <TabsContent value="system" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle>系统控制</CardTitle>
                 <CardDescription>系统服务和组件管理</CardDescription>
@@ -444,7 +442,7 @@ export default function Operations() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle>系统配置</CardTitle>
                 <CardDescription>核心系统参数设置</CardDescription>

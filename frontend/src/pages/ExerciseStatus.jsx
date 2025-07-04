@@ -104,7 +104,7 @@ export default function ExerciseStatus() {
 
       {/* 总体状态概览 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">活跃演练</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
@@ -116,7 +116,7 @@ export default function ExerciseStatus() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">参与团队</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -128,7 +128,7 @@ export default function ExerciseStatus() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">平均进度</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
@@ -138,7 +138,7 @@ export default function ExerciseStatus() {
             <Progress value={73} className="mt-2" />
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">系统负载</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
@@ -163,7 +163,7 @@ export default function ExerciseStatus() {
         <TabsContent value="exercises" className="space-y-4">
           <div className="space-y-4">
             {activeExercises.map((exercise) => (
-              <Card key={exercise.id} className="hover:shadow-md transition-shadow">
+              <Card key={exercise.id} className="card-hover">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -244,7 +244,7 @@ export default function ExerciseStatus() {
 
         <TabsContent value="system" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-lg">CPU 使用率</CardTitle>
               </CardHeader>
@@ -262,7 +262,7 @@ export default function ExerciseStatus() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-lg">内存使用率</CardTitle>
               </CardHeader>
@@ -280,7 +280,7 @@ export default function ExerciseStatus() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-lg">GPU 使用率</CardTitle>
               </CardHeader>
@@ -298,7 +298,7 @@ export default function ExerciseStatus() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-lg">网络负载</CardTitle>
               </CardHeader>
@@ -316,7 +316,7 @@ export default function ExerciseStatus() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-lg">活跃连接</CardTitle>
               </CardHeader>
@@ -328,7 +328,7 @@ export default function ExerciseStatus() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-lg">队列任务</CardTitle>
               </CardHeader>
@@ -343,7 +343,7 @@ export default function ExerciseStatus() {
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>实时系统日志</CardTitle>
               <CardDescription>最新的系统活动和事件记录</CardDescription>

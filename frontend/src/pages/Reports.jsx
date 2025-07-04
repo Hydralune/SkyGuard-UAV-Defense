@@ -153,7 +153,7 @@ export default function Reports() {
 
       {/* 总体概览 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">总演练次数</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -165,7 +165,7 @@ export default function Reports() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">成功率</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
@@ -177,7 +177,7 @@ export default function Reports() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">平均得分</CardTitle>
             <Award className="h-4 w-4 text-yellow-500" />
@@ -189,7 +189,7 @@ export default function Reports() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">参与团队</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -201,7 +201,7 @@ export default function Reports() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">提升率</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
@@ -226,7 +226,7 @@ export default function Reports() {
 
         <TabsContent value="performance" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle>团队性能对比</CardTitle>
                 <CardDescription>各团队在攻击、防御和综合能力方面的表现</CardDescription>
@@ -247,7 +247,7 @@ export default function Reports() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle>能力雷达图</CardTitle>
                 <CardDescription>团队Alpha vs 团队Beta 综合能力对比</CardDescription>
@@ -268,7 +268,7 @@ export default function Reports() {
           </div>
 
           {/* 排行榜 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>团队排行榜</CardTitle>
               <CardDescription>基于综合得分的团队排名</CardDescription>
@@ -307,7 +307,7 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-4">
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>性能趋势分析</CardTitle>
               <CardDescription>过去6个月的整体性能变化趋势</CardDescription>
@@ -329,7 +329,7 @@ export default function Reports() {
           </Card>
 
           <div className="grid gap-4 md:grid-cols-3">
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-lg">攻击能力趋势</CardTitle>
               </CardHeader>
@@ -343,7 +343,7 @@ export default function Reports() {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-lg">防御能力趋势</CardTitle>
               </CardHeader>
@@ -357,7 +357,7 @@ export default function Reports() {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-lg">综合得分趋势</CardTitle>
               </CardHeader>
@@ -376,7 +376,7 @@ export default function Reports() {
 
         <TabsContent value="algorithms" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle>算法使用分布</CardTitle>
                 <CardDescription>各种攻击算法的使用频率统计</CardDescription>
@@ -404,7 +404,7 @@ export default function Reports() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle>算法效果评估</CardTitle>
                 <CardDescription>不同算法的成功率和效果对比</CardDescription>
@@ -440,7 +440,7 @@ export default function Reports() {
         <TabsContent value="detailed" className="space-y-4">
           <div className="space-y-4">
             {detailedReports.map((report) => (
-              <Card key={report.id} className="hover:shadow-md transition-shadow">
+              <Card key={report.id} className="card-hover">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>

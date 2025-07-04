@@ -132,7 +132,7 @@ export default function Visualization() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* 左侧图像对比 */}
         <div className="lg:col-span-2 space-y-6">
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -278,7 +278,7 @@ export default function Visualization() {
           </Card>
 
           {/* 检测结果对比 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <BarChart3 className="h-5 w-5 mr-2" />
@@ -305,7 +305,7 @@ export default function Visualization() {
         {/* 右侧控制和统计 */}
         <div className="space-y-6">
           {/* 攻击进度 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>攻击进度</CardTitle>
               <CardDescription>当前攻击步骤和状态</CardDescription>
@@ -337,7 +337,7 @@ export default function Visualization() {
           </Card>
 
           {/* 扰动分析 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>扰动分析</CardTitle>
               <CardDescription>像素级扰动统计</CardDescription>
@@ -371,7 +371,7 @@ export default function Visualization() {
           </Card>
 
           {/* 防御效果 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>防御效果评估</CardTitle>
               <CardDescription>不同防御方法的效果对比</CardDescription>
@@ -405,7 +405,7 @@ export default function Visualization() {
           </Card>
 
           {/* 可视化设置 */}
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Settings className="h-4 w-4 mr-2" />

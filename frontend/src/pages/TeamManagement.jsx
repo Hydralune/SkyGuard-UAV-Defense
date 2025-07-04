@@ -116,7 +116,7 @@ export default function TeamManagement() {
 
       {/* 团队统计 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">总团队数</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -128,7 +128,7 @@ export default function TeamManagement() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">总成员数</CardTitle>
             <UserPlus className="h-4 w-4 text-muted-foreground" />
@@ -140,7 +140,7 @@ export default function TeamManagement() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">平均得分</CardTitle>
             <Trophy className="h-4 w-4 text-muted-foreground" />
@@ -154,7 +154,7 @@ export default function TeamManagement() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">总演练次数</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -179,7 +179,7 @@ export default function TeamManagement() {
         <TabsContent value="teams" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {teams.map((team) => (
-              <Card key={team.id} className="hover:shadow-lg transition-shadow">
+              <Card key={team.id} className="card-hover">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -240,7 +240,7 @@ export default function TeamManagement() {
         </TabsContent>
 
         <TabsContent value="members" className="space-y-4">
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>团队Alpha 成员管理</CardTitle>
               <CardDescription>管理团队成员信息和角色分配</CardDescription>
@@ -301,7 +301,7 @@ export default function TeamManagement() {
         </TabsContent>
 
         <TabsContent value="permissions" className="space-y-4">
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>权限设置</CardTitle>
               <CardDescription>配置不同角色的系统访问权限</CardDescription>
