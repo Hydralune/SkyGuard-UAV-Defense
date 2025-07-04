@@ -10,7 +10,6 @@ import ExerciseStatus from '@/pages/ExerciseStatus'
 import Reports from '@/pages/Reports'
 import TeamManagement from '@/pages/TeamManagement'
 import Operations from '@/pages/Operations'
-import './App.css'
 
 function App() {
   return (

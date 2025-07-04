@@ -41,7 +41,7 @@ export default function Dashboard() {
 
       {/* 系统状态概览 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">活跃演练</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
@@ -53,7 +53,7 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">参与团队</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -65,7 +65,7 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">成功率</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -77,7 +77,7 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">系统负载</CardTitle>
             <Cpu className="h-4 w-4 text-muted-foreground" />
@@ -99,7 +99,7 @@ export default function Dashboard() {
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Link to="/attack-scenarios">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <Card className="card-hover cursor-pointer">
                 <CardHeader>
                   <div className="flex items-center space-x-2">
                     <Sword className="h-5 w-5 text-red-500" />
@@ -125,7 +125,7 @@ export default function Dashboard() {
             </Link>
 
             <Link to="/defense-scenarios">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <Card className="card-hover cursor-pointer">
                 <CardHeader>
                   <div className="flex items-center space-x-2">
                     <ShieldCheck className="h-5 w-5 text-green-500" />
@@ -151,7 +151,7 @@ export default function Dashboard() {
             </Link>
 
             <Link to="/visualization">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <Card className="card-hover cursor-pointer">
                 <CardHeader>
                   <div className="flex items-center space-x-2">
                     <Eye className="h-5 w-5 text-blue-500" />
@@ -179,7 +179,7 @@ export default function Dashboard() {
         </TabsContent>
 
         <TabsContent value="principles" className="space-y-4">
-          <Card>
+          <Card className="card-hover">
             <CardHeader>
               <CardTitle>攻防对抗原理</CardTitle>
               <CardDescription>

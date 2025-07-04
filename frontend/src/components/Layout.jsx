@@ -82,7 +82,7 @@ function Sidebar({ className }) {
   return (
     <div className={cn("pb-12", className)}>
       <div className="space-y-4 py-4">
-        <div className="px-3 py-2">
+        <div className="px-6 py-2">
           <div className="flex items-center space-x-2 mb-6">
             <Shield className="h-8 w-8 text-blue-500" />
             <div>
@@ -90,19 +90,22 @@ function Sidebar({ className }) {
               <p className="text-xs text-muted-foreground">低空无人智能体攻防演练系统</p>
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors",
+                  "flex items-center space-x-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
                   location.pathname === item.href
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-blue-50 hover:text-blue-700"
                 )}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className={cn(
+                  "h-5 w-5", 
+                  location.pathname === item.href ? "text-blue-600" : ""
+                )} />
                 <span>{item.name}</span>
               </Link>
             ))}
@@ -117,7 +120,7 @@ export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetTrigger asChild>
@@ -144,7 +147,7 @@ export default function Layout({ children }) {
 
       {/* Desktop sidebar */}
       <div className="hidden md:fixed md:inset-y-0 md:flex md:w-72 md:flex-col">
-        <div className="flex min-h-0 flex-1 flex-col border-r bg-card">
+        <div className="flex min-h-0 flex-1 flex-col border-r bg-white shadow-lg">
           <ScrollArea className="flex-1">
             <Sidebar />
           </ScrollArea>

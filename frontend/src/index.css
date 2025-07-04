@@ -74,3 +74,73 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom styles for demo-like effect */
+@layer components {
+  .card-hover {
+    @apply transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  .nav-item-hover {
+    @apply bg-blue-50 text-blue-700;
+  }
+  
+  /* Blue hover styles for navigation */
+  .nav-item {
+    @apply transition-colors;
+  }
+  
+  .nav-item:hover {
+    @apply bg-blue-50 text-blue-700;
+  }
+  
+  .nav-item.active {
+    @apply bg-blue-50 text-blue-700;
+  }
+  
+  /* Blue theme colors for consistency */
+  .text-theme-blue {
+    @apply text-blue-600;
+  }
+  
+  .bg-theme-blue {
+    @apply bg-blue-600;
+  }
+  
+  .border-theme-blue {
+    @apply border-blue-600;
+  }
+  
+  /* Gradient background like in demo */
+  .gradient-bg {
+    @apply bg-gradient-to-br from-blue-500 to-purple-600;
+  }
+  
+  /* Animated elements */
+  .pulse-ring {
+    animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+  
+  .floating {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  /* Animation keyframes */
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(0.33);
+    }
+    40%, 50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.2);
+    }
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+}
