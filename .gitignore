@@ -66,3 +66,5 @@ tempmd/
 drone_samples/
 backend/datasets/VisDrone_Dataset/
 backend/datasets/VisDrone_Dataset.zip
+backend/adversarial_results/
+backend/evaluation_results/
