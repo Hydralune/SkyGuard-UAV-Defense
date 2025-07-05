@@ -48,18 +48,36 @@ class PGDAttack(BaseAttack):
             # 确保扰动后的图像仍在[0,1]范围内
             images = torch.clamp(images + delta, 0, 1).detach()
         
-        # 由于YOLO模型不支持自动微分，我们使用一种基于随机噪声的方法
-        # 这里我们模拟PGD的迭代过程，但使用随机噪声代替梯度
+        # 使用梯度信息进行标准PGD攻击
+        # 将模型设置为评估模式并禁用不必要的梯度
+        model.model.to(self.device)
+        model.model.eval()
         
         for _ in range(self.steps):
-            # 生成随机噪声
-            noise = torch.randn_like(images).sign() * self.alpha
+            images.requires_grad = True
+            # 前向传播获取原始预测 (使用模型底层以便保留梯度)
+            preds = model.model(images)
+            # 如果模型返回的是元组或列表, 取第一个张量
+            if isinstance(preds, (list, tuple)):
+                preds = preds[0]
             
-            # 应用噪声
-            perturbed_images = images + noise
+            # 目标: 减少检测置信度 -> 最大化负的 objectness 分数
+            # YOLO 输出张量格式: (..., 4) 通常是 objectness 置信度
+            obj_conf = preds[..., 4]
+            loss = -obj_conf.mean()
             
-            # 确保扰动在epsilon范围内
-            eta = torch.clamp(perturbed_images - ori_images, -self.eps, self.eps)
+            # 反向传播计算梯度
+            model.model.zero_grad()
+            if images.grad is not None:
+                images.grad.zero_()
+            loss.backward()
+            
+            # 根据梯度方向更新图像
+            grad_sign = images.grad.data.sign()
+            images = images.detach() + self.alpha * grad_sign
+            
+            # 投影到 ε-ball 并裁剪到合法像素范围 [0,1]
+            eta = torch.clamp(images - ori_images, min=-self.eps, max=self.eps)
             images = torch.clamp(ori_images + eta, 0, 1).detach()
         
         return images
