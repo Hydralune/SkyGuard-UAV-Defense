@@ -1,0 +1,36 @@
+{
+    "total_images": 10,
+    "total_detections": 250,
+    "detection_by_class": {
+        "bus": 8,
+        "car": 170,
+        "truck": 13,
+        "van": 10,
+        "pedestrian": 25,
+        "motor": 15,
+        "tricycle": 2,
+        "people": 5,
+        "bicycle": 2
+    },
+    "summary": {
+        "avg_inference_time": 0.10622227191925049,
+        "avg_detections_per_image": 25.0,
+        "total_detections": 250,
+        "total_images": 10
+    },
+    "confidence_stats": {
+        "min": 0.2523593604564667,
+        "max": 0.9227415919303894,
+        "mean": 0.5902531373500824,
+        "median": 0.5694591999053955,
+        "std": 0.21129768872262095
+    },
+    "inference_time_stats": {
+        "min": 0.04913043975830078,
+        "max": 0.5734007358551025,
+        "mean": 0.10622227191925049,
+        "median": 0.05085909366607666,
+        "std": 0.15587242962088893,
+        "total": 1.0622227191925049
+    }
+}
