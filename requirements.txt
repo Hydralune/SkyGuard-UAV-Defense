@@ -6,10 +6,11 @@ torch>=2.0.0
 torchvision>=0.15.0
 torchattacks>=3.4.0
 opencv-python>=4.7.0
-numpy>=1.24.0
+numpy==1.24.3
 pillow>=9.5.0
 ultralytics>=8.0.0
 matplotlib==3.7.1
 pyyaml==6.0
 tqdm==4.65.0
 python-multipart==0.0.6 
+ultralyticsplus==0.0.28

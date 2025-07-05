@@ -37,7 +37,7 @@ env/
 # Docker
 .docker/
 
-# 项目特定
+# 后端
 backend/assets/*
 backend/results/*
 *.pt
@@ -63,3 +63,6 @@ yarn-error.log*
 
 #others
 tempmd/
+drone_samples/
+backend/datasets/VisDrone_Dataset/
+backend/datasets/VisDrone_Dataset.zip
