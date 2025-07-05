@@ -2,11 +2,9 @@ import torch
 import cv2
 import os
 import numpy as np
-from celery_app import celery_app
 from torchvision.transforms.functional import to_tensor
 import torchvision.transforms as T
 
-@celery_app.task
 def run_defense_task(task_id, defense_type="gaussian_blur", params=None):
     """执行防御任务"""
     if params is None:

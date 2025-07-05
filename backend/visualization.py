@@ -3,11 +3,9 @@ import cv2
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from celery_app import celery_app
 import torchvision.transforms as transforms
 from PIL import Image
 
-@celery_app.task
 def generate_visualization(task_id, image_path=None, result_path=None):
     """生成可视化结果"""
     try:

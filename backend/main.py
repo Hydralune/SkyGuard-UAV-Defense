@@ -6,7 +6,7 @@ import uuid
 from pydantic import BaseModel
 from tasks import run_attack_task, pgd_attack_task, environment_attack_task
 from typing import Optional, List
-from train_model import train_model_task
+from train_model import train_model
 from defense import run_defense_task
 from visualization import generate_visualization
 from evaluate import evaluate_defense_task
@@ -85,10 +85,12 @@ async def start_basic_drill():
     # 生成任务ID
     task_id = str(uuid.uuid4())
     
-    # 将任务推送到队列
-    run_attack_task.delay(task_id)
-    
-    return {"task_id": task_id, "message": "Basic drill started"}
+    # 直接调用函数
+    try:
+        result = run_attack_task(task_id)
+        return {"task_id": task_id, "message": "Basic drill started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/get-result/{task_id}", response_model=ResultResponse)
 async def get_result(task_id: str):
@@ -119,19 +121,21 @@ async def start_training(request: TrainingRequest):
     # 生成任务ID
     task_id = str(uuid.uuid4())
     
-    # 将任务推送到队列
-    train_model_task.delay(
-        task_id, 
-        request.model_type, 
-        request.dataset, 
-        request.epochs, 
-        request.batch_size,
-        request.adv_training, 
-        request.adv_method, 
-        request.adv_ratio
-    )
-    
-    return {"task_id": task_id, "message": "Training started"}
+    # 直接调用函数
+    try:
+        train_model(
+            task_id, 
+            request.model_type, 
+            request.dataset, 
+            request.epochs, 
+            request.batch_size,
+            request.adv_training, 
+            request.adv_method, 
+            request.adv_ratio
+        )
+        return {"task_id": task_id, "message": "Training started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/get-training-status/{task_id}", response_model=TrainingStatusResponse)
 async def get_training_status(task_id: str):
@@ -196,25 +200,28 @@ async def run_attack(request: AttackRequest):
     # 生成任务ID
     task_id = str(uuid.uuid4())
     
-    # 根据攻击类型选择不同的任务
-    if request.attack_type == "fgsm":
-        # 使用FGSM攻击任务
-        run_attack_task.delay(task_id)
-    elif request.attack_type == "pgd":
-        # 使用PGD攻击任务
-        eps = request.attack_params.get("eps", 8/255)
-        alpha = request.attack_params.get("alpha", 2/255)
-        steps = request.attack_params.get("steps", 10)
-        pgd_attack_task.delay(task_id, eps, alpha, steps)
-    elif request.attack_type.startswith("env_"):
-        # 环境干扰攻击
-        env_type = request.attack_type[4:]  # 去掉'env_'前缀
-        intensity = request.attack_params.get("intensity", 0.5)
-        environment_attack_task.delay(task_id, env_type, intensity)
-    else:
-        raise HTTPException(status_code=400, detail=f"不支持的攻击类型: {request.attack_type}")
-    
-    return {"task_id": task_id, "message": f"{request.attack_type.upper()} attack started"}
+    try:
+        # 根据攻击类型选择不同的任务
+        if request.attack_type == "fgsm":
+            # 使用FGSM攻击任务
+            run_attack_task(task_id)
+        elif request.attack_type == "pgd":
+            # 使用PGD攻击任务
+            eps = request.attack_params.get("eps", 8/255)
+            alpha = request.attack_params.get("alpha", 2/255)
+            steps = request.attack_params.get("steps", 10)
+            pgd_attack_task(task_id, eps, alpha, steps)
+        elif request.attack_type.startswith("env_"):
+            # 环境干扰攻击
+            env_type = request.attack_type[4:]  # 去掉'env_'前缀
+            intensity = request.attack_params.get("intensity", 0.5)
+            environment_attack_task(task_id, env_type, intensity)
+        else:
+            raise HTTPException(status_code=400, detail=f"不支持的攻击类型: {request.attack_type}")
+        
+        return {"task_id": task_id, "message": f"{request.attack_type.upper()} attack started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/run-defense", response_model=DrillResponse)
 async def run_defense(request: DefenseRequest):
@@ -222,10 +229,12 @@ async def run_defense(request: DefenseRequest):
     # 生成任务ID
     task_id = str(uuid.uuid4())
     
-    # 将任务推送到队列
-    run_defense_task.delay(task_id, request.defense_type, request.params)
-    
-    return {"task_id": task_id, "message": f"{request.defense_type} defense started"}
+    try:
+        # 执行防御任务
+        run_defense_task(task_id, request.defense_type, request.params)
+        return {"task_id": task_id, "message": f"{request.defense_type} defense started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/evaluate-defense", response_model=DrillResponse)
 async def evaluate_defense(request: EvaluationRequest):
@@ -233,10 +242,12 @@ async def evaluate_defense(request: EvaluationRequest):
     # 生成任务ID
     task_id = str(uuid.uuid4())
     
-    # 将任务推送到队列
-    evaluate_defense_task.delay(task_id, request.model_path, request.dataset_path, request.defense_type)
-    
-    return {"task_id": task_id, "message": "Defense evaluation started"}
+    try:
+        # 执行评估任务
+        evaluate_defense_task(task_id, request.model_path, request.dataset_path, request.defense_type)
+        return {"task_id": task_id, "message": "Defense evaluation started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate-visualization", response_model=DrillResponse)
 async def create_visualization(request: VisualizationRequest):
@@ -244,10 +255,12 @@ async def create_visualization(request: VisualizationRequest):
     # 生成任务ID
     task_id = str(uuid.uuid4())
     
-    # 将任务推送到队列
-    generate_visualization.delay(task_id, request.image_path, request.result_path)
-    
-    return {"task_id": task_id, "message": "Visualization generation started"}
+    try:
+        # 执行可视化任务
+        generate_visualization(task_id, request.image_path, request.result_path)
+        return {"task_id": task_id, "message": "Visualization generation started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/available-datasets")
 async def get_available_datasets():

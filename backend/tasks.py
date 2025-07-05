@@ -1,12 +1,12 @@
+# backend/tasks.py 中添加的新任务
+
 import torch
 import cv2
 import os
 import numpy as np
-from celery_app import celery_app
 from torchvision.transforms.functional import to_tensor
 import torchattacks
 
-@celery_app.task
 def run_attack_task(task_id):
     """执行对抗攻击任务"""
     try:
@@ -65,7 +65,6 @@ def run_attack_task(task_id):
         print(f"Error in task {task_id}: {str(e)}")
         raise e
 
-@celery_app.task
 def pgd_attack_task(task_id, eps=8/255, alpha=2/255, steps=10):
     """执行PGD对抗攻击任务"""
     try:
@@ -127,7 +126,6 @@ def pgd_attack_task(task_id, eps=8/255, alpha=2/255, steps=10):
         print(f"Error in task {task_id}: {str(e)}")
         raise e
 
-@celery_app.task
 def environment_attack_task(task_id, attack_type="brightness", intensity=0.5):
     """执行环境干扰攻击任务"""
     try:
@@ -191,6 +189,77 @@ def environment_attack_task(task_id, attack_type="brightness", intensity=0.5):
             json.dump(attack_params, f)
         
         return {"status": "Completed", "result_path": result_path}
+    
+    except Exception as e:
+        error_path = os.path.join(result_path, "error.txt")
+        os.makedirs(os.path.dirname(error_path), exist_ok=True)
+        with open(error_path, "w") as f:
+            f.write(str(e))
+        print(f"Error in task {task_id}: {str(e)}")
+        raise e
+
+def test_model_task(task_id, model_name="yolov8s-visdrone", dataset_name="VisDrone", num_images=5):
+    """测试模型任务"""
+    try:
+        from utils.model_manager import ModelManager
+        from utils.dataset_manager import DatasetManager
+        from utils.evaluator import Evaluator
+        from utils.visualizer import Visualizer
+        
+        # 创建结果目录
+        result_path = os.path.join("backend", "results", task_id)
+        os.makedirs(result_path, exist_ok=True)
+        
+        # 加载模型
+        model = ModelManager.load_yolov8_model(model_name=model_name)
+        
+        # 获取测试图像
+        image_paths = DatasetManager.get_test_images(dataset_name=dataset_name, num_images=num_images)
+        
+        # 创建评估器和可视化器
+        evaluator = Evaluator(model, save_dir=result_path)
+        visualizer = Visualizer(save_dir=result_path)
+        
+        # 测试结果
+        test_results = []
+        
+        # 测试每张图片
+        for image_path in image_paths:
+            # 执行推理
+            results, inference_time = evaluator.evaluate_detection(image_path)
+            
+            # 收集结果
+            boxes = results[0].boxes
+            detections = []
+            
+            for box in boxes:
+                cls_id = int(box.cls[0].item())
+                conf = box.conf[0].item()
+                class_name = model.names[cls_id]
+                coords = box.xyxy[0].tolist()  # 转换为列表
+                
+                detections.append({
+                    "class": class_name,
+                    "confidence": float(conf),
+                    "bbox": coords
+                })
+            
+            test_results.append({
+                "image_path": image_path,
+                "detections": detections,
+                "inference_time": inference_time
+            })
+        
+        # 保存测试结果
+        with open(os.path.join(result_path, "test_results.json"), "w") as f:
+            import json
+            json.dump(test_results, f, indent=4)
+        
+        return {
+            "status": "Completed",
+            "result_path": result_path,
+            "num_images_tested": len(image_paths)
+        }
     
     except Exception as e:
         error_path = os.path.join(result_path, "error.txt")

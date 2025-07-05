@@ -2,13 +2,11 @@ import os
 import torch
 import cv2
 import numpy as np
-from celery_app import celery_app
 import json
 import torchvision.transforms as transforms
 from torchvision.transforms.functional import to_tensor
 import torchattacks
 
-@celery_app.task
 def evaluate_defense_task(task_id, model_path=None, dataset_path=None, defense_type=None):
     """评估防御效果的任务"""
     try:
