@@ -1,0 +1,84 @@
+{
+    "total_images": 10,
+    "original_detections": 231,
+    "adversarial_detections": 219,
+    "original_detection_by_class": {
+        "pedestrian": 32,
+        "car": 118,
+        "bus": 9,
+        "truck": 12,
+        "van": 22,
+        "tricycle": 2,
+        "motor": 21,
+        "bicycle": 7,
+        "people": 8
+    },
+    "adversarial_detection_by_class": {
+        "pedestrian": 29,
+        "car": 111,
+        "bus": 11,
+        "truck": 15,
+        "van": 18,
+        "tricycle": 3,
+        "motor": 17,
+        "bicycle": 6,
+        "awning-tricycle": 2,
+        "people": 7
+    },
+    "attack_params": {
+        "name": "PGD",
+        "eps": 0.03137254901960784,
+        "steps": 10,
+        "alpha": 0.00784313725490196
+    },
+    "summary": {
+        "avg_inference_time": 0.09396657943725586,
+        "avg_attack_time": 0.8891793012619018,
+        "total_original_detections": 231,
+        "total_adversarial_detections": 219,
+        "detection_reduction_rate": 0.051948051948051965,
+        "avg_detection_drop_rate": 0.10945631555220678,
+        "avg_confidence_drop": -0.015598887796001876,
+        "class_vulnerability": {
+            "pedestrian": 0.09375,
+            "car": 0.05932203389830504,
+            "bus": -0.22222222222222232,
+            "truck": -0.25,
+            "van": 0.18181818181818177,
+            "tricycle": -0.5,
+            "motor": 0.19047619047619047,
+            "bicycle": 0.1428571428571429,
+            "people": 0.125
+        }
+    },
+    "original_confidence_stats": {
+        "min": 0.25103577971458435,
+        "max": 0.927566409111023,
+        "mean": 0.6071344985590352,
+        "median": 0.6249375343322754,
+        "std": 0.20830614460435104
+    },
+    "adversarial_confidence_stats": {
+        "min": 0.2526441514492035,
+        "max": 0.9269154667854309,
+        "mean": 0.6011531378852722,
+        "median": 0.6135659217834473,
+        "std": 0.21040937949868752
+    },
+    "inference_time_stats": {
+        "min": 0.042577266693115234,
+        "max": 0.5042617321014404,
+        "mean": 0.09396657943725586,
+        "median": 0.04599630832672119,
+        "std": 0.13694874778513036,
+        "total": 0.9396657943725586
+    },
+    "attack_time_stats": {
+        "min": 0.819709062576294,
+        "max": 1.1503782272338867,
+        "mean": 0.8891793012619018,
+        "median": 0.856743335723877,
+        "std": 0.0911026654625198,
+        "total": 8.891793012619019
+    }
+}

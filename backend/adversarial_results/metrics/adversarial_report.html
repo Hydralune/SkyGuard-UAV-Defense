@@ -1,0 +1,228 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Adversarial Attack Evaluation Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+                .container { max-width: 1200px; margin: 0 auto; }
+                h1, h2, h3 { color: #333; }
+                .metric-card { background: #f9f9f9; border-radius: 5px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+                .metric-value { font-size: 24px; font-weight: bold; color: #0066cc; }
+                .metric-label { font-size: 14px; color: #666; }
+                .metric-row { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+                .metric-box { flex: 1; min-width: 200px; }
+                .plot-container { margin: 30px 0; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+                th { background-color: #f2f2f2; }
+                tr:nth-child(even) { background-color: #f9f9f9; }
+                .gallery { display: flex; flex-wrap: wrap; gap: 10px; }
+                .gallery img { width: 300px; height: auto; border: 1px solid #ddd; border-radius: 4px; }
+                .attack-param { color: #d9534f; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Adversarial Attack Evaluation Report</h1>
+                <p>Evaluation Time: 2025-07-05 23:05:18</p>
+                
+                <div class="metric-card">
+                    <h2>Attack Parameters</h2>
+                    <div class="metric-row">
+                        <div class="metric-box">
+                            <div class="metric-value">PGD</div>
+                            <div class="metric-label">Attack Type</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value attack-param">0.03137254901960784</div>
+                            <div class="metric-label">Epsilon (Max Perturbation)</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value attack-param">0.00784313725490196</div>
+                            <div class="metric-label">Alpha (Step Size)</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value attack-param">10</div>
+                            <div class="metric-label">Iteration Steps</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <h2>Overall Metrics</h2>
+                    <div class="metric-row">
+                        <div class="metric-box">
+                            <div class="metric-value">10</div>
+                            <div class="metric-label">Total Images</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">231</div>
+                            <div class="metric-label">Original Detections</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">219</div>
+                            <div class="metric-label">Adversarial Detections</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">5.19%</div>
+                            <div class="metric-label">Detection Reduction Rate</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <div class="metric-box">
+                            <div class="metric-value">10.95%</div>
+                            <div class="metric-label">Avg Detection Drop Rate</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">-1.56%</div>
+                            <div class="metric-label">Avg Confidence Drop</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">93.97 ms</div>
+                            <div class="metric-label">Avg Inference Time</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">889.18 ms</div>
+                            <div class="metric-label">Avg Attack Time</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <h2>Visualizations</h2>
+                    <div class="plot-container">
+                        <h3>Detection Count Comparison</h3>
+                        <img src="plots/detection_count_comparison.png" alt="Detection Count Comparison" style="max-width: 100%;">
+                    </div>
+                    
+                    <div class="plot-container">
+                        <h3>Confidence Distribution Comparison</h3>
+                        <img src="plots/confidence_distribution_comparison.png" alt="Confidence Distribution Comparison" style="max-width: 100%;">
+                    </div>
+                    
+                    <div class="plot-container">
+                        <h3>Class Distribution Comparison</h3>
+                        <img src="plots/class_distribution_comparison.png" alt="Class Distribution Comparison" style="max-width: 100%;">
+                    </div>
+                    
+                    <div class="plot-container">
+                        <h3>Detection Drop Rate by Image</h3>
+                        <img src="plots/detection_drop_rate.png" alt="Detection Drop Rate" style="max-width: 100%;">
+                    </div>
+                    
+                    <div class="plot-container">
+                        <h3>Confidence Drop by Image</h3>
+                        <img src="plots/confidence_drop.png" alt="Confidence Drop" style="max-width: 100%;">
+                    </div>
+                    
+                    <div class="plot-container">
+                        <h3>Class Vulnerability Analysis</h3>
+                        <img src="plots/class_vulnerability.png" alt="Class Vulnerability" style="max-width: 100%;">
+                    </div>
+                    
+                    <div class="plot-container">
+                        <h3>Attack Time Distribution</h3>
+                        <img src="plots/attack_time_distribution.png" alt="Attack Time Distribution" style="max-width: 100%;">
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <h2>Class Vulnerability Analysis</h2>
+                    <table>
+                        <tr>
+                            <th>Class</th>
+                            <th>Original Count</th>
+                            <th>Adversarial Count</th>
+                            <th>Vulnerability Score</th>
+                        </tr>
+        
+                        <tr>
+                                                        <td>motor</td>
+                            <td>21</td>
+                            <td>17</td>
+                            <td>19.05%</td>
+                        </tr>
+        
+                        <tr>
+                                                        <td>van</td>
+                            <td>22</td>
+                            <td>18</td>
+                            <td>18.18%</td>
+                        </tr>
+        
+                        <tr>
+                                                        <td>bicycle</td>
+                            <td>7</td>
+                            <td>6</td>
+                            <td>14.29%</td>
+                        </tr>
+        
+                        <tr>
+                                                        <td>people</td>
+                            <td>8</td>
+                            <td>7</td>
+                            <td>12.50%</td>
+                        </tr>
+        
+                        <tr>
+                                                        <td>pedestrian</td>
+                            <td>32</td>
+                            <td>29</td>
+                            <td>9.38%</td>
+                        </tr>
+        
+                        <tr>
+                                                        <td>car</td>
+                            <td>118</td>
+                            <td>111</td>
+                            <td>5.93%</td>
+                        </tr>
+        
+                        <tr>
+                                                        <td>bus</td>
+                            <td>9</td>
+                            <td>11</td>
+                            <td>-22.22%</td>
+                        </tr>
+        
+                        <tr>
+                                                        <td>truck</td>
+                            <td>12</td>
+                            <td>15</td>
+                            <td>-25.00%</td>
+                        </tr>
+        
+                        <tr>
+                                                        <td>tricycle</td>
+                            <td>2</td>
+                            <td>3</td>
+                            <td>-50.00%</td>
+                        </tr>
+        
+                    </table>
+                </div>
+                
+                <div class="metric-card">
+                    <h2>Example Results</h2>
+                    <p>Original vs Adversarial vs Perturbation Comparison:</p>
+                    <div class="gallery">
+        
+                        <img src="../comparison_results/0001_9999976_00000_d_0000034.jpg" alt="Comparison 1">
+            
+                        <img src="../comparison_results/0002_9999938_00000_d_0000124.jpg" alt="Comparison 2">
+            
+                        <img src="../comparison_results/0003_9999938_00000_d_0000278.jpg" alt="Comparison 3">
+            
+                        <img src="../comparison_results/0004_9999938_00000_d_0000135.jpg" alt="Comparison 4">
+            
+                        <img src="../comparison_results/0005_9999986_00000_d_0000023.jpg" alt="Comparison 5">
+            
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        

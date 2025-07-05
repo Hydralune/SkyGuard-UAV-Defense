@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+#python backend/evaluate_model.py --model yolov8s-visdrone --dataset VisDrone --num_images 10 --save_dir evaluation_results
 import os
 import argparse
 import cv2
