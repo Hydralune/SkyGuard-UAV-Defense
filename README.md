@@ -16,7 +16,7 @@ SkyGuard系统包含以下主要功能：
 
 - **前端**：基于React的Web界面，使用Tailwind CSS进行样式设计
 - **后端**：FastAPI + Celery异步任务队列
-- **模型**：基于YOLOv5的目标检测模型，支持对抗训练
+- **模型**：基于YOLOv8的目标检测模型，支持对抗训练
 
 ## 快速开始
 
@@ -67,21 +67,30 @@ npm run dev
 
 ## 数据集
 
-系统支持多种无人机数据集，可以使用以下命令下载：
+系统使用VisDrone数据集，这是一个大规模的无人机视角目标检测基准数据集。可以使用以下命令下载：
 
 ```bash
 cd backend
-python download_dataset.py drone_detection_maciullo  # 下载DroneDetectionDataset
-python download_dataset.py anti_uav  # 下载Anti-UAV数据集
-python download_dataset.py all  # 下载所有数据集
+python -c "from download_dataset import download_visdrone_dataset; download_visdrone_dataset()"
 ```
 
-可用的数据集包括：
-- drone_detection_maciullo: DroneDetectionDataset - 包含无人机图像和标注
-- drone_detection_test: DroneDetectionDataset测试集
-- anti_uav: Anti-UAV数据集，包含红外和可见光无人机图像
-- halmstad_drone: Halmstad Drone Dataset，包含红外、可见光和音频数据
-- yolov7_drone: YOLOv7 Drone Detection数据集
+VisDrone数据集包含以下类别：
+- 0: pedestrian（行人）
+- 1: people（人群）
+- 2: bicycle（自行车）
+- 3: car（汽车）
+- 4: van（面包车）
+- 5: truck（卡车）
+- 6: tricycle（三轮车）
+- 7: awning-tricycle（篷式三轮车）
+- 8: bus（公交车）
+- 9: motor（摩托车）
+- 10: others（其他）
+
+数据集已转换为YOLO格式，包含以下结构：
+- images/: 包含训练、验证和测试的图像文件
+- labels/: 包含对应的YOLO格式标签文件
+- data.yaml: 配置文件，指定图像和标签的路径以及类名
 
 ## 模型训练
 
@@ -89,13 +98,13 @@ python download_dataset.py all  # 下载所有数据集
 
 ```bash
 cd backend
-python train_model.py --model yolov5s --dataset drone_detection_maciullo --epochs 50
+python train_model.py --model yolov8s --dataset visdrone --epochs 50
 ```
 
 支持对抗训练：
 
 ```bash
-python train_model.py --model yolov5s --dataset drone_detection_maciullo --adv-training --adv-method pgd
+python train_model.py --model yolov8s --dataset visdrone --adv-training --adv-method pgd
 ```
 
 ## API接口
