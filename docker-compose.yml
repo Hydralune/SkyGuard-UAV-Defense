@@ -8,7 +8,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app # 挂载代码和结果
+      - ./:/app # 挂载完整代码库，保持 backend 包路径一致
     depends_on:
       - redis
     environment:
@@ -41,7 +41,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     volumes:
-      - ./backend:/app
+      - ./:/app
     depends_on:
       - redis
     # GPU support (optional)
