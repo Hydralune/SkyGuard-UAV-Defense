@@ -18,6 +18,8 @@ import time
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
+import importlib
+from algorithms.attacks.base import BaseAttack
 
 class AdversarialEvaluator:
     """Evaluator for adversarial attacks providing comprehensive metrics and visualizations"""
@@ -123,6 +125,8 @@ class AdversarialEvaluator:
         # Convert adversarial tensor back to numpy for prediction
         adversarial_image = adversarial_tensor[0].permute(1, 2, 0).cpu().numpy() * 255.0
         adversarial_image = adversarial_image.astype(np.uint8)
+        # 需要保证输入给 Annotator 的图像是内存连续的，否则 ultralytics 会 assert 失败
+        adversarial_image = np.ascontiguousarray(adversarial_image)
         
         # Perform inference on adversarial image
         adversarial_results = self.model.predict(adversarial_image)
@@ -692,10 +696,22 @@ def main():
     alpha = parse_fraction(args.alpha)
     
     # Initialize attack algorithm
-    if args.attack.lower() == "pgd":
-        attack = PGDAttack(eps=eps, alpha=alpha, steps=args.steps)
-    else:
-        raise ValueError(f"Unsupported attack algorithm: {args.attack}")
+    def load_attack(name: str, **kwargs):
+        """Dynamically import an attack class located in algorithms/attacks/NAME.py"""
+        module_name = f"algorithms.attacks.{name.lower()}"
+        try:
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError as e:
+            raise ValueError(f"Unsupported attack algorithm: {name}. Expected file backend/{module_name.replace('.', '/')} .py") from e
+
+        # Find concrete subclass of BaseAttack inside module
+        for attr in dir(module):
+            obj = getattr(module, attr)
+            if isinstance(obj, type) and issubclass(obj, BaseAttack) and obj is not BaseAttack:
+                return obj(**kwargs)
+        raise ValueError(f"No attack class found in module {module_name}")
+
+    attack = load_attack(args.attack, eps=eps, alpha=alpha, steps=args.steps)
     
     print(f"Loading dataset: {args.dataset}")
     # Get test images

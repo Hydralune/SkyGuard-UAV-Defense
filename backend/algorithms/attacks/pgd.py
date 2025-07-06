@@ -12,15 +12,17 @@ class PGDAttack(BaseAttack):
         alpha: 每步扰动大小
         steps: 迭代步数
         random_start: 是否随机初始化
+        input_size: 输入图像的固定尺寸
     """
     
-    def __init__(self, eps=8/255, alpha=2/255, steps=10, random_start=True):
+    def __init__(self, eps=8/255, alpha=2/255, steps=10, random_start=True, input_size=640):
         super().__init__(name="PGD")
         self.eps = eps
         self.alpha = alpha
         self.steps = steps
         self.random_start = random_start
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.input_size = input_size
     
     def attack(self, model, images, targets=None, **kwargs):
         """
@@ -36,6 +38,10 @@ class PGDAttack(BaseAttack):
         """
         # 将图像移动到设备
         images = images.clone().detach().to(self.device)
+        orig_size = images.shape[-2:]  # (H, W)
+        if self.input_size is not None:
+            # 插值到方形，避免 YOLO Cat 维度不一致的报错
+            images = torch.nn.functional.interpolate(images, size=(self.input_size, self.input_size), mode="bilinear", align_corners=False)
         
         # 保存原始图像
         ori_images = images.clone().detach()
@@ -72,12 +78,22 @@ class PGDAttack(BaseAttack):
                 images.grad.zero_()
             loss.backward()
             
-            # 根据梯度方向更新图像
-            grad_sign = images.grad.data.sign()
+            # 根据梯度方向更新图像 (增加对 None 的健壮性处理)
+            grad = images.grad
+            if grad is None:
+                # 极端情况下梯度可能为空（例如 forward 被截断或 OOM 被清理），
+                # 这里回退为零梯度，保证攻击流程不断；也可以选择 break。
+                grad = torch.zeros_like(images)
+
+            grad_sign = grad.data.sign()
             images = images.detach() + self.alpha * grad_sign
             
             # 投影到 ε-ball 并裁剪到合法像素范围 [0,1]
             eta = torch.clamp(images - ori_images, min=-self.eps, max=self.eps)
             images = torch.clamp(ori_images + eta, 0, 1).detach()
+        
+        # 还原到原始分辨率（与原图一致，便于后续可视化差分）
+        if self.input_size is not None and images.shape[-2:] != orig_size:
+            images = torch.nn.functional.interpolate(images, size=orig_size, mode="bilinear", align_corners=False)
         
         return images
