@@ -1,3 +1,0 @@
-[submodule "backend/yolov8s-visdrone"]
-	path = backend/yolov8s-visdrone
-	url = https://huggingface.co/mshamrai/yolov8s-visdrone
