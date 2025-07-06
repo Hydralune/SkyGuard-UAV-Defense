@@ -6,6 +6,7 @@ import os
 import numpy as np
 from torchvision.transforms.functional import to_tensor
 import torchattacks
+from backend.celery_app import celery_app
 
 def run_attack_task(task_id):
     """执行对抗攻击任务"""
@@ -65,7 +66,8 @@ def run_attack_task(task_id):
         print(f"Error in task {task_id}: {str(e)}")
         raise e
 
-def pgd_attack_task(task_id, eps=8/255, alpha=2/255, steps=10):
+@celery_app.task(name="attack.pgd", bind=True)
+def pgd_attack_task(self, task_id, eps=8/255, alpha=2/255, steps=10):
     """执行PGD对抗攻击任务"""
     try:
         # --- 1. 准备工作 ---
