@@ -3,6 +3,8 @@ import os
 import torch
 from ultralytics import YOLO
 
+from .model_registry import get_model_path
+
 class ModelManager:
     """模型管理器，负责加载和管理不同的模型"""
     
@@ -19,9 +21,14 @@ class ModelManager:
             加载的模型
         """
         if model_path is None:
-            # 使用默认路径
-            current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            model_path = os.path.join(current_dir, model_name, 'best.pt')
+            # 先通过 registry 查找 active / baseline
+            resolved = get_model_path(model_name)
+            if resolved is None:
+                # 回退旧路径
+                current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                resolved = os.path.join(current_dir, model_name, 'best.pt')
+
+            model_path = resolved
         
         print(f"Loading model from: {model_path}")
         
