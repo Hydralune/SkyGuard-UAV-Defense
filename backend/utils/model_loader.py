@@ -3,6 +3,9 @@ import os
 import torch
 from ultralytics import YOLO
 
+# New centralized resolver
+from .model_registry import get_model_path
+
 def load_yolov8_model(model_path=None):
     """
     加载YOLOv8模型
@@ -14,9 +17,14 @@ def load_yolov8_model(model_path=None):
         加载的模型
     """
     if model_path is None:
-        # 使用默认路径
-        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        model_path = os.path.join(current_dir, 'yolov8s-visdrone', 'best.pt')
+        # 尝试通过模型注册表查找
+        resolved = get_model_path('yolov8s-visdrone')
+        if resolved is None:
+            # 回退到旧路径逻辑以保持兼容
+            current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            resolved = os.path.join(current_dir, 'yolov8s-visdrone', 'best.pt')
+
+        model_path = resolved
     
     print(f"Loading model from: {model_path}")
     
