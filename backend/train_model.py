@@ -1,4 +1,4 @@
-#模型训练测试
+#模型训练函数
 #python backend/train_visdrone.py --epochs 50 --run_desc standard_test --model_name yolov8s-visdrone --device 0
 import os
 import argparse
@@ -68,6 +68,13 @@ def train_visdrone(
     model_name: str = "yolov8s-visdrone",
     device: Union[str, int, None] = 0,
     activate: bool = True,
+    # --- adversarial training params ---
+    adv_train: bool = False,
+    adv_ratio: float = 0.5,
+    adv_eps: str = "8/255",
+    adv_alpha: str = "2/255",
+    adv_steps: int = 10,
+    adv_attack: str = "pgd",
 ):
     """Train a YOLOv8 model on the VisDrone dataset.
 
@@ -89,8 +96,9 @@ def train_visdrone(
     project_dir = RUNS_DIR / run_desc
     project_dir.mkdir(parents=True, exist_ok=True)
 
+    mode_msg = "PGD adversarial training" if adv_train else "standard training"
     print(
-        f"[INFO] Starting YOLOv8 training → base_model={base_model}, epochs={epochs}, imgsz={imgsz}, batch={batch}"
+        f"[INFO] Starting YOLOv8 {mode_msg} → base_model={base_model}, epochs={epochs}, imgsz={imgsz}, batch={batch}"
     )
 
     # ------------------------------------------------------------------
@@ -104,11 +112,62 @@ def train_visdrone(
         return _orig_load(*args, **kwargs)
     torch.load = _patched_load
 
+    # --------------------------------------------------------
+    # 1. Instantiate model
+    # --------------------------------------------------------
     model = YOLO(base_model)
+
+    # --------------------------------------------------------
+    # 2. Register PGD adversarial training callback if requested
+    # --------------------------------------------------------
+    if adv_train:
+        # Lazy imports to avoid unnecessary deps for standard training
+        import importlib, inspect
+        from algorithms.attacks.base import BaseAttack
+        from backend.callbacks.advtrain import AdvTrainingCallback
+
+        # helper to parse fraction strings like "8/255"
+        def _parse_fraction(val: str):
+            if isinstance(val, (int, float)):
+                return float(val)
+            if "/" in val:
+                num, denom = val.split("/", 1)
+                return float(num) / float(denom)
+            return float(val)
+
+        # Dynamically load attack class similar to logic in tasks.py
+        def _load_attack_by_name(name: str, **kwargs):
+            module_name = f"algorithms.attacks.{name.lower()}"
+            module = importlib.import_module(module_name)
+            for attr in dir(module):
+                obj = getattr(module, attr)
+                if isinstance(obj, type) and issubclass(obj, BaseAttack) and obj is not BaseAttack:
+                    try:
+                        return obj(**kwargs)
+                    except TypeError:
+                        sig = inspect.signature(obj.__init__)
+                        filtered_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+                        return obj(**filtered_kwargs)
+            raise ValueError(f"No attack class found in module {module_name}")
+
+        attack_kwargs = {
+            "eps": _parse_fraction(adv_eps),
+            "alpha": _parse_fraction(adv_alpha),
+            "steps": adv_steps,
+            "input_size": imgsz,
+        }
+
+        attack = _load_attack_by_name(adv_attack, **attack_kwargs)
+
+        callback = AdvTrainingCallback(attack=attack, ratio=adv_ratio)
+        model.add_callback("on_batch_start", callback.on_batch_start)
 
     # Restore original torch.load once model instantiated
     torch.load = _orig_load
 
+    # --------------------------------------------------------
+    # 3. Launch training
+    # --------------------------------------------------------
     results = model.train(
         data=data_yaml,
         epochs=epochs,
@@ -141,6 +200,8 @@ def train_visdrone(
         "description": run_desc,
         "timestamp": run_id,
         "epochs": epochs,
+        "adv_train": adv_train,
+        "adv_attack": adv_attack if adv_train else None,
     }
     _update_registry(model_name, run_id, run_info, activate)
 
@@ -169,6 +230,14 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default="0", help="CUDA device id or 'cpu'")
     parser.add_argument("--activate", action="store_true", help="Activate the model after training")
 
+    # ---------------- adversarial training args ----------------
+    parser.add_argument("--adv_train", action="store_true", help="Enable PGD adversarial training")
+    parser.add_argument("--adv_ratio", type=float, default=0.5, help="Fraction of each batch to convert to adversarial images")
+    parser.add_argument("--adv_eps", type=str, default="8/255", help="PGD epsilon (can be fraction string like '8/255')")
+    parser.add_argument("--adv_alpha", type=str, default="2/255", help="PGD alpha (step size)")
+    parser.add_argument("--adv_steps", type=int, default=10, help="Number of attack iterations (if applicable)")
+    parser.add_argument("--adv_attack", type=str, default="pgd", help="Attack name used for adversarial training (pgd, fgsm, etc.)")
+
     args = parser.parse_args()
 
     train_visdrone(
@@ -181,4 +250,10 @@ if __name__ == "__main__":
         model_name=args.model_name,
         device=args.device,
         activate=args.activate,
+        adv_train=args.adv_train,
+        adv_ratio=args.adv_ratio,
+        adv_eps=args.adv_eps,
+        adv_alpha=args.adv_alpha,
+        adv_steps=args.adv_steps,
+        adv_attack=args.adv_attack,
     ) 

@@ -40,7 +40,6 @@ env/
 # 后端
 backend/assets/*
 backend/results/*
-*.pt
 *.pth
 !.gitkeep
 
@@ -71,3 +70,5 @@ backend/evaluation_results/
 backend/adversarial_results/
 backend/adversarial_results/metrics/
 
+backend/models/runs/
+datasets/
