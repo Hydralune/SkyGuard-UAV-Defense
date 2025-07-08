@@ -1,5 +1,6 @@
 #模型训练函数
-#python backend/train_visdrone.py --epochs 50 --run_desc standard_test --model_name yolov8s-visdrone --device 0
+#对抗训练：python -m  backend.train_model --adv_train --adv_attack pgd --adv_ratio 0.5 --adv_eps 8/255 --adv_alpha 2/255 --adv_steps 10 --epochs 30 --run_desc pgd_advtrain
+#常规训练： python backend/train_visdrone.py --epochs 50 --run_desc standard_test --model_name yolov8s-visdrone --device 0
 import os
 import argparse
 import json
@@ -160,7 +161,8 @@ def train_visdrone(
         attack = _load_attack_by_name(adv_attack, **attack_kwargs)
 
         callback = AdvTrainingCallback(attack=attack, ratio=adv_ratio)
-        model.add_callback("on_batch_start", callback.on_batch_start)
+        # Ultralytics ≥v8.1 changed event name; use the new one for training batches.
+        model.add_callback("on_train_batch_start", callback.on_batch_start)
 
     # Restore original torch.load once model instantiated
     torch.load = _orig_load

@@ -13,7 +13,7 @@ Example
 >>> from backend.callbacks.advtrain import AdvTrainingCallback
 >>> model = YOLO("yolov8s.pt")
 >>> attack = PGDAttack(eps=8/255, alpha=2/255, steps=10)
->>> model.add_callback("on_batch_start", AdvTrainingCallback(attack, ratio=0.5).on_batch_start)
+>>> model.add_callback("on_train_batch_start", AdvTrainingCallback(attack, ratio=0.5).on_batch_start)
 """
 
 from typing import Any, Sequence
