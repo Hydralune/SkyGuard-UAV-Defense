@@ -98,18 +98,16 @@ def train_visdrone(
     # Ultralytics still expects full pickle. We force weights_only=False.
     # This mirrors logic already present in utils/model_loader.py
     # ------------------------------------------------------------------
-    _orig_torch_load = torch.load
-
-    def _patched_torch_load(f, *args, **kwargs):
-        kwargs["weights_only"] = False
-        return _orig_torch_load(f, *args, **kwargs)
-
-    torch.load = _patched_torch_load
+    _orig_load = torch.load
+    def _patched_load(*args, **kwargs):
+        kwargs.setdefault('weights_only', False)  
+        return _orig_load(*args, **kwargs)
+    torch.load = _patched_load
 
     model = YOLO(base_model)
 
     # Restore original torch.load once model instantiated
-    torch.load = _orig_torch_load
+    torch.load = _orig_load
 
     results = model.train(
         data=data_yaml,
