@@ -27,8 +27,8 @@ import {
 
 export default function AttackScenarios() {
   const [selectedScenario, setSelectedScenario] = useState('adversarial')
-  const [selectedModel, setSelectedModel] = useState('yolov5')
-  const [selectedDataset, setSelectedDataset] = useState('coco')
+  const [selectedModel, setSelectedModel] = useState('yolov8s')
+  const [selectedDataset, setSelectedDataset] = useState('Visdrone')
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('pgd')
   const [parameters, setParameters] = useState({
     epsilon: 0.03,
@@ -40,6 +40,15 @@ export default function AttackScenarios() {
   })
   const [isRunning, setIsRunning] = useState(false)
 
+  // 当场景切换时，自动选择该场景的默认算法（第一个算法）
+  const handleScenarioChange = (value) => {
+    setSelectedScenario(value)
+    const defaultAlg = attackAlgorithms[value]?.[0]?.id
+    if (defaultAlg) {
+      setSelectedAlgorithm(defaultAlg)
+    }
+  }
+
   const attackAlgorithms = {
     adversarial: [
       { id: 'pgd', name: 'PGD', description: '投影梯度下降攻击', difficulty: 'high' },
@@ -47,7 +56,8 @@ export default function AttackScenarios() {
       { id: 'cw', name: 'C&W', description: 'Carlini & Wagner攻击', difficulty: 'high' },
       { id: 'deepfool', name: 'DeepFool', description: '最小扰动攻击', difficulty: 'medium' },
       { id: 'advpatch', name: 'AdvPatch', description: '对抗补丁攻击', difficulty: 'high' },
-      { id: 'dpatch', name: 'DPatch', description: '数字补丁攻击', difficulty: 'medium' }
+      { id: 'dpatch', name: 'DPatch', description: '数字补丁攻击', difficulty: 'medium' },
+      { id: 'selfmade', name: '自定义攻击算法', description: '从文件导入', difficulty: 'high' },
     ],
     optical: [
       { id: 'brightness', name: '亮度干扰', description: '调整图像亮度', difficulty: 'low' },
@@ -59,14 +69,14 @@ export default function AttackScenarios() {
   }
 
   const models = [
-    { id: 'yolov5', name: 'YOLOv5', description: '实时目标检测模型' },
+    { id: 'yolov8s', name: 'YOLOv8s', description: '实时目标检测模型' },
     { id: 'yolov10', name: 'YOLOv10', description: '最新版本YOLO模型' },
     { id: 'faster_rcnn', name: 'Faster R-CNN', description: '两阶段检测模型' },
     { id: 'ssd', name: 'SSD', description: '单次检测器' }
   ]
 
   const datasets = [
-    { id: 'coco', name: 'COCO', description: '通用目标检测数据集' },
+    { id: 'Visdrone', name: 'Visdrone', description: '通用目标检测数据集' },
     { id: 'custom', name: 'Custom', description: '自定义数据集' },
     { id: 'uav', name: 'UAV Dataset', description: '无人机专用数据集' }
   ]
@@ -124,7 +134,7 @@ export default function AttackScenarios() {
               <CardDescription>选择攻击场景类型和目标模型</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Tabs value={selectedScenario} onValueChange={setSelectedScenario}>
+              <Tabs value={selectedScenario} onValueChange={handleScenarioChange}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="adversarial" className="flex items-center">
                     <Sword className="h-4 w-4 mr-2" />
