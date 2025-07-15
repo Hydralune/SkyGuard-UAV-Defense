@@ -30,8 +30,8 @@ import {
 
 export default function DefenseScenarios() {
   const [selectedDefenseType, setSelectedDefenseType] = useState('adversarial_training')
-  const [selectedModel, setSelectedModel] = useState('yolov10')
-  const [selectedDataset, setSelectedDataset] = useState('coco')
+  const [selectedModel, setSelectedModel] = useState('yolov8s')
+  const [selectedDataset, setSelectedDataset] = useState('Visdrone')
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('pgd_training')
   const [parameters, setParameters] = useState({
     adversarial_ratio: 0.5,
@@ -43,6 +43,11 @@ export default function DefenseScenarios() {
   })
   const [isTraining, setIsTraining] = useState(false)
   const [trainingProgress, setTrainingProgress] = useState(0)
+  const handleDefenseTypeChange = (value) => {
+    setSelectedDefenseType(value)          // 更新防御类型
+    const defaultAlg = defenseAlgorithms[value]?.[0]?.id   // 取该类型列表的第一个算法
+    if (defaultAlg) setSelectedAlgorithm(defaultAlg)       // 设置默认算法
+  }
 
   const defenseAlgorithms = {
     adversarial_training: [
@@ -66,14 +71,14 @@ export default function DefenseScenarios() {
   }
 
   const models = [
-    { id: 'yolov10', name: 'YOLOv10', description: '最新版本YOLO模型' },
+    { id: 'yolov8s', name: 'YOLOv8s', description: '默认YOLO模型' },
     { id: 'yolov5', name: 'YOLOv5', description: '经典YOLO模型' },
     { id: 'faster_rcnn', name: 'Faster R-CNN', description: '两阶段检测模型' },
     { id: 'ssd', name: 'SSD', description: '单次检测器' }
   ]
 
   const datasets = [
-    { id: 'coco', name: 'COCO', description: '通用目标检测数据集' },
+    { id: 'Visdrone', name: 'Visdrone', description: '通用目标检测数据集' },
     { id: 'custom', name: 'Custom', description: '自定义数据集' },
     { id: 'uav', name: 'UAV Dataset', description: '无人机专用数据集' }
   ]
@@ -141,7 +146,7 @@ export default function DefenseScenarios() {
               <CardDescription>选择防御类型和目标模型</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Tabs value={selectedDefenseType} onValueChange={setSelectedDefenseType}>
+            <Tabs value={selectedDefenseType} onValueChange={handleDefenseTypeChange}>
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="adversarial_training" className="flex items-center">
                     <Brain className="h-4 w-4 mr-2" />

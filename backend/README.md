@@ -18,12 +18,20 @@ backend/
 ├── algorithms/
 │   ├── attacks/              # 对抗攻击算法
 │   │   ├── base.py           #   └ 攻击基类
-│   │   ├── pgd.py            #   └ 现有 PGD 实现
-│   │   └── ...               #   └ 待补全 FGSM / C&W / ...
+│   │   ├── pgd.py            #   └ PGD 实现
+│   │   ├── fgsm.py           #   └ FGSM 实现
+│   │   └── …                 #   └ 更多自定义算法
 │   └── defenses/             # 对抗防御算法
 │       ├── base.py           #   └ 防御基类
-│       ├── fgm.py            #   └ 现有 FGM 实现
-│       └── ...               #   └ 待补全 FreeLP / YOPO / ...
+│       └── …                 #   └ 自定义防御
+├── callbacks/                # 训练回调 (AdvTrainingCallback 等)
+│   └── advtrain.py
+├── models/                   # 权重与训练输出
+│   ├── active/               # 生产环境使用的权重软链
+│   ├── baseline/             # 基线权重
+│   ├── runs/                 # Ultralytics 原生日志输出
+│   └── registry.json         # 训练 run 索引
+├── train_model.py            # 统一训练脚本 (支持对抗训练)
 ├── datasets/                 # 数据集（VisDrone 等）
 ├── evaluate.py               # 统一评估入口（TODO）
 ├── evaluate_model.py         # 纯净样本评估脚本
@@ -47,7 +55,7 @@ backend/
 
 ### 1. 创建 Conda 环境（推荐）
 ```bash
-conda create -n skyguard python=3.9.13 -y
+conda create -n skyguard python=3.9 -y
 conda activate skyguard
 ```
 
@@ -72,7 +80,43 @@ python backend/download_dataset.py --dataset VisDrone
 脚本会自动下载并解压到 `backend/datasets/VisDrone_Dataset/`。
 
 ### 2. 下载权重
-项目默认使用 [YOLOv8](https://github.com/ultralytics/ultralytics) 在 VisDrone 上的微调模型，权重已放置在 `backend/yolov8s-visdrone/` 中。如需重新训练或替换，请修改 `yolov8s-visdrone/config.json` 并使用 `ultralytics train`。
+项目默认使用 [YOLOv8](https://github.com/ultralytics/ultralytics) 在 VisDrone 上的微调模型，权重已放置在 `backend/yolov8s-visdrone/` 中。若需重新训练或替换，请使用下方“模型训练”章节提供的脚本或自行调用 `ultralytics train`。
+
+---
+
+## 模型训练
+
+### 标准训练示例
+
+```bash
+python -m backend.train_model --epochs 100 --run_desc baseline
+```
+
+### 对抗训练示例（PGD）
+
+```bash
+python -m backend.train_model \
+    --adv_train \
+    --adv_attack pgd \
+    --adv_ratio 0.5 \
+    --adv_eps 8/255 \
+    --adv_alpha 2/255 \
+    --adv_steps 10 \
+    --epochs 100 \
+    --run_desc pgd_advtrain
+```
+
+更多参数请查看：
+
+```bash
+python -m backend.train_model -h
+```
+
+训练输出会被整理到 `backend/models/`：
+
+* `models/runs/<run_desc>/`   – Ultralytics 原生日志与权重
+* `models/active/<model>.pt`  – 指向当前激活权重的软链 (若 `--activate`)
+* `models/registry.json`      – 记录全部训练 run 信息
 
 ---
 

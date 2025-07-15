@@ -436,15 +436,20 @@ def main():
     parser.add_argument("--save_dir", type=str, default="evaluation_results", help="Directory to save results")
     parser.add_argument("--conf_threshold", type=float, default=0.25, help="Confidence threshold")
     parser.add_argument("--iou_threshold", type=float, default=0.5, help="IoU threshold")
+    parser.add_argument("--model_path", type=str, default="backend/models/runs/standard_test/yolov8s-visdrone4/best.pt", help="Path to model weights (.pt). If provided, overrides --model name.")
     args = parser.parse_args()
     
     # Create save directory
     save_dir = os.path.join("backend", args.save_dir)
     os.makedirs(save_dir, exist_ok=True)
     
-    print(f"Loading model: {args.model}")
-    # Load model
-    model = ModelManager.load_yolov8_model(model_name=args.model)
+    # Determine model source
+    if args.model_path and os.path.exists(args.model_path):
+        print(f"Loading model from path: {args.model_path}")
+        model = ModelManager.load_yolov8_model(model_path=args.model_path)
+    else:
+        print(f"Loading model by name: {args.model}")
+        model = ModelManager.load_yolov8_model(model_name=args.model)
     
     # Set model parameters
     model.overrides['conf'] = args.conf_threshold  # Confidence threshold

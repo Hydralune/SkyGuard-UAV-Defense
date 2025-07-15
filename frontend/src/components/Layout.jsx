@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import ThemeToggle from './ThemeToggle'
 import {
   Shield,
   Sword,
@@ -18,6 +19,9 @@ import {
   Zap,
   Target
 } from 'lucide-react'
+
+// 引入 canvas-nest
+import CanvasNest from 'canvas-nest.js'
 
 const navigation = [
   {
@@ -80,13 +84,13 @@ function Sidebar({ className }) {
   const location = useLocation()
 
   return (
-    <div className={cn("pb-12", className)}>
+    <div className={cn("pb-12 dark:border-none dark:shadow-none", className)}>
       <div className="space-y-4 py-4">
         <div className="px-6 py-2">
           <div className="flex items-center space-x-2 mb-6">
-            <Shield className="h-8 w-8 text-blue-500" />
+            <Shield className="h-8 w-8 text-primary" />
             <div>
-              <h2 className="text-lg font-semibold">SkyGuard</h2>
+              <h2 className="text-lg font-semibold text-foreground">SkyGuard</h2>
               <p className="text-xs text-muted-foreground">低空无人智能体攻防演练系统</p>
             </div>
           </div>
@@ -96,15 +100,15 @@ function Sidebar({ className }) {
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  "flex items-center space-x-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+                  "flex items-center space-x-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors text-foreground hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 dark:hover:text-primary",
                   location.pathname === item.href
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+                    ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+                    : ""
                 )}
               >
                 <item.icon className={cn(
-                  "h-5 w-5", 
-                  location.pathname === item.href ? "text-blue-600" : ""
+                  "h-5 w-5 text-primary/70 group-hover:text-primary",
+                  location.pathname === item.href ? "text-primary" : ""
                 )} />
                 <span>{item.name}</span>
               </Link>
@@ -119,9 +123,33 @@ function Sidebar({ className }) {
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  useEffect(() => {
+    let cn = null
+    function createNest() {
+      const isDark = document.documentElement.classList.contains('dark')
+      cn = new CanvasNest(document.body, {
+        // color: isDark ? '255,255,255' : '51,153,255',
+        color: '51,153,255',
+        opacity: isDark ? 1.0 : 0.8,
+        zIndex: 0,
+        count: 35,
+      })
+    }
+    createNest()
+    // 监听主题切换
+    const observer = new MutationObserver(() => {
+      if (cn) cn.destroy()
+      createNest()
+    })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => {
+      cn && cn.destroy()
+      observer.disconnect()
+    }
+  }, [])
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar */}
+    <div className="min-h-screen bg-background relative">
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetTrigger asChild>
           <Button
@@ -132,7 +160,7 @@ export default function Layout({ children }) {
             <Menu className="h-4 w-4" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-72 p-0">
+        <SheetContent side="left" className="w-72 p-0 dark:border-none dark:border-r-0">
           <SheetHeader className="px-4 pt-4">
             <SheetTitle>导航菜单</SheetTitle>
             <SheetDescription>
@@ -142,15 +170,23 @@ export default function Layout({ children }) {
           <ScrollArea className="h-full">
             <Sidebar />
           </ScrollArea>
+          {/* 移动端侧边栏底部主题切换按钮 */}
+          <div className="p-4 border-t">
+            <ThemeToggle variant="sidebar" />
+          </div>
         </SheetContent>
       </Sheet>
 
       {/* Desktop sidebar */}
       <div className="hidden md:fixed md:inset-y-0 md:flex md:w-72 md:flex-col">
-        <div className="flex min-h-0 flex-1 flex-col border-r bg-white shadow-lg">
+        <div className="flex min-h-0 flex-1 flex-col border-r bg-card shadow-lg dark:border-none dark:border-r-0">
           <ScrollArea className="flex-1">
             <Sidebar />
           </ScrollArea>
+          {/* 主题切换按钮 */}
+          <div className="p-4 border-t">
+            <ThemeToggle variant="sidebar" />
+          </div>
         </div>
       </div>
 

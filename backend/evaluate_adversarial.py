@@ -670,7 +670,12 @@ def main():
     parser.add_argument("--model", type=str, default="yolov8s-visdrone", help="Model name")
     parser.add_argument("--dataset", type=str, default="VisDrone", help="Dataset name")
     parser.add_argument("--num_images", type=int, default=-1, help="Number of test images, -1 for all")
-    parser.add_argument("--save_dir", type=str, default="adversarial_results", help="Directory to save results")
+    parser.add_argument(
+        "--save_dir",
+        type=str,
+        default="",  # auto timestamp under backend/results if empty
+        help="Relative directory name under backend/results (leave blank for auto)",
+    )
     parser.add_argument("--attack", type=str, default="pgd", help="Attack algorithm (pgd)")
     parser.add_argument("--eps", type=str, default="8/255", help="Epsilon value (max perturbation)")
     parser.add_argument("--alpha", type=str, default="2/255", help="Alpha value (step size)")
@@ -679,8 +684,20 @@ def main():
     parser.add_argument("--iou_threshold", type=float, default=0.5, help="IoU threshold")
     args = parser.parse_args()
     
-    # Create save directory
-    save_dir = os.path.join("backend", args.save_dir)
+    # Resolve output directory (align with evaluate_defense)
+    if os.path.isabs(args.save_dir):
+        save_dir = args.save_dir
+    else:
+        base_results = os.path.join("backend", "results")
+        os.makedirs(base_results, exist_ok=True)
+
+        if args.save_dir:
+            folder_name = args.save_dir.strip("/\\")
+        else:
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            folder_name = f"{args.attack}_{timestamp}"
+
+        save_dir = os.path.join(base_results, folder_name)
     os.makedirs(save_dir, exist_ok=True)
     
     print(f"Loading model: {args.model}")
