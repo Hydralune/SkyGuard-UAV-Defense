@@ -135,7 +135,7 @@ pip install -r requirements.txt
 
 至此对airsim的基本操作演示均已完成。后续请参考进阶操作，使用大模型控制我们的无人机。
 
-请先克隆仓库airsim_agent-main，地址为https://github.com/maris205/airsim_agent，克隆后解压在我们项目的airsim_agent-main这里，覆盖原本的内容（建议文件夹也覆盖并删除，不要嵌套），然后根据其中的课程指引，继续操作,这里它使用的是jupyter环境，也是一样创建conda环境。如果你用vscode或者cursor的话可能图片加载会出问题，用jupyterlab就行了，逐条执行以下操作。
+请先克隆仓库airsim_agent-main，地址为[airsim_agent](https://github.com/maris205/airsim_agent)，克隆后解压在我们项目的airsim_agent-main这里，覆盖原本的内容（建议文件夹也一并删除，不要嵌套），然后根据其中的课程指引，继续操作,这里它使用的是jupyter环境，也是一样创建conda环境。如果你用vscode或者cursor的话可能图片加载会出问题，用jupyterlab就行了，逐条执行以下操作。
 
 ```
 conda create -n airsim_agent python=3.10
