@@ -115,55 +115,70 @@ export default function TeamManagement() {
       </div>
 
       {/* 团队统计 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="card-hover">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">总团队数</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{teams.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {teams.filter(t => t.status === 'active').length} 个活跃
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="card-hover">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">总成员数</CardTitle>
-            <UserPlus className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{teams.reduce((sum, team) => sum + team.members, 0)}</div>
-            <p className="text-xs text-muted-foreground">
-              平均 {Math.round(teams.reduce((sum, team) => sum + team.members, 0) / teams.length)} 人/团队
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="card-hover">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">平均得分</CardTitle>
-            <Trophy className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(teams.reduce((sum, team) => sum + team.score, 0) / teams.length * 10) / 10}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* 蓝色霓虹灯+科技感背景 */}
+        <Card className="relative overflow-hidden bg-black border-2 border-blue-500/60 shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] transition-all duration-500 group">
+          {/* 移除科技感渐变和光斑背景，仅保留黑色背景 */}
+          <div className="absolute inset-0 pointer-events-none"></div>
+          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-pulse delay-500"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 z-10">
+            <CardTitle className="text-sm font-medium text-blue-300">总团队数</CardTitle>
+            <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/30 group-hover:bg-blue-500/30 transition-all duration-300">
+              <Users className="h-4 w-4 text-blue-400" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              最高: {Math.max(...teams.map(t => t.score))}
-            </p>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <div className="text-3xl font-bold text-blue-400 font-mono">{teams.length}</div>
+            <p className="text-xs text-blue-300/70">{teams.filter(t => t.status === 'active').length} 个活跃</p>
           </CardContent>
         </Card>
-        <Card className="card-hover">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">总演练次数</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+        {/* 绿色霓虹灯+科技感背景 */}
+        <Card className="relative overflow-hidden bg-black border-2 border-emerald-400/60 shadow-[0_0_30px_rgba(52,211,153,0.4)] hover:shadow-[0_0_40px_rgba(52,211,153,0.6)] transition-all duration-500 group">
+          <div className="absolute inset-0 pointer-events-none"></div>
+          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse delay-500"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 z-10">
+            <CardTitle className="text-sm font-medium text-emerald-300">总成员数</CardTitle>
+            <div className="p-2 bg-emerald-400/20 rounded-lg border border-emerald-400/30 group-hover:bg-emerald-400/30 transition-all duration-300">
+              <UserPlus className="h-4 w-4 text-emerald-300" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{teams.reduce((sum, team) => sum + team.exercises, 0)}</div>
-            <p className="text-xs text-muted-foreground">
-              本月新增 +15
-            </p>
+          <CardContent className="relative z-10">
+            <div className="text-3xl font-bold text-emerald-300 font-mono">{teams.reduce((sum, team) => sum + team.members, 0)}</div>
+            <p className="text-xs text-emerald-300/70">平均 {Math.round(teams.reduce((sum, team) => sum + team.members, 0) / teams.length)} 人/团队</p>
+          </CardContent>
+        </Card>
+        {/* 紫色霓虹灯+科技感背景 */}
+        <Card className="relative overflow-hidden bg-black border-2 border-purple-400/60 shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_40px_rgba(168,85,247,0.6)] transition-all duration-500 group">
+          <div className="absolute inset-0 pointer-events-none"></div>
+          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-300 to-transparent animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-300 to-transparent animate-pulse delay-500"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 z-10">
+            <CardTitle className="text-sm font-medium text-purple-300">平均得分</CardTitle>
+            <div className="p-2 bg-purple-400/20 rounded-lg border border-purple-400/30 group-hover:bg-purple-400/30 transition-all duration-300">
+              <Trophy className="h-4 w-4 text-purple-300" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <div className="text-3xl font-bold text-purple-300 font-mono">{Math.round(teams.reduce((sum, team) => sum + team.score, 0) / teams.length * 10) / 10}</div>
+            <p className="text-xs text-purple-300/70">最高: {Math.max(...teams.map(t => t.score))}</p>
+          </CardContent>
+        </Card>
+        {/* 橙色霓虹灯+科技感背景 */}
+        <Card className="relative overflow-hidden bg-black border-2 border-orange-400/60 shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:shadow-[0_0_40px_rgba(251,146,60,0.6)] transition-all duration-500 group">
+          <div className="absolute inset-0 pointer-events-none"></div>
+          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-orange-300 to-transparent animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-orange-300 to-transparent animate-pulse delay-500"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 z-10">
+            <CardTitle className="text-sm font-medium text-orange-300">总演练次数</CardTitle>
+            <div className="p-2 bg-orange-400/20 rounded-lg border border-orange-400/30 group-hover:bg-orange-400/30 transition-all duration-300">
+              <Clock className="h-4 w-4 text-orange-300" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <div className="text-3xl font-bold text-orange-300 font-mono">{teams.reduce((sum, team) => sum + team.exercises, 0)}</div>
+            <p className="text-xs text-orange-300/70">本月新增 +15</p>
           </CardContent>
         </Card>
       </div>
