@@ -29,7 +29,7 @@ def test_model_task(task_id, model_name="yolov8s-visdrone", dataset_name="VisDro
         print(f"切换到项目根目录: {os.getcwd()}")
         
         # 1. 结果目录 - 使用绝对路径
-        result_path = os.path.join(project_root, "results", "evaluation_results", task_id)
+        result_path = os.path.join(project_root,"backend", "results", "evaluation_results", task_id)
         # 检查路径是否已经包含重复的backend
         if "backend/backend" in result_path:
             result_path = result_path.replace("backend/backend", "backend")
@@ -207,7 +207,7 @@ def test_model_task(task_id, model_name="yolov8s-visdrone", dataset_name="VisDro
 
     except Exception as e:
         # 使用绝对路径处理错误日志
-        error_path = os.path.join(project_root, "results", "evaluation_results", task_id, "error.txt")
+        error_path = os.path.join(project_root, "backend", "results", "evaluation_results", task_id, "error.txt")
         # 检查路径是否已经包含重复的backend
         if "backend/backend" in error_path:
             error_path = error_path.replace("backend/backend", "backend")
@@ -290,6 +290,8 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
         attack_params = {"eps": eps_val}
         if attack_name.lower() == "pgd":
             attack_params.update({"alpha": alpha_val, "steps": steps})
+        elif attack_name.lower() == "fgsm":
+            attack_params.update({"steps": steps})
         
         # 动态加载攻击算法
         attack = load_attack_by_name(attack_name, **attack_params)
