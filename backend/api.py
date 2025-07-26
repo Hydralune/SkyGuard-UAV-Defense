@@ -62,13 +62,16 @@ async def run_attack(
     alpha: str = "2/255",
     steps: int = 10,
     conf_threshold: float = 0.25,
-    iou_threshold: float = 0.5
+    iou_threshold: float = 0.5,
+    confidence: float = 0,
+    lr: float = 0.01,
+    initial_const: float = 0.1
 ):
     """
     启动对抗攻击任务，支持动态指定攻击算法
     
     参数:
-    - attack_name: 攻击算法名称，如 "pgd", "fgsm" 等
+    - attack_name: 攻击算法名称，如 "pgd", "fgsm", "cw_l2" 等
     - model_name: 模型名称
     - dataset_name: 数据集名称
     - num_images: 评估图像数量，-1表示全部
@@ -77,6 +80,9 @@ async def run_attack(
     - steps: 攻击迭代步数，仅迭代攻击使用
     - conf_threshold: 置信度阈值
     - iou_threshold: IoU阈值
+    - confidence: 对抗样本置信度，仅CW_L2攻击使用
+    - lr: 攻击学习率，仅CW_L2攻击使用
+    - initial_const: 初始权衡常数c，仅CW_L2攻击使用
     """
     task_id = str(uuid4())
     task = run_attack_task.delay(
@@ -89,7 +95,10 @@ async def run_attack(
         alpha=alpha,
         steps=steps,
         conf_threshold=conf_threshold,
-        iou_threshold=iou_threshold
+        iou_threshold=iou_threshold,
+        confidence=confidence,
+        lr=lr,
+        initial_const=initial_const
     )
     return {"task_id": task_id, "celery_task_id": task.id}
 

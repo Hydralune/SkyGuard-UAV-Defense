@@ -73,13 +73,24 @@ class AdversarialEvaluator:
             "confidence_drop": [],
             "attack_params": {
                 "name": attack.name,
-                "eps": float(attack.eps),
-                "steps": attack.steps,
-                "alpha": float(attack.alpha)
             },
             # Class-wise metrics for vulnerability analysis
             "class_vulnerability": defaultdict(lambda: {"original": 0, "adversarial": 0})
         }
+        
+        # 根据攻击算法类型添加不同的参数
+        if hasattr(attack, 'eps'):
+            self.metrics["attack_params"]["eps"] = float(attack.eps)
+        if hasattr(attack, 'steps'):
+            self.metrics["attack_params"]["steps"] = attack.steps
+        if hasattr(attack, 'alpha'):
+            self.metrics["attack_params"]["alpha"] = float(attack.alpha)
+        if hasattr(attack, 'confidence'):
+            self.metrics["attack_params"]["confidence"] = float(attack.confidence)
+        if hasattr(attack, 'lr'):
+            self.metrics["attack_params"]["lr"] = float(attack.lr)
+        if hasattr(attack, 'initial_const'):
+            self.metrics["attack_params"]["initial_const"] = float(attack.initial_const)
         
         # Transformation for converting tensor to PIL image
         self.to_pil = transforms.ToPILImage()
@@ -505,18 +516,42 @@ class AdversarialEvaluator:
                             <div class="metric-value">{metrics["attack_params"]["name"]}</div>
                             <div class="metric-label">Attack Type</div>
                         </div>
+                        {f'''
                         <div class="metric-box">
                             <div class="metric-value attack-param">{metrics["attack_params"]["eps"]}</div>
                             <div class="metric-label">Epsilon (Max Perturbation)</div>
                         </div>
+                        ''' if "eps" in metrics["attack_params"] else ""}
+                        {f'''
                         <div class="metric-box">
                             <div class="metric-value attack-param">{metrics["attack_params"]["alpha"]}</div>
                             <div class="metric-label">Alpha (Step Size)</div>
                         </div>
+                        ''' if "alpha" in metrics["attack_params"] else ""}
+                        {f'''
                         <div class="metric-box">
                             <div class="metric-value attack-param">{metrics["attack_params"]["steps"]}</div>
                             <div class="metric-label">Iteration Steps</div>
                         </div>
+                        ''' if "steps" in metrics["attack_params"] else ""}
+                        {f'''
+                        <div class="metric-box">
+                            <div class="metric-value attack-param">{metrics["attack_params"]["confidence"]}</div>
+                            <div class="metric-label">Confidence</div>
+                        </div>
+                        ''' if "confidence" in metrics["attack_params"] else ""}
+                        {f'''
+                        <div class="metric-box">
+                            <div class="metric-value attack-param">{metrics["attack_params"]["lr"]}</div>
+                            <div class="metric-label">Learning Rate</div>
+                        </div>
+                        ''' if "lr" in metrics["attack_params"] else ""}
+                        {f'''
+                        <div class="metric-box">
+                            <div class="metric-value attack-param">{metrics["attack_params"]["initial_const"]}</div>
+                            <div class="metric-label">Initial Const</div>
+                        </div>
+                        ''' if "initial_const" in metrics["attack_params"] else ""}
                     </div>
                 </div>
                 
