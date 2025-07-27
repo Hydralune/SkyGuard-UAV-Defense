@@ -16,3 +16,6 @@ python-multipart==0.0.6
 ultralyticsplus==0.0.28
 scikit-learn
 seaborn 
+msgpack-rpc-python
+pyaudio
+opencv-contrib-python

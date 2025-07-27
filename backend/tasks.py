@@ -29,7 +29,7 @@ def test_model_task(task_id, model_name="yolov8s-visdrone", dataset_name="VisDro
         print(f"切换到项目根目录: {os.getcwd()}")
         
         # 1. 结果目录 - 使用绝对路径
-        result_path = os.path.join(project_root, "results", "evaluation_results", task_id)
+        result_path = os.path.join(project_root,"backend", "results", "evaluation_results", task_id)
         # 检查路径是否已经包含重复的backend
         if "backend/backend" in result_path:
             result_path = result_path.replace("backend/backend", "backend")
@@ -207,7 +207,7 @@ def test_model_task(task_id, model_name="yolov8s-visdrone", dataset_name="VisDro
 
     except Exception as e:
         # 使用绝对路径处理错误日志
-        error_path = os.path.join(project_root, "results", "evaluation_results", task_id, "error.txt")
+        error_path = os.path.join(project_root, "backend", "results", "evaluation_results", task_id, "error.txt")
         # 检查路径是否已经包含重复的backend
         if "backend/backend" in error_path:
             error_path = error_path.replace("backend/backend", "backend")
@@ -253,13 +253,13 @@ def load_attack_by_name(name: str, **kwargs):
 @celery_app.task(name="attack.run")
 def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdrone", 
                    dataset_name="VisDrone", num_images=10, eps="8/255", alpha="2/255", 
-                   steps=10, conf_threshold=0.25, iou_threshold=0.5):
+                   steps=10, conf_threshold=0.25, iou_threshold=0.5, confidence=0, lr=0.01, initial_const=0.1):
     """
     通用对抗攻击评估任务
     
     参数:
         task_id: 任务ID，如果为None则自动生成
-        attack_name: 攻击算法名称 (pgd, fgsm等)
+        attack_name: 攻击算法名称 (pgd, fgsm, cw_l2等)
         model_name: 模型名称
         dataset_name: 数据集名称
         num_images: 评估图像数量，-1表示全部
@@ -268,6 +268,9 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
         steps: 攻击迭代步数，仅迭代攻击使用
         conf_threshold: 置信度阈值
         iou_threshold: IoU阈值
+        confidence: 对抗样本置信度，仅CW攻击使用
+        lr: 攻击学习率，仅CW攻击使用
+        initial_const: 初始权衡常数c，仅CW攻击使用
     """
     if task_id is None:
         task_id = str(uuid4())
@@ -290,6 +293,15 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
         attack_params = {"eps": eps_val}
         if attack_name.lower() == "pgd":
             attack_params.update({"alpha": alpha_val, "steps": steps})
+        elif attack_name.lower() == "fgsm":
+            attack_params.update({"steps": steps})
+        elif attack_name.lower() == "cw_l2":
+            attack_params = {
+                "confidence": confidence,
+                "steps": steps,
+                "lr": lr,
+                "initial_const": initial_const
+            }
         
         # 动态加载攻击算法
         attack = load_attack_by_name(attack_name, **attack_params)
