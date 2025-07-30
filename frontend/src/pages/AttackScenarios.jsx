@@ -34,6 +34,7 @@ export default function AttackScenarios() {
     epsilon: 0.03,
     alpha: 0.01,
     iterations: 10,
+    patch_size: 30, // 为DPatch添加新参数
     brightness: 0.5,
     contrast: 1.0,
     noise_level: 0.1
@@ -276,6 +277,24 @@ export default function AttackScenarios() {
                       攻击算法的迭代次数
                     </p>
                   </div>
+
+                  {/* DPatch特定参数 */}
+                  {selectedAlgorithm === 'dpatch' && (
+                    <div className="space-y-2">
+                      <Label>贴片大小: {parameters.patch_size}</Label>
+                      <Slider
+                        value={[parameters.patch_size]}
+                        onValueChange={(value) => handleParameterChange('patch_size', value[0])}
+                        max={100}
+                        min={10}
+                        step={1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        DPatch攻击中使用的贴片大小（像素）
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -492,6 +511,13 @@ export default function AttackScenarios() {
                       <span>迭代次数</span>
                       <span>{parameters.iterations}</span>
                     </div>
+                    {/* 在摘要中显示贴片大小 */}
+                    {selectedAlgorithm === 'dpatch' && (
+                      <div className="flex justify-between">
+                        <span>贴片大小</span>
+                        <span>{parameters.patch_size}</span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-1 text-xs">
