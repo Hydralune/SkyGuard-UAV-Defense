@@ -100,9 +100,9 @@ def run_defense_task(task_id, defense_type="gaussian_blur", params=None):
         return {"status": "Completed", "result_path": result_path}
     
     except Exception as e:
-        error_path = os.path.join(result_path, "error.txt")
+        error_path = os.path.join("backend", "results", task_id, "error.txt")
         os.makedirs(os.path.dirname(error_path), exist_ok=True)
         with open(error_path, "w") as f:
             f.write(str(e))
-        print(f"Error in task {task_id}: {str(e)}")
+        print(f"Error in defense task {task_id}: {str(e)}")
         raise e 

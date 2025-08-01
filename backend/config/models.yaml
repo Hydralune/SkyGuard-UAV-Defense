@@ -1,0 +1,15 @@
+# 模型配置文件
+models:
+  # 目标检测模型
+  yolov8s-visdrone:
+    type: detection
+    framework: yolov8
+    description: "YOLOv8s 在 VisDrone 数据集上训练的模型"
+    aliases: ["yolov8s", "yolov8s_visdrone", "yolo_visdrone"]
+    path:
+      baseline: "models/baseline/yolov8s-visdrone.pt"
+      active: "models/active/yolov8s-visdrone.pt"
+    metadata:
+      input_size: [640, 640]
+      classes: 10
+      dataset: "visdrone"

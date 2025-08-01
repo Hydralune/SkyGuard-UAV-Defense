@@ -1,0 +1,29 @@
+datasets:
+  VisDrone:
+    aliases:
+    - visdrone
+    - vis_drone
+    - drone_dataset
+    classes:
+    - pedestrian
+    - people
+    - bicycle
+    - car
+    - van
+    - truck
+    - tricycle
+    - awning-tricycle
+    - bus
+    - motor
+    description: 无人机视角目标检测数据集
+    format: visdrone
+    path:
+      annotations:
+        test: VisDrone2019-DET-test-dev/annotations
+        train: VisDrone2019-DET-train/annotations
+        val: VisDrone2019-DET-val/annotations
+      root: datasets/VisDrone_Dataset
+      test: VisDrone2019-DET-test-dev/images
+      train: VisDrone2019-DET-train/images
+      val: VisDrone2019-DET-val/images
+    type: detection

@@ -1,6 +1,6 @@
 # SkyGuard UAV Defense – 后端开发指南
 
-> 本文件为后端 (`backend/`) 目录的总体说明，涵盖目录结构、环境配置、数据与模型准备、常用脚本、扩展对抗算法/防御算法的方法，以及进一步的开发建议。
+> SkyGuard UAV Defense 系统后端，提供无人机目标检测、对抗攻击生成与防御能力的 API 服务。
 
 ---
 
@@ -8,46 +8,78 @@
 
 ```
 backend/
-├── adversarial_results/      # 生成的对抗攻击检测结果
-│   ├── adversarial_results/  #   └ 各类对抗样本
-│   ├── comparison_results/   #   └ 原图 / 对抗图对比
-│   ├── detection_results/    #   └ YOLO 检测框结果
-│   ├── metrics/              #   └ JSON & HTML 指标报告
-│   ├── perturbation_results/ #   └ 扰动可视化
-│   └── plots/                #   └ 统计图表
-├── algorithms/
+├── algorithms/               # 算法实现
 │   ├── attacks/              # 对抗攻击算法
-│   │   ├── base.py           #   └ 攻击基类
+│   │   ├── base.py           #   └ 攻击基类 (BaseAttack)
 │   │   ├── pgd.py            #   └ PGD 实现
 │   │   ├── fgsm.py           #   └ FGSM 实现
 │   │   └── …                 #   └ 更多自定义算法
 │   └── defenses/             # 对抗防御算法
-│       ├── base.py           #   └ 防御基类
+│       ├── base.py           #   └ 防御基类 (Defense)
 │       └── …                 #   └ 自定义防御
+├── api.py                    # FastAPI 路由定义
+├── assets/                   # 静态资源
 ├── callbacks/                # 训练回调 (AdvTrainingCallback 等)
-│   └── advtrain.py
+├── celery_app.py             # Celery 配置与任务注册
+├── config/                   # 配置文件
+├── datasets/                 # 数据集（VisDrone 等）
+├── defense.py                # 防御实现与任务
+├── Dockerfile                # Docker 容器构建文件
+├── download_dataset.py       # 自动下载并整理数据集
+├── evaluate.py               # 统一评估入口
+├── evaluate_adversarial.py   # 对抗样本评估脚本
+├── evaluate_defense.py       # 防御效果评估脚本
+├── evaluate_model.py         # 纯净样本评估脚本
+├── main.py                   # FastAPI 应用入口
 ├── models/                   # 权重与训练输出
 │   ├── active/               # 生产环境使用的权重软链
 │   ├── baseline/             # 基线权重
-│   ├── runs/                 # Ultralytics 原生日志输出
-│   └── registry.json         # 训练 run 索引
+│   └── runs/                 # Ultralytics 原生日志输出
+├── results/                  # 结果输出目录
+├── tasks.py                  # Celery 异步任务定义
 ├── train_model.py            # 统一训练脚本 (支持对抗训练)
-├── datasets/                 # 数据集（VisDrone 等）
-├── evaluate.py               # 统一评估入口（TODO）
-├── evaluate_model.py         # 纯净样本评估脚本
-├── evaluate_adversarial.py   # 对抗样本评估脚本
-├── defense.py                # 在线推理 + 防御示例
-├── download_dataset.py       # 自动下载并整理数据集
-├── celery_app.py             # Celery 异步任务入口
-├── tasks.py                  # 异步任务定义
-├── utils/                    # 工具模块（数据加载/可视化等）
-│   ├── dataset_manager.py
-│   ├── evaluator.py
-│   ├── model_loader.py
-│   ├── model_manager.py
-│   └── visualizer.py
+├── utils/                    # 工具模块
+│   ├── config_manager.py     #   └ 配置管理
+│   ├── dataset_manager.py    #   └ 数据集管理
+│   ├── evaluator.py          #   └ 评估工具
+│   ├── model_loader.py       #   └ 模型加载
+│   ├── model_manager.py      #   └ 模型管理
+│   └── visualizer.py         #   └ 可视化工具
 └── yolov8s-visdrone/         # 预训练 YOLOv8 权重及配置
 ```
+
+---
+
+## 核心功能模块说明
+
+### API 模块 (api.py)
+- `/api/ping` - API 健康检查
+- `/api/model/test` - 启动模型测试任务
+- `/api/attack/run` - 启动对抗攻击任务
+- `/api/defense/run` - 启动防御任务
+- `/api/task/{task_id}` - 获取任务状态和结果
+
+### 异步任务模块 (tasks.py)
+- `test_model_task` - 评估模型在纯净样本上的性能
+- `run_attack_task` - 执行对抗攻击并评估效果
+- `run_defense_task` - 应用防御策略并评估效果
+
+### 评估模块
+- `evaluate_model.py` - 纯净样本评估
+- `evaluate_adversarial.py` - 对抗样本生成与评估
+- `evaluate_defense.py` - 防御效果评估
+
+### 算法模块 (algorithms/)
+- `attacks/` - 对抗攻击算法实现
+  - `pgd.py` - PGD (Projected Gradient Descent) 攻击
+  - `fgsm.py` - FGSM (Fast Gradient Sign Method) 攻击
+- `defenses/` - 防御算法实现
+
+### 工具模块 (utils/)
+- `config_manager.py` - 管理配置参数
+- `dataset_manager.py` - 数据集加载与处理
+- `model_manager.py` - 模型加载与管理
+- `visualizer.py` - 结果可视化
 
 ---
 
@@ -65,146 +97,151 @@ pip install -r requirements.txt
 ```
 > 如果您在中国大陆，可考虑配置 `-i https://pypi.tuna.tsinghua.edu.cn/simple` 镜像源以加速下载。
 
-### 3. 安装额外框架（可选）
-- **CUDA**: 若需 GPU 加速，请确保安装与显卡/驱动对应版本的 CUDA & cuDNN。
-- **Node.js**: 仅在需要运行前端界面时安装。
-
----
-
-## 数据与模型准备
-
-### 1. 下载数据集
+### 3. 安装 Redis (用于 Celery)
+#### Ubuntu/Debian
 ```bash
+sudo apt-get update
+sudo apt-get install redis-server
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+```
+
+#### 使用 Docker
+```bash
+docker run -d --name redis -p 6379:6379 redis
+```
+
+### 4. 数据集准备
+```bash
+# 下载 VisDrone 数据集
 python backend/download_dataset.py --dataset VisDrone
 ```
-脚本会自动下载并解压到 `backend/datasets/VisDrone_Dataset/`。
 
-### 2. 下载权重
-项目默认使用 [YOLOv8](https://github.com/ultralytics/ultralytics) 在 VisDrone 上的微调模型，权重已放置在 `backend/yolov8s-visdrone/` 中。若需重新训练或替换，请使用下方“模型训练”章节提供的脚本或自行调用 `ultralytics train`。
-
----
-
-## 模型训练
-
-### 标准训练示例
-
-```bash
-python -m backend.train_model --epochs 100 --run_desc baseline
-```
-
-### 对抗训练示例（PGD）
-
-```bash
-python -m backend.train_model \
-    --adv_train \
-    --adv_attack pgd \
-    --adv_ratio 0.5 \
-    --adv_eps 8/255 \
-    --adv_alpha 2/255 \
-    --adv_steps 10 \
-    --epochs 100 \
-    --run_desc pgd_advtrain
-```
-
-更多参数请查看：
-
-```bash
-python -m backend.train_model -h
-```
-
-训练输出会被整理到 `backend/models/`：
-
-* `models/runs/<run_desc>/`   – Ultralytics 原生日志与权重
-* `models/active/<model>.pt`  – 指向当前激活权重的软链 (若 `--activate`)
-* `models/registry.json`      – 记录全部训练 run 信息
+### 5. 模型准备
+项目默认使用 YOLOv8 在 VisDrone 上的微调模型，权重已放置在 `backend/yolov8s-visdrone/` 中。
 
 ---
 
-## 快速开始
+## 启动服务
 
-### 纯净样本评估
+### 1. 启动 FastAPI 服务
 ```bash
-python backend/evaluate_model.py \
-       --model yolov8s-visdrone \
-       --dataset VisDrone \
-       --num_images 10 \
-       --save_dir evaluation_results
+# 开发环境
+cd /path/to/SkyGuard-UAV-Defense
+uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
+
+# 生产环境
+uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
-### 对抗样本评估（PGD 示例）
+### 2. 启动 Celery Worker
 ```bash
-python backend/evaluate_adversarial.py \
-       --model yolov8s-visdrone \
-       --dataset VisDrone \
-       --num_images 10 \
-       --save_dir adversarial_results \
-       --attack pgd \
-       --eps 8/255 \
-       --steps 10 \
-       --alpha 2/255
+# 开发环境
+cd /path/to/SkyGuard-UAV-Defense
+celery -A backend.celery_app worker --loglevel=info
+
+# 生产环境
+cd /path/to/SkyGuard-UAV-Defense
+celery -A backend.celery_app worker --loglevel=info --concurrency=4
 ```
 
-执行完毕后，在 `adversarial_results/`、`evaluation_results/` 文件夹中将生成可视化样本、评估指标 (`*.json`) 与图表 (`*.png`)。
+### 3. 使用 Docker 部署（可选）
+```bash
+# 构建镜像
+docker build -t skyguard-backend -f backend/Dockerfile .
+
+# 启动容器
+docker run -d --name skyguard-api -p 8000:8000 \
+  -e CELERY_BROKER_URL=redis://redis:6379/0 \
+  -e CELERY_RESULT_BACKEND=redis://redis:6379/1 \
+  --link redis:redis \
+  skyguard-backend
+```
 
 ---
 
-## Celery 异步任务
-本项目支持使用 Celery + Redis/MQ 进行异步推理与评估。快速启动示例：
-```bash
-# 启动 Redis（Docker 示例）
-docker run -d --name redis -p 6379:6379 redis
+## API 使用指南
 
-# 启动 Celery Worker
-cd backend
-celery -A celery_app worker -l info
-```
-> 任务调用示例见 `backend/tasks.py`。
+启动服务后，访问 Swagger UI 文档：http://127.0.0.1:8000/docs
+
+### 基本流程
+
+1. **检查 API 健康状态**
+   - GET `/api/ping`
+   - 预期响应: `{"msg": "pong"}`
+
+2. **启动模型测试任务**
+   - POST `/api/model/test`
+   - 参数:
+     - `model_name`: 模型名称，默认 "yolov8s-visdrone"
+     - `dataset_name`: 数据集名称，默认 "VisDrone"
+     - `num_images`: 评估图像数量，默认 20
+     - `conf_threshold`: 置信度阈值，默认 0.25
+     - `iou_threshold`: IoU 阈值，默认 0.5
+   - 预期响应: `{"task_id": "uuid", "celery_task_id": "task_id"}`
+
+3. **启动对抗攻击任务**
+   - POST `/api/attack/run`
+   - 参数:
+     - `attack_name`: 攻击算法，如 "pgd", "fgsm"
+     - `model_name`: 模型名称
+     - `dataset_name`: 数据集名称
+     - `num_images`: 图像数量
+     - `eps`: 最大扰动大小，如 "8/255"
+     - `alpha`: 每步扰动大小，如 "2/255"
+     - `steps`: 攻击迭代步数
+   - 预期响应: `{"task_id": "uuid", "celery_task_id": "task_id"}`
+
+4. **查询任务状态**
+   - GET `/api/task/{task_id}`
+   - 预期响应: 
+     ```json
+     {
+       "state": "SUCCESS",
+       "status": "任务完成",
+       "results": {
+         "metrics": {...},
+         "images": [...]
+       }
+     }
+     ```
 
 ---
 
 ## 扩展攻击/防御算法
 
-### 1. 攻击算法
-1. 在 `backend/algorithms/attacks/` 新建文件，如 `fgsm.py`。
-2. 继承 `Attack` 基类并实现 `forward()` 方法：
+### 1. 添加新的攻击算法
+1. 在 `backend/algorithms/attacks/` 新建文件，如 `new_attack.py`
+2. 继承 `BaseAttack` 基类并实现 `forward()` 方法：
    ```python
-   from .base import Attack
+   from .base import BaseAttack
 
-   class FGSM(Attack):
-       name = "fgsm"
+   class NewAttack(BaseAttack):
+       name = "new_attack"
        def forward(self, model, images, labels, eps):
-           # 1. 计算梯度
-           # 2. 叠加扰动
-           # 3. 返回对抗样本
-           ...
+           # 实现攻击逻辑
+           return adversarial_images
    ```
 3. 在 `backend/algorithms/attacks/__init__.py` 中注册：
    ```python
-   from .fgsm import FGSM  # noqa: F401
+   from .new_attack import NewAttack  # noqa: F401
    ```
 
-### 2. 防御算法
+### 2. 添加新的防御算法
 流程与攻击类似，目录位于 `backend/algorithms/defenses/`，基类为 `Defense`。
 
-### 3. 在评估脚本中调用
-- `--attack <name>` 或 `--defense <name>` 参数将自动查找已注册类并实例化。
-
 ---
 
-## 贡献规范
+## 常见问题
 
-1. **代码风格**：遵循 `PEP8`，建议安装 `pre-commit` 钩子自动格式化。
-2. **类型注解**：新增模块请尽量添加 `typing` 注解，提升可维护性。
-3. **单元测试**：在 `tests/` 目录添加对应 `pytest` 用例。
-4. **文档**：新增/修改公共 API 请同步更新本 README 或 `docs/`。
+### Q: Celery 任务无法启动
+检查 Redis 服务是否正常运行，并确认 `CELERY_BROKER_URL` 和 `CELERY_RESULT_BACKEND` 环境变量设置正确。
 
----
+### Q: 找不到数据集
+确保已运行 `download_dataset.py` 下载数据集，或手动将数据集放置在 `backend/datasets/` 目录下。
 
-## TODO
-- [ ] 完成 `evaluate.py` 统一入口封装
-- [ ] 实现 **FGSM / DeepFool / C&W / AdvPatch** 等攻击
-- [ ] 实现 **FreeLP / YOPO / PGDTraining** 等防御
-- [ ] 部署 FastAPI 服务，提供 RESTful 推理接口
+### Q: 模型加载失败
+检查 `backend/models/` 目录中是否存在对应的模型权重文件，或尝试运行 `train_model.py` 重新训练模型。
 
 ---
 

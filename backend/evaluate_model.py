@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#python backend/evaluate_model.py --model yolov8s-visdrone --dataset VisDrone --num_images 10 --save_dir evaluation_results
+#python backend/evaluate_model.py --model yolov8s-visdrone --dataset VisDrone --num_images 10 --save_dir results
 import os
 import argparse
 import cv2
@@ -142,6 +142,9 @@ class EnhancedEvaluator:
             "total_detections": self.metrics["total_detections"],
             "total_images": self.metrics["total_images"]
         }
+        
+        # Return metrics
+        return self.metrics
     
     def generate_visualizations(self):
         """Generate visualization charts"""
@@ -247,8 +250,26 @@ class EnhancedEvaluator:
         # Generate HTML report
         self.generate_html_report(metrics_dict)
     
-    def generate_html_report(self, metrics):
+    def generate_html_report(self, metrics=None):
         """Generate HTML evaluation report"""
+        # 如果metrics为None，使用self.metrics
+        if metrics is None:
+            metrics = self.metrics
+            
+        # 如果metrics仍然为None，创建一个空的metrics对象
+        if metrics is None:
+            print("警告: metrics为None，创建空的metrics对象")
+            metrics = {
+                "total_images": 0,
+                "total_detections": 0,
+                "detection_by_class": {},
+                "summary": {
+                    "avg_inference_time": 0,
+                    "avg_detections_per_image": 0,
+                    "total_detections": 0,
+                    "total_images": 0
+                }
+            }
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -433,7 +454,7 @@ def main():
     parser.add_argument("--model", type=str, default="yolov8s-visdrone", help="Model name")
     parser.add_argument("--dataset", type=str, default="VisDrone", help="Dataset name")
     parser.add_argument("--num_images", type=int, default=-1, help="Number of test images, -1 for all")
-    parser.add_argument("--save_dir", type=str, default="evaluation_results", help="Directory to save results")
+    parser.add_argument("--save_dir", type=str, default="results/model_evaluation_results", help="Directory to save results")
     parser.add_argument("--conf_threshold", type=float, default=0.25, help="Confidence threshold")
     parser.add_argument("--iou_threshold", type=float, default=0.5, help="IoU threshold")
     parser.add_argument("--model_path", type=str, default="backend/models/runs/standard_test/yolov8s-visdrone4/best.pt", help="Path to model weights (.pt). If provided, overrides --model name.")
