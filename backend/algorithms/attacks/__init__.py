@@ -3,5 +3,6 @@ from .fgsm import FGSMAttack
 from .pgd import PGDAttack
 from .cw_l2 import CWL2Attack
 from .dpatch import DPatchAttack
+from .brightness import BrightnessAttack
 
-__all__ = ['FGSMAttack', 'PGDAttack', 'CWL2Attack', 'DPatchAttack']
+__all__ = ['FGSMAttack', 'PGDAttack', 'CWL2Attack', 'DPatchAttack', 'BrightnessAttack']

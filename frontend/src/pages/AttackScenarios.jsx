@@ -35,6 +35,7 @@ export default function AttackScenarios() {
     alpha: 0.01,
     iterations: 10,
     patch_size: 30, // 为DPatch添加新参数
+    brightness_factor: 1.5, // 为亮度攻击添加新参数
     brightness: 0.5,
     contrast: 1.0,
     noise_level: 0.1
@@ -300,20 +301,41 @@ export default function AttackScenarios() {
 
               {selectedScenario === 'optical' && (
                 <>
-                  <div className="space-y-2">
-                    <Label>亮度调整: {parameters.brightness}</Label>
-                    <Slider
-                      value={[parameters.brightness]}
-                      onValueChange={(value) => handleParameterChange('brightness', value[0])}
-                      max={2.0}
-                      min={0.1}
-                      step={0.1}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      调整图像整体亮度
-                    </p>
-                  </div>
+                  {/* 亮度攻击特定参数 */}
+                  {selectedAlgorithm === 'brightness' && (
+                    <div className="space-y-2">
+                      <Label>亮度因子: {parameters.brightness_factor}</Label>
+                      <Slider
+                        value={[parameters.brightness_factor]}
+                        onValueChange={(value) => handleParameterChange('brightness_factor', value[0])}
+                        max={3.0}
+                        min={0.1}
+                        step={0.1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        亮度调整因子（1.0=不变，>1.0=增亮，&lt;1.0=变暗）
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 通用光电干扰参数 */}
+                  {selectedAlgorithm !== 'brightness' && (
+                    <div className="space-y-2">
+                      <Label>亮度调整: {parameters.brightness}</Label>
+                      <Slider
+                        value={[parameters.brightness]}
+                        onValueChange={(value) => handleParameterChange('brightness', value[0])}
+                        max={2.0}
+                        min={0.1}
+                        step={0.1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        调整图像整体亮度
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>对比度: {parameters.contrast}</Label>
@@ -521,18 +543,31 @@ export default function AttackScenarios() {
                   </div>
                 ) : (
                   <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span>亮度</span>
-                      <span>{parameters.brightness}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>对比度</span>
-                      <span>{parameters.contrast}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>噪声强度</span>
-                      <span>{parameters.noise_level}</span>
-                    </div>
+                    {/* 亮度攻击特定参数显示 */}
+                    {selectedAlgorithm === 'brightness' && (
+                      <div className="flex justify-between">
+                        <span>亮度因子</span>
+                        <span>{parameters.brightness_factor}</span>
+                      </div>
+                    )}
+                    
+                    {/* 其他光电干扰参数显示 */}
+                    {selectedAlgorithm !== 'brightness' && (
+                      <>
+                        <div className="flex justify-between">
+                          <span>亮度</span>
+                          <span>{parameters.brightness}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>对比度</span>
+                          <span>{parameters.contrast}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>噪声强度</span>
+                          <span>{parameters.noise_level}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
