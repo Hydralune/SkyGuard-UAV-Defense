@@ -254,13 +254,13 @@ def load_attack_by_name(name: str, **kwargs):
 def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdrone",
                    dataset_name="VisDrone", num_images=10, eps="8/255", alpha="2/255",
                    steps=10, conf_threshold=0.25, iou_threshold=0.5, confidence=0, lr=0.01, initial_const=0.1,
-                   patch_size=30, brightness_factor=1.5, noise_std=0.1):
+                   patch_size=30, brightness_factor=1.5, noise_std=0.1, contrast_factor=1.5):
     """
     通用对抗攻击评估任务
     
     参数:
         task_id: 任务ID，如果为None则自动生成
-        attack_name: 攻击算法名称 (例如: pgd, fgsm, cw_l2, dpatch, brightness, gaussian)
+        attack_name: 攻击算法名称 (例如: pgd, fgsm, cw_l2, dpatch, brightness, gaussian, contrast)
         model_name: 模型名称
         dataset_name: 数据集名称
         num_images: 评估图像数量，-1表示全部
@@ -275,6 +275,7 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
         patch_size: DPatch攻击的贴片大小
         brightness_factor: 亮度攻击的亮度调整因子
         noise_std: 高斯噪声攻击的噪声标准差
+        contrast_factor: 对比度攻击的对比度调整因子
     """
     if task_id is None:
         task_id = str(uuid4())
@@ -312,6 +313,8 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
             attack_params = {"brightness_factor": brightness_factor}
         elif attack_name.lower() == "gaussian":
             attack_params = {"noise_std": noise_std}
+        elif attack_name.lower() == "contrast":
+            attack_params = {"contrast_factor": contrast_factor}
         
         # 动态加载攻击算法
         attack = load_attack_by_name(attack_name, **attack_params)

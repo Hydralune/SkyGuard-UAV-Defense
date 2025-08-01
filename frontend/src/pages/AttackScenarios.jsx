@@ -37,6 +37,7 @@ export default function AttackScenarios() {
     patch_size: 30, // 为DPatch添加新参数
     brightness_factor: 1.5, // 为亮度攻击添加新参数
     noise_std: 0.1, // 为高斯噪声攻击添加新参数
+    contrast_factor: 1.5, // 为对比度攻击添加新参数
     brightness: 0.5,
     contrast: 1.0,
     noise_level: 0.1
@@ -338,8 +339,26 @@ export default function AttackScenarios() {
                     </div>
                   )}
 
+                  {/* 对比度攻击特定参数 */}
+                  {selectedAlgorithm === 'contrast' && (
+                    <div className="space-y-2">
+                      <Label>对比度因子: {parameters.contrast_factor}</Label>
+                      <Slider
+                        value={[parameters.contrast_factor]}
+                        onValueChange={(value) => handleParameterChange('contrast_factor', value[0])}
+                        max={3.0}
+                        min={0.1}
+                        step={0.1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        对比度调整因子（1.0=不变，>1.0=增加对比度，&lt;1.0=降低对比度）
+                      </p>
+                    </div>
+                  )}
+
                   {/* 通用光电干扰参数 */}
-                  {selectedAlgorithm !== 'brightness' && selectedAlgorithm !== 'gaussian' && (
+                  {selectedAlgorithm !== 'brightness' && selectedAlgorithm !== 'gaussian' && selectedAlgorithm !== 'contrast' && (
                     <div className="space-y-2">
                       <Label>亮度调整: {parameters.brightness}</Label>
                       <Slider
@@ -578,8 +597,16 @@ export default function AttackScenarios() {
                       </div>
                     )}
                     
+                    {/* 对比度攻击特定参数显示 */}
+                    {selectedAlgorithm === 'contrast' && (
+                      <div className="flex justify-between">
+                        <span>对比度因子</span>
+                        <span>{parameters.contrast_factor}</span>
+                      </div>
+                    )}
+                    
                     {/* 其他光电干扰参数显示 */}
-                    {selectedAlgorithm !== 'brightness' && selectedAlgorithm !== 'gaussian' && (
+                    {selectedAlgorithm !== 'brightness' && selectedAlgorithm !== 'gaussian' && selectedAlgorithm !== 'contrast' && (
                       <>
                         <div className="flex justify-between">
                           <span>亮度</span>
