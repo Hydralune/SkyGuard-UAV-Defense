@@ -65,13 +65,17 @@ async def run_attack(
     iou_threshold: float = 0.5,
     confidence: float = 0,
     lr: float = 0.01,
-    initial_const: float = 0.1
+    initial_const: float = 0.1,
+    patch_size: int = 30,
+    brightness_factor: float = 1.5,
+    noise_std: float = 0.1,
+    contrast_factor: float = 1.5
 ):
     """
     启动对抗攻击任务，支持动态指定攻击算法
     
     参数:
-    - attack_name: 攻击算法名称，如 "pgd", "fgsm", "cw_l2" 等
+    - attack_name: 攻击算法名称，如 "pgd", "fgsm", "cw_l2", "dpatch", "brightness", "gaussian", "contrast" 等
     - model_name: 模型名称
     - dataset_name: 数据集名称
     - num_images: 评估图像数量，-1表示全部
@@ -83,6 +87,10 @@ async def run_attack(
     - confidence: 对抗样本置信度，仅CW_L2攻击使用
     - lr: 攻击学习率，仅CW_L2攻击使用
     - initial_const: 初始权衡常数c，仅CW_L2攻击使用
+    - patch_size: DPatch攻击的贴片大小
+    - brightness_factor: 亮度攻击的亮度调整因子
+    - noise_std: 高斯噪声攻击的噪声标准差
+    - contrast_factor: 对比度攻击的对比度调整因子
     """
     task_id = str(uuid4())
     task = run_attack_task.delay(
@@ -98,7 +106,11 @@ async def run_attack(
         iou_threshold=iou_threshold,
         confidence=confidence,
         lr=lr,
-        initial_const=initial_const
+        initial_const=initial_const,
+        patch_size=patch_size,
+        brightness_factor=brightness_factor,
+        noise_std=noise_std,
+        contrast_factor=contrast_factor
     )
     return {"task_id": task_id, "celery_task_id": task.id}
 
