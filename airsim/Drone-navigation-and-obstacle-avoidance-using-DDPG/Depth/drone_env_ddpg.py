@@ -5,6 +5,8 @@ from gym import spaces
 from airgym.envs.airsim_env import AirSimEnv
 import logging
 import math
+import vision_modifiers
+
 logger = logging.getLogger()
 
 logger.setLevel(logging.INFO)
@@ -28,8 +30,8 @@ class AirSimDroneEnv(AirSimEnv):
         self.goal_x= self.goal_position[0]
         self.goal_y= self.goal_position[1]
 
-
-
+        self.apply_attack_and_defense = False # Set to False to run baseline
+        
         self.episode_num = 0
         self.total_step = 0
         self.step_num = 0
@@ -123,6 +125,13 @@ class AirSimDroneEnv(AirSimEnv):
     def _get_obs(self):
 
         image = self.get_depth_image()
+
+        if self.apply_attack_and_defense:
+            # 1. Apply Attack
+            attacked_image = vision_modifiers.add_gaussian_noise_to_depth(image, std=0.5)
+            # 2. Apply Defense
+            image = vision_modifiers.apply_median_filter_to_depth(attacked_image, kernel_size=5)
+
         self.min_distance_to_obstacles = image.min()
         # print(image.min())
 

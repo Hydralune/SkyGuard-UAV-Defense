@@ -34,6 +34,10 @@ export default function AttackScenarios() {
     epsilon: 0.03,
     alpha: 0.01,
     iterations: 10,
+    patch_size: 30, // 为DPatch添加新参数
+    brightness_factor: 1.5, // 为亮度攻击添加新参数
+    noise_std: 0.1, // 为高斯噪声攻击添加新参数
+    contrast_factor: 1.5, // 为对比度攻击添加新参数
     brightness: 0.5,
     contrast: 1.0,
     noise_level: 0.1
@@ -276,25 +280,100 @@ export default function AttackScenarios() {
                       攻击算法的迭代次数
                     </p>
                   </div>
+
+                  {/* DPatch特定参数 */}
+                  {selectedAlgorithm === 'dpatch' && (
+                    <div className="space-y-2">
+                      <Label>贴片大小: {parameters.patch_size}</Label>
+                      <Slider
+                        value={[parameters.patch_size]}
+                        onValueChange={(value) => handleParameterChange('patch_size', value[0])}
+                        max={100}
+                        min={10}
+                        step={1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        DPatch攻击中使用的贴片大小（像素）
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
 
               {selectedScenario === 'optical' && (
                 <>
-                  <div className="space-y-2">
-                    <Label>亮度调整: {parameters.brightness}</Label>
-                    <Slider
-                      value={[parameters.brightness]}
-                      onValueChange={(value) => handleParameterChange('brightness', value[0])}
-                      max={2.0}
-                      min={0.1}
-                      step={0.1}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      调整图像整体亮度
-                    </p>
-                  </div>
+                  {/* 亮度攻击特定参数 */}
+                  {selectedAlgorithm === 'brightness' && (
+                    <div className="space-y-2">
+                      <Label>亮度因子: {parameters.brightness_factor}</Label>
+                      <Slider
+                        value={[parameters.brightness_factor]}
+                        onValueChange={(value) => handleParameterChange('brightness_factor', value[0])}
+                        max={3.0}
+                        min={0.1}
+                        step={0.1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        亮度调整因子（1.0=不变，>1.0=增亮，&lt;1.0=变暗）
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 高斯噪声攻击特定参数 */}
+                  {selectedAlgorithm === 'gaussian' && (
+                    <div className="space-y-2">
+                      <Label>噪声标准差: {parameters.noise_std}</Label>
+                      <Slider
+                        value={[parameters.noise_std]}
+                        onValueChange={(value) => handleParameterChange('noise_std', value[0])}
+                        max={0.5}
+                        min={0.01}
+                        step={0.01}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        高斯噪声的标准差（0=无噪声，数值越大噪声越强）
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 对比度攻击特定参数 */}
+                  {selectedAlgorithm === 'contrast' && (
+                    <div className="space-y-2">
+                      <Label>对比度因子: {parameters.contrast_factor}</Label>
+                      <Slider
+                        value={[parameters.contrast_factor]}
+                        onValueChange={(value) => handleParameterChange('contrast_factor', value[0])}
+                        max={3.0}
+                        min={0.1}
+                        step={0.1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        对比度调整因子（1.0=不变，>1.0=增加对比度，&lt;1.0=降低对比度）
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 通用光电干扰参数 */}
+                  {selectedAlgorithm !== 'brightness' && selectedAlgorithm !== 'gaussian' && selectedAlgorithm !== 'contrast' && (
+                    <div className="space-y-2">
+                      <Label>亮度调整: {parameters.brightness}</Label>
+                      <Slider
+                        value={[parameters.brightness]}
+                        onValueChange={(value) => handleParameterChange('brightness', value[0])}
+                        max={2.0}
+                        min={0.1}
+                        step={0.1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        调整图像整体亮度
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>对比度: {parameters.contrast}</Label>
@@ -492,21 +571,57 @@ export default function AttackScenarios() {
                       <span>迭代次数</span>
                       <span>{parameters.iterations}</span>
                     </div>
+                    {/* 在摘要中显示贴片大小 */}
+                    {selectedAlgorithm === 'dpatch' && (
+                      <div className="flex justify-between">
+                        <span>贴片大小</span>
+                        <span>{parameters.patch_size}</span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span>亮度</span>
-                      <span>{parameters.brightness}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>对比度</span>
-                      <span>{parameters.contrast}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>噪声强度</span>
-                      <span>{parameters.noise_level}</span>
-                    </div>
+                    {/* 亮度攻击特定参数显示 */}
+                    {selectedAlgorithm === 'brightness' && (
+                      <div className="flex justify-between">
+                        <span>亮度因子</span>
+                        <span>{parameters.brightness_factor}</span>
+                      </div>
+                    )}
+                    
+                    {/* 高斯噪声攻击特定参数显示 */}
+                    {selectedAlgorithm === 'gaussian' && (
+                      <div className="flex justify-between">
+                        <span>噪声标准差</span>
+                        <span>{parameters.noise_std}</span>
+                      </div>
+                    )}
+                    
+                    {/* 对比度攻击特定参数显示 */}
+                    {selectedAlgorithm === 'contrast' && (
+                      <div className="flex justify-between">
+                        <span>对比度因子</span>
+                        <span>{parameters.contrast_factor}</span>
+                      </div>
+                    )}
+                    
+                    {/* 其他光电干扰参数显示 */}
+                    {selectedAlgorithm !== 'brightness' && selectedAlgorithm !== 'gaussian' && selectedAlgorithm !== 'contrast' && (
+                      <>
+                        <div className="flex justify-between">
+                          <span>亮度</span>
+                          <span>{parameters.brightness}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>对比度</span>
+                          <span>{parameters.contrast}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>噪声强度</span>
+                          <span>{parameters.noise_level}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

@@ -251,26 +251,31 @@ def load_attack_by_name(name: str, **kwargs):
     raise ValueError(f"在模块 {module_name} 中未找到攻击类")
 
 @celery_app.task(name="attack.run")
-def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdrone", 
-                   dataset_name="VisDrone", num_images=10, eps="8/255", alpha="2/255", 
-                   steps=10, conf_threshold=0.25, iou_threshold=0.5, confidence=0, lr=0.01, initial_const=0.1):
+def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdrone",
+                   dataset_name="VisDrone", num_images=10, eps="8/255", alpha="2/255",
+                   steps=10, conf_threshold=0.25, iou_threshold=0.5, confidence=0, lr=0.01, initial_const=0.1,
+                   patch_size=30, brightness_factor=1.5, noise_std=0.1, contrast_factor=1.5):
     """
     通用对抗攻击评估任务
     
     参数:
         task_id: 任务ID，如果为None则自动生成
-        attack_name: 攻击算法名称 (pgd, fgsm, cw_l2等)
+        attack_name: 攻击算法名称 (例如: pgd, fgsm, cw_l2, dpatch, brightness, gaussian, contrast)
         model_name: 模型名称
         dataset_name: 数据集名称
         num_images: 评估图像数量，-1表示全部
-        eps: 最大扰动大小 (如 "8/255")
-        alpha: 每步扰动大小 (如 "2/255")，仅PGD等迭代攻击使用
-        steps: 攻击迭代步数，仅迭代攻击使用
+        eps: 最大扰动 (例如: "8/255")
+        alpha: PGD等迭代攻击的步长 (例如: "2/255")
+        steps: 迭代攻击的步数
         conf_threshold: 置信度阈值
         iou_threshold: IoU阈值
-        confidence: 对抗样本置信度，仅CW攻击使用
-        lr: 攻击学习率，仅CW攻击使用
-        initial_const: 初始权衡常数c，仅CW攻击使用
+        confidence: CW攻击的置信度参数
+        lr: CW攻击的学习率
+        initial_const: CW攻击的初始常数c
+        patch_size: DPatch攻击的贴片大小
+        brightness_factor: 亮度攻击的亮度调整因子
+        noise_std: 高斯噪声攻击的噪声标准差
+        contrast_factor: 对比度攻击的对比度调整因子
     """
     if task_id is None:
         task_id = str(uuid4())
@@ -302,6 +307,14 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
                 "lr": lr,
                 "initial_const": initial_const
             }
+        elif attack_name.lower() == "dpatch":
+            attack_params.update({"patch_size": patch_size, "steps": steps})
+        elif attack_name.lower() == "brightness":
+            attack_params = {"brightness_factor": brightness_factor}
+        elif attack_name.lower() == "gaussian":
+            attack_params = {"noise_std": noise_std}
+        elif attack_name.lower() == "contrast":
+            attack_params = {"contrast_factor": contrast_factor}
         
         # 动态加载攻击算法
         attack = load_attack_by_name(attack_name, **attack_params)
