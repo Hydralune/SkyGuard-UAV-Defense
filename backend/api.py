@@ -8,7 +8,7 @@ import os
 import json
 
 # 引入 Celery 异步任务
-from celery_app import celery_app, test_model_task, run_attack_task, run_defense_task
+from celery_app import celery_app, test_model_task, run_attack_task, run_defense_task, adv_defense_train_task
 
 # 引入自定义功能函数（同步任务）
 import download_dataset  # 或 from function import some_function
@@ -128,6 +128,57 @@ async def run_defense(
     task_id = str(uuid4())
     task = run_defense_task.delay(task_id, defense_type=defense_type, params=params)
     return {"task_id": task_id, "celery_task_id": task.id}
+
+
+@router.post("/defense/train")
+async def train_defense(
+    defense_type: str = "pgd",
+    base_model: str = "yolov8s.pt",
+    data_yaml: str = "backend/datasets/VisDrone_Dataset/visdrone.yaml",
+    epochs: int = 30,
+    imgsz: int = 640,
+    batch: int = 16,
+    model_name: Optional[str] = None,
+    device: Union[str, int] = 0,
+    eps: str = "8/255",
+    alpha: str = "2/255",
+    steps: Optional[int] = None,
+    attack_ratio: float = 0.5
+):
+    """
+    启动对抗训练防御任务
+    
+    参数:
+    - defense_type: 防御算法类型，支持 "pgd", "fgm", "freeat", "yopo", "freelb" 等
+    - base_model: 基础模型路径或名称
+    - data_yaml: 数据集YAML定义路径
+    - epochs: 训练轮数
+    - imgsz: 输入图像大小
+    - batch: 批次大小
+    - model_name: 训练后的模型名称，如果为None则自动生成
+    - device: CUDA设备ID或"cpu"
+    - eps: 最大扰动幅度 (例如: "8/255")
+    - alpha: 单步扰动大小 (例如: "2/255")
+    - steps: 对抗攻击步数，如果为None则根据防御类型自动设置
+    - attack_ratio: 训练批次中使用对抗样本的比例
+    """
+    task_id = str(uuid4())
+    task = adv_defense_train_task.delay(
+        task_id=task_id,
+        defense_type=defense_type,
+        base_model=base_model,
+        data_yaml=data_yaml,
+        epochs=epochs,
+        imgsz=imgsz,
+        batch=batch,
+        model_name=model_name,
+        device=device,
+        eps=eps,
+        alpha=alpha,
+        steps=steps,
+        attack_ratio=attack_ratio
+    )
+    return {"task_id": task_id, "celery_task_id": task.id, "defense_type": defense_type}
 
 @router.get("/task/{task_id}")
 async def get_task_status(task_id: str):

@@ -24,7 +24,7 @@ celery_app.autodiscover_tasks(['tasks', 'airsim_task'])
 
 # 导入所有任务函数，确保它们被注册
 # 注意：导入需要放在celery_app定义之后，以避免循环导入
-from tasks import test_model_task, run_attack_task
+from tasks import test_model_task, run_attack_task, adv_defense_train_task
 from defense import run_defense_task
 # 导入AirSim任务
 try:
@@ -37,6 +37,9 @@ test_model_task = celery_app.task(name="model.test")(test_model_task)
 
 # 将run_defense_task注册为celery任务
 run_defense_task = celery_app.task(name="defense.run")(run_defense_task)
+
+# 将adv_defense_train_task注册为celery任务
+adv_defense_train_task = celery_app.task(name="defense.train")(adv_defense_train_task)
 
 # 注册AirSim任务
 try:

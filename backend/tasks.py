@@ -12,6 +12,7 @@ from celery_app import celery_app
 from evaluate_model import EnhancedEvaluator  # 直接导入评估类
 from evaluate_adversarial import AdversarialEvaluator, parse_fraction
 from algorithms.attacks.base import BaseAttack  # 用于类型检查
+from algorithms.defenses.base import BaseTrainingDefense  # 用于类型检查
 from utils.model_manager import ModelManager
 from utils.dataset_manager import DatasetManager
 import traceback
@@ -249,6 +250,215 @@ def load_attack_by_name(name: str, **kwargs):
                 return obj(**filtered_kwargs)
 
     raise ValueError(f"在模块 {module_name} 中未找到攻击类")
+
+def load_defense_by_name(name: str, **kwargs):
+    """根据名称动态加载 algorithms.defenses.<n>.py 中的防御类并实例化。
+    如果传入的 kwargs 参数不被目标类接受，会自动过滤掉。"""
+    module_name = f"algorithms.defenses.{name.lower()}"
+    try:
+        module = importlib.import_module(module_name)
+    except ModuleNotFoundError as e:
+        raise ValueError(f"不支持的防御算法: {name}。预期的文件路径: algorithms/defenses/{name.lower()}.py") from e
+
+    # 查找 BaseTrainingDefense 的子类
+    for attr in dir(module):
+        obj = getattr(module, attr)
+        if isinstance(obj, type) and issubclass(obj, BaseTrainingDefense) and obj is not BaseTrainingDefense:
+            try:
+                # 直接尝试实例化
+                return obj(**kwargs)
+            except TypeError:
+                # 过滤不兼容的 kwargs 再尝试一次
+                sig = inspect.signature(obj.__init__)
+                filtered_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+                return obj(**filtered_kwargs)
+
+    raise ValueError(f"在模块 {module_name} 中未找到防御类")
+
+
+@celery_app.task(name="defense.train")
+def adv_defense_train_task(task_id=None, defense_type="pgd", base_model="yolov8s.pt", 
+                          data_yaml="backend/datasets/VisDrone_Dataset/visdrone.yaml",
+                          epochs=30, imgsz=640, batch=16, 
+                          model_name=None, device=0,
+                          eps="8/255", alpha="2/255", steps=None, attack_ratio=0.5):
+    """
+    对抗训练防御异步任务
+    
+    参数:
+        task_id: 任务ID，如果为None则自动生成
+        defense_type: 防御算法类型，支持 "pgd", "fgm", "freeat", "yopo", "freelb" 等
+        base_model: 基础模型路径或名称
+        data_yaml: 数据集YAML定义路径
+        epochs: 训练轮数
+        imgsz: 输入图像大小
+        batch: 批次大小
+        model_name: 训练后的模型名称，如果为None则自动生成
+        device: CUDA设备ID或"cpu"
+        eps: 最大扰动幅度 (例如: "8/255")
+        alpha: 单步扰动大小 (例如: "2/255")
+        steps: 对抗攻击步数，如果为None则根据防御类型自动设置
+        attack_ratio: 训练批次中使用对抗样本的比例
+    """
+    # 导入需要放在函数内部，避免循环导入和路径问题
+    import sys
+    import os
+    from pathlib import Path
+    
+    # 确保项目根目录在Python路径中
+    project_root = Path(__file__).resolve().parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    
+    # 确保当前工作目录是项目根目录
+    os.chdir(project_root)
+    print(f"切换到项目根目录: {os.getcwd()}")
+    
+    # 现在导入train_model
+    try:
+        # 尝试从backend包导入
+        from backend.train_model import train_visdrone
+        print("成功从backend.train_model导入train_visdrone")
+    except ImportError:
+        try:
+            # 尝试直接导入
+            sys.path.append(str(project_root / "backend"))
+            from train_model import train_visdrone
+            print("成功从train_model直接导入train_visdrone")
+        except ImportError as e:
+            # 打印更多调试信息
+            print(f"导入失败: {str(e)}")
+            print(f"Python路径: {sys.path}")
+            print(f"当前目录: {os.getcwd()}")
+            print(f"目录内容: {os.listdir('.')}")
+            print(f"backend目录内容: {os.listdir('./backend') if os.path.exists('./backend') else '不存在'}")
+            raise
+    
+    # 设置环境变量，强制PyTorch DataLoader使用单进程模式
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["NUMEXPR_NUM_THREADS"] = "1"
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+    
+    # 修改torch的多进程设置，避免在守护进程中创建子进程
+    import torch.multiprocessing as mp
+    try:
+        mp.set_start_method('spawn', force=True)
+        print("PyTorch多进程启动方法设置为'spawn'")
+    except RuntimeError:
+        print("PyTorch多进程启动方法已经设置，无法更改")
+    
+    if task_id is None:
+        task_id = str(uuid4())
+    
+    # 根据防御类型设置默认参数
+    defense_type = defense_type.lower()
+    
+    # 如果未指定模型名称，则自动生成
+    if model_name is None:
+        model_name = f"yolov8s-{defense_type}-defended"
+    
+    # 根据防御类型设置默认步数
+    if steps is None:
+        if defense_type == "pgd":
+            steps = 10  # PGD默认使用10步
+        elif defense_type == "fgm":
+            steps = 1   # FGM默认使用1步
+        elif defense_type == "freeat":
+            steps = 4   # FreeAT默认使用4步
+        elif defense_type == "yopo":
+            steps = 5   # YOPO默认使用5步
+        elif defense_type == "freelb":
+            steps = 5   # FreeLB默认使用5步
+        else:
+            steps = 3   # 其他类型默认使用3步
+    
+    try:
+        # 在Celery守护进程中不能直接使用多进程，所以我们使用子进程执行训练脚本
+        import subprocess
+        import json
+        
+        # 准备结果文件路径
+        result_file = os.path.join("results", "defense_results", task_id, "result.json")
+        os.makedirs(os.path.dirname(result_file), exist_ok=True)
+        
+        # 准备命令行参数
+        cmd = [
+            "python", "backend/run_defense_training.py",
+            "--defense_type", defense_type,
+            "--base_model", base_model,
+            "--data_yaml", data_yaml,
+            "--epochs", str(epochs),
+            "--imgsz", str(imgsz),
+            "--batch", str(batch),
+            "--device", str(device),
+            "--eps", eps,
+            "--alpha", alpha,
+            "--attack_ratio", str(attack_ratio),
+            "--task_id", task_id,
+            "--result_file", result_file
+        ]
+        
+        # 添加可选参数
+        if model_name:
+            cmd.extend(["--model_name", model_name])
+        if steps:
+            cmd.extend(["--steps", str(steps)])
+        
+        print(f"执行命令: {' '.join(cmd)}")
+        
+        # 执行训练脚本，实时显示输出
+        print(f"开始执行训练脚本，实时输出日志...")
+        process = subprocess.Popen(
+            cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.STDOUT,  # 将stderr重定向到stdout
+            bufsize=1,  # 行缓冲
+            universal_newlines=True  # 文本模式
+        )
+        
+        # 实时读取并打印输出
+        for line in process.stdout:
+            print(line.strip())  # 实时打印输出
+        
+        # 等待进程完成
+        process.wait()
+        
+        # 检查执行结果
+        if process.returncode != 0:
+            print(f"训练脚本执行失败，返回码: {process.returncode}")
+            raise RuntimeError(f"训练脚本执行失败，返回码: {process.returncode}")
+        
+        # 读取结果文件
+        if os.path.exists(result_file):
+            with open(result_file, 'r') as f:
+                result = json.load(f)
+        else:
+            result = {
+                "status": "Completed",
+                "message": "训练完成，但未找到结果文件"
+            }
+        
+        return {
+            "status": "Completed",
+            "task_id": task_id,
+            "defense_type": defense_type,
+            "model_name": model_name,
+            "result": result
+        }
+        
+    except Exception as e:
+        # 记录错误信息
+        error_path = os.path.join("results", "defense_results", task_id, "error.txt")
+        os.makedirs(os.path.dirname(error_path), exist_ok=True)
+        with open(error_path, "w") as f:
+            f.write(str(e))
+            f.write("\n")
+            traceback.print_exc(file=f)
+        print(f"Error in defense training task {task_id}: {str(e)}")
+        traceback.print_exc()
+        raise e
+
 
 @celery_app.task(name="attack.run")
 def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdrone",
