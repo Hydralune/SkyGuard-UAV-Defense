@@ -16,7 +16,7 @@ class GaussianNoiseAttack(BaseAttack):
                 - 建议范围：0.01 - 0.5
             input_size (int or None): 如果不是None，图像在攻击前将被调整为方形的input_size。
         """
-        super().__init__(name="gaussian_noise")
+        super().__init__(name="gaussian")
         self.noise_std = noise_std
         self.input_size = input_size
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -254,13 +254,15 @@ def load_attack_by_name(name: str, **kwargs):
 def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdrone",
                    dataset_name="VisDrone", num_images=10, eps="8/255", alpha="2/255",
                    steps=10, conf_threshold=0.25, iou_threshold=0.5, confidence=0, lr=0.01, initial_const=0.1,
-                   patch_size=30, brightness_factor=1.5, noise_std=0.1, contrast_factor=1.5):
+                   patch_size=30, brightness_factor=1.5, noise_std=0.1, contrast_factor=1.5,
+                   distortion_factor=0.3, distortion_type="radial", change_intensity=0.8, 
+                   change_type="brightness", num_changes=3):
     """
     通用对抗攻击评估任务
     
     参数:
         task_id: 任务ID，如果为None则自动生成
-        attack_name: 攻击算法名称 (例如: pgd, fgsm, cw_l2, dpatch, brightness, gaussian, contrast)
+        attack_name: 攻击算法名称 (例如: pgd, fgsm, cw_l2, dpatch, brightness, gaussian, contrast, distortion, scene_change)
         model_name: 模型名称
         dataset_name: 数据集名称
         num_images: 评估图像数量，-1表示全部
@@ -276,6 +278,11 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
         brightness_factor: 亮度攻击的亮度调整因子
         noise_std: 高斯噪声攻击的噪声标准差
         contrast_factor: 对比度攻击的对比度调整因子
+        distortion_factor: 图像扭曲攻击的扭曲强度因子
+        distortion_type: 图像扭曲攻击的扭曲类型 ("radial"或"wave")
+        change_intensity: 场景跃变攻击的变化强度因子
+        change_type: 场景跃变攻击的变化类型 ("brightness", "contrast", "color", "mixed")
+        num_changes: 场景跃变攻击的变化次数
     """
     if task_id is None:
         task_id = str(uuid4())
@@ -300,7 +307,7 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
             attack_params.update({"alpha": alpha_val, "steps": steps})
         elif attack_name.lower() == "fgsm":
             attack_params.update({"steps": steps})
-        elif attack_name.lower() == "cw_l2":
+        elif attack_name.lower() == "cw_l2" or attack_name.lower() == "cw":
             attack_params = {
                 "confidence": confidence,
                 "steps": steps,
@@ -315,6 +322,10 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
             attack_params = {"noise_std": noise_std}
         elif attack_name.lower() == "contrast":
             attack_params = {"contrast_factor": contrast_factor}
+        elif attack_name.lower() == "distortion":
+            attack_params = {"distortion_factor": distortion_factor, "distortion_type": distortion_type}
+        elif attack_name.lower() == "scene_change":
+            attack_params = {"change_intensity": change_intensity, "change_type": change_type, "num_changes": num_changes}
         
         # 动态加载攻击算法
         attack = load_attack_by_name(attack_name, **attack_params)

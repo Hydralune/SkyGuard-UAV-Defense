@@ -38,6 +38,11 @@ export default function AttackScenarios() {
     brightness_factor: 1.5, // 为亮度攻击添加新参数
     noise_std: 0.1, // 为高斯噪声攻击添加新参数
     contrast_factor: 1.5, // 为对比度攻击添加新参数
+    distortion_factor: 0.3, // 为图像扭曲攻击添加新参数
+    distortion_type: 'radial', // 为图像扭曲攻击添加新参数
+    change_intensity: 0.8, // 为场景跃变攻击添加新参数
+    change_type: 'brightness', // 为场景跃变攻击添加新参数
+    num_changes: 3, // 为场景跃变攻击添加新参数
     brightness: 0.5,
     contrast: 1.0,
     noise_level: 0.1
@@ -316,7 +321,7 @@ export default function AttackScenarios() {
                         className="w-full"
                       />
                       <p className="text-xs text-muted-foreground">
-                        亮度调整因子（1.0=不变，>1.0=增亮，&lt;1.0=变暗）
+                        亮度调整因子（1.0=不变，&gt;1.0=增亮，&lt;1.0=变暗）
                       </p>
                     </div>
                   )}
@@ -352,58 +357,155 @@ export default function AttackScenarios() {
                         className="w-full"
                       />
                       <p className="text-xs text-muted-foreground">
-                        对比度调整因子（1.0=不变，>1.0=增加对比度，&lt;1.0=降低对比度）
+                        对比度调整因子（1.0=不变，&gt;1.0=增加对比度，&lt;1.0=降低对比度）
                       </p>
+                    </div>
+                  )}
+
+                  {/* 图像扭曲攻击特定参数 */}
+                  {selectedAlgorithm === 'distortion' && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>扭曲强度: {parameters.distortion_factor}</Label>
+                        <Slider
+                          value={[parameters.distortion_factor]}
+                          onValueChange={(value) => handleParameterChange('distortion_factor', value[0])}
+                          max={1.0}
+                          min={0.1}
+                          step={0.05}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          扭曲强度因子（数值越大，扭曲越明显）
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>扭曲类型</Label>
+                        <Select 
+                          value={parameters.distortion_type} 
+                          onValueChange={(value) => handleParameterChange('distortion_type', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="选择扭曲类型" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="radial">径向扭曲（桶形/枕形）</SelectItem>
+                            <SelectItem value="wave">波浪扭曲</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          不同的扭曲类型会产生不同的视觉效果
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 场景跃变攻击特定参数 */}
+                  {selectedAlgorithm === 'scene_change' && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>变化强度: {parameters.change_intensity}</Label>
+                        <Slider
+                          value={[parameters.change_intensity]}
+                          onValueChange={(value) => handleParameterChange('change_intensity', value[0])}
+                          max={2.0}
+                          min={0.1}
+                          step={0.1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          场景变化强度因子（数值越大，变化越明显）
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>变化类型</Label>
+                        <Select 
+                          value={parameters.change_type} 
+                          onValueChange={(value) => handleParameterChange('change_type', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="选择变化类型" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="brightness">亮度突变</SelectItem>
+                            <SelectItem value="contrast">对比度突变</SelectItem>
+                            <SelectItem value="color">颜色突变</SelectItem>
+                            <SelectItem value="mixed">混合变化</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          不同的变化类型会产生不同的视觉效果
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>变化次数: {parameters.num_changes}</Label>
+                        <Slider
+                          value={[parameters.num_changes]}
+                          onValueChange={(value) => handleParameterChange('num_changes', value[0])}
+                          max={10}
+                          min={1}
+                          step={1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          在图像上产生的变化区域数量
+                        </p>
+                      </div>
                     </div>
                   )}
 
                   {/* 通用光电干扰参数 */}
-                  {selectedAlgorithm !== 'brightness' && selectedAlgorithm !== 'gaussian' && selectedAlgorithm !== 'contrast' && (
-                    <div className="space-y-2">
-                      <Label>亮度调整: {parameters.brightness}</Label>
-                      <Slider
-                        value={[parameters.brightness]}
-                        onValueChange={(value) => handleParameterChange('brightness', value[0])}
-                        max={2.0}
-                        min={0.1}
-                        step={0.1}
-                        className="w-full"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        调整图像整体亮度
-                      </p>
-                    </div>
+                  {selectedAlgorithm !== 'brightness' && selectedAlgorithm !== 'gaussian' && selectedAlgorithm !== 'contrast' && selectedAlgorithm !== 'distortion' && selectedAlgorithm !== 'scene_change' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>亮度调整: {parameters.brightness}</Label>
+                        <Slider
+                          value={[parameters.brightness]}
+                          onValueChange={(value) => handleParameterChange('brightness', value[0])}
+                          max={2.0}
+                          min={0.1}
+                          step={0.1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          调整图像整体亮度
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>对比度: {parameters.contrast}</Label>
+                        <Slider
+                          value={[parameters.contrast]}
+                          onValueChange={(value) => handleParameterChange('contrast', value[0])}
+                          max={3.0}
+                          min={0.1}
+                          step={0.1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          调整图像对比度
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>噪声强度: {parameters.noise_level}</Label>
+                        <Slider
+                          value={[parameters.noise_level]}
+                          onValueChange={(value) => handleParameterChange('noise_level', value[0])}
+                          max={0.5}
+                          min={0.01}
+                          step={0.01}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          高斯噪声的标准差
+                        </p>
+                      </div>
+                    </>
                   )}
-
-                  <div className="space-y-2">
-                    <Label>对比度: {parameters.contrast}</Label>
-                    <Slider
-                      value={[parameters.contrast]}
-                      onValueChange={(value) => handleParameterChange('contrast', value[0])}
-                      max={3.0}
-                      min={0.1}
-                      step={0.1}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      调整图像对比度
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>噪声强度: {parameters.noise_level}</Label>
-                    <Slider
-                      value={[parameters.noise_level]}
-                      onValueChange={(value) => handleParameterChange('noise_level', value[0])}
-                      max={0.5}
-                      min={0.01}
-                      step={0.01}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      高斯噪声的标准差
-                    </p>
-                  </div>
                 </>
               )}
 
@@ -605,8 +707,44 @@ export default function AttackScenarios() {
                       </div>
                     )}
                     
+                    {/* 图像扭曲攻击特定参数显示 */}
+                    {selectedAlgorithm === 'distortion' && (
+                      <>
+                        <div className="flex justify-between">
+                          <span>扭曲强度</span>
+                          <span>{parameters.distortion_factor}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>扭曲类型</span>
+                          <span>{parameters.distortion_type === 'radial' ? '径向' : '波浪'}</span>
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* 场景跃变攻击特定参数显示 */}
+                    {selectedAlgorithm === 'scene_change' && (
+                      <>
+                        <div className="flex justify-between">
+                          <span>变化强度</span>
+                          <span>{parameters.change_intensity}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>变化类型</span>
+                          <span>
+                            {parameters.change_type === 'brightness' ? '亮度突变' :
+                             parameters.change_type === 'contrast' ? '对比度突变' :
+                             parameters.change_type === 'color' ? '颜色突变' : '混合变化'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>变化次数</span>
+                          <span>{parameters.num_changes}</span>
+                        </div>
+                      </>
+                    )}
+                    
                     {/* 其他光电干扰参数显示 */}
-                    {selectedAlgorithm !== 'brightness' && selectedAlgorithm !== 'gaussian' && selectedAlgorithm !== 'contrast' && (
+                    {selectedAlgorithm !== 'brightness' && selectedAlgorithm !== 'gaussian' && selectedAlgorithm !== 'contrast' && selectedAlgorithm !== 'distortion' && selectedAlgorithm !== 'scene_change' && (
                       <>
                         <div className="flex justify-between">
                           <span>亮度</span>

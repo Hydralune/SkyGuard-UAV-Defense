@@ -6,5 +6,7 @@ from .dpatch import DPatchAttack
 from .brightness import BrightnessAttack
 from .gaussian_noise import GaussianNoiseAttack
 from .contrast import ContrastAttack
+from .distortion import DistortionAttack
+from .scene_change import SceneChangeAttack
 
-__all__ = ['FGSMAttack', 'PGDAttack', 'CWL2Attack', 'DPatchAttack', 'BrightnessAttack', 'GaussianNoiseAttack', 'ContrastAttack']
+__all__ = ['FGSMAttack', 'PGDAttack', 'CWL2Attack', 'DPatchAttack', 'BrightnessAttack', 'GaussianNoiseAttack', 'ContrastAttack', 'DistortionAttack', 'SceneChangeAttack']
