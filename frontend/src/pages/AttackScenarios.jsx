@@ -31,8 +31,8 @@ export default function AttackScenarios() {
   const [selectedDataset, setSelectedDataset] = useState('Visdrone')
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('pgd')
   const [parameters, setParameters] = useState({
-    epsilon: 0.03,
-    alpha: 0.01,
+    epsilon: 8/255, // 约0.031，与后端默认值一致
+    alpha: 2/255,   // 约0.008，与后端默认值一致
     iterations: 10,
     patch_size: 30, // 为DPatch添加新参数
     brightness_factor: 1.5, // 为亮度攻击添加新参数
@@ -43,6 +43,8 @@ export default function AttackScenarios() {
     change_intensity: 0.8, // 为场景跃变攻击添加新参数
     change_type: 'brightness', // 为场景跃变攻击添加新参数
     num_changes: 3, // 为场景跃变攻击添加新参数
+    custom_algorithm_name: '', // 自定义攻击算法名称
+    custom_parameters: '{}', // 自定义攻击算法参数（JSON格式）
     brightness: 0.5,
     contrast: 1.0,
     noise_level: 0.1
@@ -63,10 +65,8 @@ export default function AttackScenarios() {
       { id: 'pgd', name: 'PGD', description: '投影梯度下降攻击', difficulty: 'high' },
       { id: 'fgsm', name: 'FGSM', description: '快速梯度符号方法', difficulty: 'medium' },
       { id: 'cw', name: 'C&W', description: 'Carlini & Wagner攻击', difficulty: 'high' },
-      { id: 'deepfool', name: 'DeepFool', description: '最小扰动攻击', difficulty: 'medium' },
-      { id: 'advpatch', name: 'AdvPatch', description: '对抗补丁攻击', difficulty: 'high' },
       { id: 'dpatch', name: 'DPatch', description: '数字补丁攻击', difficulty: 'medium' },
-      { id: 'selfmade', name: '自定义攻击算法', description: '从文件导入', difficulty: 'high' },
+      { id: 'selfmade', name: '自定义攻击算法', description: '用户自行集成的攻击算法', difficulty: 'expert' },
     ],
     optical: [
       { id: 'brightness', name: '亮度干扰', description: '调整图像亮度', difficulty: 'low' },
@@ -301,6 +301,47 @@ export default function AttackScenarios() {
                       <p className="text-xs text-muted-foreground">
                         DPatch攻击中使用的贴片大小（像素）
                       </p>
+                    </div>
+                  )}
+
+                  {/* 自定义攻击算法特定参数 */}
+                  {selectedAlgorithm === 'selfmade' && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>算法文件名</Label>
+                        <Input
+                          value={parameters.custom_algorithm_name}
+                          onChange={(e) => handleParameterChange('custom_algorithm_name', e.target.value)}
+                          placeholder="例如: my_custom_attack"
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          您的自定义攻击算法文件名（不含.py后缀）
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>算法参数（JSON格式）</Label>
+                        <textarea
+                          value={parameters.custom_parameters}
+                          onChange={(e) => handleParameterChange('custom_parameters', e.target.value)}
+                          placeholder='{"eps": 0.03, "alpha": 0.01, "steps": 10}'
+                          className="w-full h-24 px-3 py-2 text-sm border border-input bg-background rounded-md resize-none"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          自定义算法的初始化参数，必须是有效的JSON格式
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-md">
+                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                          <strong>使用说明：</strong><br/>
+                          1. 将您的自定义攻击算法文件放在 backend/algorithms/attacks/ 目录下<br/>
+                          2. 确保您的攻击类继承自 BaseAttack 并实现 attack 方法<br/>
+                          3. 在文件末尾添加：Attack = YourAttackClass<br/>
+                          4. 将类导入到 __init__.py 文件中
+                        </p>
+                      </div>
                     </div>
                   )}
                 </>
@@ -679,6 +720,27 @@ export default function AttackScenarios() {
                         <span>贴片大小</span>
                         <span>{parameters.patch_size}</span>
                       </div>
+                    )}
+                    {/* 在摘要中显示自定义算法信息 */}
+                    {selectedAlgorithm === 'selfmade' && (
+                      <>
+                        <div className="flex justify-between">
+                          <span>算法文件</span>
+                          <span>{parameters.custom_algorithm_name || '未指定'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>参数个数</span>
+                          <span>
+                            {(() => {
+                              try {
+                                return Object.keys(JSON.parse(parameters.custom_parameters || '{}')).length;
+                              } catch {
+                                return '格式错误';
+                              }
+                            })()}
+                          </span>
+                        </div>
+                      </>
                     )}
                   </div>
                 ) : (

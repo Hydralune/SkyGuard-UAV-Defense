@@ -16,7 +16,7 @@ class PGDAttack(BaseAttack):
     """
     
     def __init__(self, eps=8/255, alpha=2/255, steps=10, random_start=True, input_size=640):
-        super().__init__(name="PGD")
+        super().__init__(name="pgd")
         self.eps = eps
         self.alpha = alpha
         self.steps = steps
@@ -97,3 +97,6 @@ class PGDAttack(BaseAttack):
             images = torch.nn.functional.interpolate(images, size=orig_size, mode="bilinear", align_corners=False)
         
         return images
+
+# 为了向后兼容和动态加载
+Attack = PGDAttack

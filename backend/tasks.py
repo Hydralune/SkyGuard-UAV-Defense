@@ -256,7 +256,7 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
                    steps=10, conf_threshold=0.25, iou_threshold=0.5, confidence=0, lr=0.01, initial_const=0.1,
                    patch_size=30, brightness_factor=1.5, noise_std=0.1, contrast_factor=1.5,
                    distortion_factor=0.3, distortion_type="radial", change_intensity=0.8, 
-                   change_type="brightness", num_changes=3):
+                   change_type="brightness", num_changes=3, custom_algorithm_name="", custom_parameters="{}"):
     """
     通用对抗攻击评估任务
     
@@ -283,6 +283,8 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
         change_intensity: 场景跃变攻击的变化强度因子
         change_type: 场景跃变攻击的变化类型 ("brightness", "contrast", "color", "mixed")
         num_changes: 场景跃变攻击的变化次数
+        custom_algorithm_name: 自定义攻击算法的文件名
+        custom_parameters: 自定义攻击算法的初始化参数（JSON字符串格式）
     """
     if task_id is None:
         task_id = str(uuid4())
@@ -326,9 +328,25 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
             attack_params = {"distortion_factor": distortion_factor, "distortion_type": distortion_type}
         elif attack_name.lower() == "scene_change":
             attack_params = {"change_intensity": change_intensity, "change_type": change_type, "num_changes": num_changes}
+        elif attack_name.lower() == "selfmade":
+            # 处理自定义攻击算法
+            if not custom_algorithm_name:
+                raise ValueError("自定义攻击算法需要指定算法文件名")
+            try:
+                # 解析自定义参数
+                import json
+                custom_params = json.loads(custom_parameters) if custom_parameters else {}
+                attack_params = custom_params
+                # 使用自定义算法名称进行动态加载
+                attack = load_attack_by_name(custom_algorithm_name, **attack_params)
+            except json.JSONDecodeError:
+                raise ValueError("自定义算法参数格式错误，必须是有效的JSON格式")
+            except Exception as e:
+                raise ValueError(f"加载自定义攻击算法失败: {str(e)}")
         
-        # 动态加载攻击算法
-        attack = load_attack_by_name(attack_name, **attack_params)
+        # 动态加载攻击算法（非自定义算法）
+        if attack_name.lower() != "selfmade":
+            attack = load_attack_by_name(attack_name, **attack_params)
 
         # 4. 获取数据集图像
         image_paths = DatasetManager.get_test_images(
