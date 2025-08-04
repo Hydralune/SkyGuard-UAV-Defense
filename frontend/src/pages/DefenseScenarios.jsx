@@ -39,14 +39,31 @@ export default function DefenseScenarios() {
     epochs: 10,
     batch_size: 32,
     defense_strength: 0.7,
-    regularization: 0.01
+    regularization: 0.01,
+    // 统计检测参数
+    threshold: 0.6,
+    purify_method: 'gaussian_blur',
+    use_gradient: true,
+    use_variance: true,
+    use_entropy: true,
+    // 特征压缩参数
+    fs_bit_depth: 4,
+    fs_use_median_filter: true,
+    fs_median_window: 2,
+    fs_use_non_local_means: false,
+    fs_nlm_h: 10,
+    fs_nlm_template_window: 7,
+    fs_nlm_search_window: 21,
+    fs_threshold: 0.5,
+    fs_detection_method: 'joint'
   })
   const [isTraining, setIsTraining] = useState(false)
   const [trainingProgress, setTrainingProgress] = useState(0)
   const handleDefenseTypeChange = (value) => {
     setSelectedDefenseType(value)          // 更新防御类型
-    const defaultAlg = defenseAlgorithms[value]?.[0]?.id   // 取该类型列表的第一个算法
-    if (defaultAlg) setSelectedAlgorithm(defaultAlg)       // 设置默认算法
+    // 找到第一个未禁用的算法
+    const availableAlg = defenseAlgorithms[value]?.find(alg => !alg.disabled)?.id
+    if (availableAlg) setSelectedAlgorithm(availableAlg)       // 设置默认算法
   }
 
   const defenseAlgorithms = {
@@ -64,8 +81,8 @@ export default function DefenseScenarios() {
       { id: 'bit_depth_reduction', name: '位深度降低', description: '减少颜色位深度', effectiveness: 'low' }
     ],
     detection: [
-      { id: 'statistical_test', name: '统计检测', description: '基于统计特征检测', effectiveness: 'medium' },
-      { id: 'neural_detector', name: '神经网络检测', description: '深度学习检测器', effectiveness: 'high' },
+      { id: 'statistical_detector', name: '统计检测', description: '基于统计特征检测对抗样本', effectiveness: 'medium' },
+      { id: 'neural_detector', name: '神经网络检测', description: '深度学习检测器 (开发中)', effectiveness: 'high', disabled: true },
       { id: 'feature_squeezing', name: '特征压缩', description: '特征空间压缩检测', effectiveness: 'medium' }
     ]
   }
@@ -210,18 +227,26 @@ export default function DefenseScenarios() {
                     </SelectTrigger>
                     <SelectContent>
                       {defenseAlgorithms[selectedDefenseType]?.map((algorithm) => (
-                        <SelectItem key={algorithm.id} value={algorithm.id}>
+                        <SelectItem 
+                          key={algorithm.id} 
+                          value={algorithm.id}
+                          disabled={algorithm.disabled}
+                        >
                           <div className="flex items-center justify-between w-full">
                             <div>
-                              <div className="font-medium">{algorithm.name}</div>
+                              <div className={`font-medium ${algorithm.disabled ? 'text-muted-foreground' : ''}`}>
+                                {algorithm.name}
+                              </div>
                               <div className="text-xs text-muted-foreground">{algorithm.description}</div>
                             </div>
                             <Badge variant={
+                              algorithm.disabled ? 'outline' :
                               algorithm.effectiveness === 'high' ? 'default' :
                               algorithm.effectiveness === 'medium' ? 'secondary' :
                               'outline'
                             }>
-                              {algorithm.effectiveness === 'high' ? '高效' :
+                              {algorithm.disabled ? '开发中' :
+                               algorithm.effectiveness === 'high' ? '高效' :
                                algorithm.effectiveness === 'medium' ? '中等' : '基础'}
                             </Badge>
                           </div>
@@ -360,33 +385,273 @@ export default function DefenseScenarios() {
 
               {selectedDefenseType === 'detection' && (
                 <>
-                  <div className="space-y-2">
-                    <Label>检测阈值: 0.8</Label>
-                    <Slider
-                      defaultValue={[0.8]}
-                      max={1.0}
-                      min={0.1}
-                      step={0.05}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      对抗样本检测的置信度阈值
-                    </p>
-                  </div>
+                  {selectedAlgorithm === 'neural_detector' && (
+                    <div className="flex items-center justify-center p-8 bg-muted/50 rounded-lg border-2 border-dashed">
+                      <div className="text-center space-y-2">
+                        <Brain className="h-12 w-12 mx-auto text-muted-foreground" />
+                        <h3 className="font-medium text-muted-foreground">神经网络检测</h3>
+                        <p className="text-sm text-muted-foreground max-w-md">
+                          该功能正在开发中，敬请期待。神经网络检测将使用深度学习模型来识别对抗样本，
+                          具有更高的检测精度和泛化能力。
+                        </p>
+                        <Badge variant="outline" className="mt-2">开发中</Badge>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="space-y-2">
-                    <Label>特征维度: 512</Label>
-                    <Slider
-                      defaultValue={[512]}
-                      max={2048}
-                      min={128}
-                      step={128}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      特征提取的维度大小
-                    </p>
-                  </div>
+                  {selectedAlgorithm === 'statistical_detector' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>检测阈值: {parameters.threshold}</Label>
+                        <Slider
+                          value={[parameters.threshold]}
+                          onValueChange={(value) => handleParameterChange('threshold', value[0])}
+                          max={1.0}
+                          min={0.1}
+                          step={0.05}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          对抗样本检测的置信度阈值，超过此值认为是对抗样本
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>净化方法</Label>
+                        <Select
+                          value={parameters.purify_method}
+                          onValueChange={(value) => handleParameterChange('purify_method', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="gaussian_blur">高斯模糊</SelectItem>
+                            <SelectItem value="median_filter">中值滤波</SelectItem>
+                            <SelectItem value="bilateral_filter">双边滤波</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          检测到对抗样本后使用的净化方法
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <Label className="text-sm font-medium">统计特征选择</Label>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm">梯度特征检测</Label>
+                              <p className="text-xs text-muted-foreground">分析图像梯度模式异常</p>
+                            </div>
+                            <Switch
+                              checked={parameters.use_gradient}
+                              onCheckedChange={(checked) => handleParameterChange('use_gradient', checked)}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm">方差特征检测</Label>
+                              <p className="text-xs text-muted-foreground">分析像素分布方差异常</p>
+                            </div>
+                            <Switch
+                              checked={parameters.use_variance}
+                              onCheckedChange={(checked) => handleParameterChange('use_variance', checked)}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm">熵特征检测</Label>
+                              <p className="text-xs text-muted-foreground">分析信息熵值异常</p>
+                            </div>
+                            <Switch
+                              checked={parameters.use_entropy}
+                              onCheckedChange={(checked) => handleParameterChange('use_entropy', checked)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {selectedAlgorithm === 'feature_squeezing' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>检测阈值: {parameters.fs_threshold}</Label>
+                        <Slider
+                          value={[parameters.fs_threshold]}
+                          onValueChange={(value) => handleParameterChange('fs_threshold', value[0])}
+                          max={2.0}
+                          min={0.1}
+                          step={0.1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          特征压缩检测的L1距离阈值，超过此值认为是对抗样本
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>颜色位深度: {parameters.fs_bit_depth} 位</Label>
+                        <Slider
+                          value={[parameters.fs_bit_depth]}
+                          onValueChange={(value) => handleParameterChange('fs_bit_depth', value[0])}
+                          max={8}
+                          min={1}
+                          step={1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          压缩图像的颜色位深度，数值越小压缩程度越大
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>检测方法</Label>
+                        <Select
+                          value={parameters.fs_detection_method}
+                          onValueChange={(value) => handleParameterChange('fs_detection_method', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bit_depth">仅位深度压缩</SelectItem>
+                            <SelectItem value="median">仅中值滤波</SelectItem>
+                            <SelectItem value="non_local">仅非局部均值</SelectItem>
+                            <SelectItem value="joint">联合检测</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          选择使用的特征压缩方法
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm">使用中值滤波</Label>
+                          <p className="text-xs text-muted-foreground">启用中值滤波压缩</p>
+                        </div>
+                        <Switch
+                          checked={parameters.fs_use_median_filter}
+                          onCheckedChange={(checked) => handleParameterChange('fs_use_median_filter', checked)}
+                        />
+                      </div>
+
+                      {parameters.fs_use_median_filter && (
+                        <div className="space-y-2 ml-4">
+                          <Label>中值滤波窗口: {parameters.fs_median_window}x{parameters.fs_median_window}</Label>
+                          <Slider
+                            value={[parameters.fs_median_window]}
+                            onValueChange={(value) => handleParameterChange('fs_median_window', value[0])}
+                            max={7}
+                            min={2}
+                            step={1}
+                            className="w-full"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            中值滤波的窗口大小
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm">使用非局部均值</Label>
+                          <p className="text-xs text-muted-foreground">启用非局部均值去噪</p>
+                        </div>
+                        <Switch
+                          checked={parameters.fs_use_non_local_means}
+                          onCheckedChange={(checked) => handleParameterChange('fs_use_non_local_means', checked)}
+                        />
+                      </div>
+
+                      {parameters.fs_use_non_local_means && (
+                        <div className="space-y-2 ml-4">
+                          <div className="space-y-2">
+                            <Label>去噪强度: {parameters.fs_nlm_h}</Label>
+                            <Slider
+                              value={[parameters.fs_nlm_h]}
+                              onValueChange={(value) => handleParameterChange('fs_nlm_h', value[0])}
+                              max={30}
+                              min={3}
+                              step={1}
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>模板窗口: {parameters.fs_nlm_template_window}</Label>
+                            <Slider
+                              value={[parameters.fs_nlm_template_window]}
+                              onValueChange={(value) => handleParameterChange('fs_nlm_template_window', value[0])}
+                              max={15}
+                              min={3}
+                              step={2}
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>搜索窗口: {parameters.fs_nlm_search_window}</Label>
+                            <Slider
+                              value={[parameters.fs_nlm_search_window]}
+                              onValueChange={(value) => handleParameterChange('fs_nlm_search_window', value[0])}
+                              max={35}
+                              min={7}
+                              step={2}
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="rounded-lg bg-green-50 p-4 border border-green-200">
+                        <div className="flex items-start space-x-3">
+                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                          <div className="text-sm">
+                            <p className="font-medium text-green-900 mb-2">特征压缩说明</p>
+                            <ul className="text-green-700 space-y-1 text-xs">
+                              <li>• 通过压缩特征空间来检测对抗样本</li>
+                              <li>• 比较原始图像和压缩图像的预测差异</li>
+                              <li>• 实现简单，计算成本低，无需训练</li>
+                              <li>• 支持多种压缩方法的联合检测</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {selectedAlgorithm !== 'statistical_detector' && selectedAlgorithm !== 'feature_squeezing' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>检测阈值: 0.8</Label>
+                        <Slider
+                          defaultValue={[0.8]}
+                          max={1.0}
+                          min={0.1}
+                          step={0.05}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          对抗样本检测的置信度阈值
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>特征维度: 512</Label>
+                        <Slider
+                          defaultValue={[512]}
+                          max={2048}
+                          min={128}
+                          step={128}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          特征提取的维度大小
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 
@@ -571,6 +836,63 @@ export default function DefenseScenarios() {
                     <div className="flex justify-between">
                       <span>批处理大小</span>
                       <span>{parameters.batch_size}</span>
+                    </div>
+                  </div>
+                ) : selectedDefenseType === 'detection' && selectedAlgorithm === 'statistical_detector' ? (
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span>检测阈值</span>
+                      <span>{parameters.threshold}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>净化方法</span>
+                      <span>{parameters.purify_method}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>梯度检测</span>
+                      <span>{parameters.use_gradient ? '启用' : '禁用'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>方差检测</span>
+                      <span>{parameters.use_variance ? '启用' : '禁用'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>熵检测</span>
+                      <span>{parameters.use_entropy ? '启用' : '禁用'}</span>
+                    </div>
+                  </div>
+                ) : selectedDefenseType === 'detection' && selectedAlgorithm === 'neural_detector' ? (
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span>状态</span>
+                      <Badge variant="outline">开发中</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>预计功能</span>
+                      <span>深度学习检测</span>
+                    </div>
+                  </div>
+                ) : selectedDefenseType === 'detection' && selectedAlgorithm === 'feature_squeezing' ? (
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span>检测阈值</span>
+                      <span>{parameters.fs_threshold}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>位深度</span>
+                      <span>{parameters.fs_bit_depth} 位</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>检测方法</span>
+                      <span>{parameters.fs_detection_method}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>中值滤波</span>
+                      <span>{parameters.fs_use_median_filter ? `启用 (${parameters.fs_median_window}x${parameters.fs_median_window})` : '禁用'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>非局部均值</span>
+                      <span>{parameters.fs_use_non_local_means ? '启用' : '禁用'}</span>
                     </div>
                   </div>
                 ) : (
