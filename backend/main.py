@@ -12,6 +12,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import api # 引入 api 模块
 from config.config_api import router as config_router # 引入 config_api 模块
 from airsim_task.airsim_api import router as airsim_router # 引入 airsim_api 模块
+from visualization_api import router as visualization_router # 引入 visualization_api 模块
+from progress_api import router as progress_router # 引入 progress_api 模块
+from attack_api import router as attack_router # 引入 attack_api 模块
 
 app = FastAPI(title="SkyGuard API", version="1.0.0")
 
@@ -37,6 +40,9 @@ ASSET_DIR.mkdir(parents=True, exist_ok=True)
 app.include_router(api.router)
 app.include_router(config_router)
 app.include_router(airsim_router)
+app.include_router(visualization_router)
+app.include_router(progress_router)
+app.include_router(attack_router)
 # 如果直接运行此文件
 if __name__ == "__main__":
     import uvicorn

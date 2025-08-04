@@ -8,6 +8,8 @@ import inspect
 from uuid import uuid4
 from pathlib import Path
 import sys
+import requests
+import json
 from celery_app import celery_app
 from evaluate_model import EnhancedEvaluator  # 直接导入评估类
 from evaluate_adversarial import AdversarialEvaluator, parse_fraction
@@ -16,6 +18,48 @@ from algorithms.defenses.base import BaseTrainingDefense  # 用于类型检查
 from utils.model_manager import ModelManager
 from utils.dataset_manager import DatasetManager
 import traceback
+
+def update_progress(task_id, progress_data):
+    """向进度API发送进度更新"""
+    try:
+        # 使用本地API地址
+        url = f"http://localhost:8000/progress/update/{task_id}"
+        requests.post(url, json=progress_data, timeout=2)
+    except Exception as e:
+        print(f"更新进度失败: {str(e)}")
+        # 失败时尝试直接写入文件
+        try:
+            # 确定结果目录
+            task_dirs = [
+                os.path.join("results", "evaluation_results", task_id),
+                os.path.join("results", "adversarial_results", task_id),
+                os.path.join("results", "defense_results", task_id)
+            ]
+            
+            # 找到存在的目录或创建新目录
+            result_dir = None
+            for dir_path in task_dirs:
+                if os.path.exists(dir_path):
+                    result_dir = dir_path
+                    break
+            
+            if not result_dir:
+                # 根据任务类型确定目录
+                if "defense_type" in progress_data:
+                    result_dir = os.path.join("results", "defense_results", task_id)
+                elif "attack_name" in progress_data:
+                    result_dir = os.path.join("results", "adversarial_results", task_id)
+                else:
+                    result_dir = os.path.join("results", "evaluation_results", task_id)
+                
+                os.makedirs(result_dir, exist_ok=True)
+            
+            # 保存进度文件
+            progress_file = os.path.join(result_dir, "progress.json")
+            with open(progress_file, 'w') as f:
+                json.dump(progress_data, f)
+        except Exception as write_err:
+            print(f"写入进度文件也失败: {str(write_err)}")
 
 def test_model_task(task_id, model_name="yolov8s-visdrone", dataset_name="VisDrone", num_images=-1, conf_threshold=0.25, iou_threshold=0.5):
     """在后台评估模型原始性能"""
@@ -175,6 +219,47 @@ def test_model_task(task_id, model_name="yolov8s-visdrone", dataset_name="VisDro
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold
         )
+        
+        # 添加进度报告功能
+        total_images = len(image_paths)
+        
+        # 初始化进度
+        update_progress(task_id, {
+            "status": "running",
+            "model_name": model_name,
+            "dataset_name": dataset_name,
+            "current_image": 0,
+            "total_images": total_images,
+            "percent": 0,
+            "message": f"开始评估模型 {model_name} 在 {dataset_name} 数据集上的性能"
+        })
+        
+        # 重写评估方法以添加进度报告
+        original_evaluate_image = evaluator.evaluate_image
+        
+        def evaluate_image_with_progress(image_path, image_idx=None):
+            result = original_evaluate_image(image_path, image_idx)
+            
+            # 更新进度
+            current = image_idx if image_idx is not None else getattr(evaluator, 'current_idx', 0)
+            percent = min(100, int((current + 1) / total_images * 100))
+            
+            update_progress(task_id, {
+                "status": "running",
+                "model_name": model_name,
+                "dataset_name": dataset_name,
+                "current_image": current + 1,
+                "total_images": total_images,
+                "percent": percent,
+                "message": f"正在评估图像 {current + 1}/{total_images}"
+            })
+            
+            return result
+        
+        # 替换评估方法
+        evaluator.evaluate_image = evaluate_image_with_progress
+        
+        # 执行评估
         evaluator.evaluate_dataset(image_paths)
 
         # 5. 计算指标并生成可视化
@@ -199,6 +284,19 @@ def test_model_task(task_id, model_name="yolov8s-visdrone", dataset_name="VisDro
             # 继续执行，不要因为报告生成失败而中断整个任务
 
         print("评估完成")
+        
+        # 更新最终进度
+        update_progress(task_id, {
+            "status": "completed",
+            "model_name": model_name,
+            "dataset_name": dataset_name,
+            "current_image": len(image_paths),
+            "total_images": len(image_paths),
+            "percent": 100,
+            "message": "模型评估完成",
+            "metrics": metrics
+        })
+        
         return {
             "status": "Completed",
             "result_path": result_path,
@@ -417,9 +515,47 @@ def adv_defense_train_task(task_id=None, defense_type="pgd", base_model="yolov8s
             universal_newlines=True  # 文本模式
         )
         
-        # 实时读取并打印输出
+        # 实时读取并打印输出，同时更新进度
         for line in process.stdout:
-            print(line.strip())  # 实时打印输出
+            line_text = line.strip()
+            print(line_text)  # 实时打印输出
+            
+            # 解析进度信息
+            try:
+                # 检查是否包含epoch信息
+                if "epoch" in line_text.lower() and ("/" in line_text) and ("%" in line_text):
+                    # 尝试提取当前epoch和总epochs
+                    parts = line_text.split()
+                    epoch_info = next((p for p in parts if "epoch" in p.lower() and "/" in p), "")
+                    if epoch_info:
+                        current_epoch = int(epoch_info.split("/")[0].replace("epoch", "").strip())
+                        total_epochs = int(epoch_info.split("/")[1].split()[0].strip())
+                        
+                        # 提取完成百分比
+                        percent_info = next((p for p in parts if "%" in p), "0%")
+                        percent = float(percent_info.replace("%", "").strip())
+                        
+                        # 更新进度
+                        progress_data = {
+                            "status": "training",
+                            "defense_type": defense_type,
+                            "current_epoch": current_epoch,
+                            "total_epochs": total_epochs,
+                            "percent": percent,
+                            "message": line_text
+                        }
+                        update_progress(task_id, progress_data)
+                # 检查是否是最终结果
+                elif "results saved to" in line_text.lower():
+                    progress_data = {
+                        "status": "completed",
+                        "defense_type": defense_type,
+                        "message": "训练完成，正在处理结果",
+                        "percent": 100
+                    }
+                    update_progress(task_id, progress_data)
+            except Exception as e:
+                print(f"解析进度信息失败: {str(e)}")
         
         # 等待进程完成
         process.wait()
@@ -464,13 +600,22 @@ def adv_defense_train_task(task_id=None, defense_type="pgd", base_model="yolov8s
 def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdrone",
                    dataset_name="VisDrone", num_images=10, eps="8/255", alpha="2/255",
                    steps=10, conf_threshold=0.25, iou_threshold=0.5, confidence=0, lr=0.01, initial_const=0.1,
-                   patch_size=30, brightness_factor=1.5, noise_std=0.1, contrast_factor=1.5):
+                   patch_size=30, brightness_factor=1.5, noise_std=0.1, contrast_factor=1.5,
+                   # DeepFool参数
+                   max_iter=50, overshoot=0.02,
+                   # AdvPatch参数
+                   random_locations=True, num_patches=1,
+                   # 图像扭曲参数
+                   distortion_type='elastic', severity=0.5,
+                   # 场景跃变参数
+                   transition_type='weather'):
     """
     通用对抗攻击评估任务
     
     参数:
         task_id: 任务ID，如果为None则自动生成
-        attack_name: 攻击算法名称 (例如: pgd, fgsm, cw_l2, dpatch, brightness, gaussian, contrast)
+        attack_name: 攻击算法名称 (例如: pgd, fgsm, cw_l2, dpatch, brightness, gaussian, contrast, 
+                    deepfool, advpatch, distortion, scene_transition)
         model_name: 模型名称
         dataset_name: 数据集名称
         num_images: 评估图像数量，-1表示全部
@@ -486,6 +631,21 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
         brightness_factor: 亮度攻击的亮度调整因子
         noise_std: 高斯噪声攻击的噪声标准差
         contrast_factor: 对比度攻击的对比度调整因子
+        
+        # DeepFool攻击参数
+        max_iter: DeepFool最大迭代次数
+        overshoot: DeepFool越过决策边界的程度
+        
+        # AdvPatch攻击参数
+        random_locations: 是否在随机位置放置补丁
+        num_patches: 放置的补丁数量
+        
+        # 图像扭曲攻击参数
+        distortion_type: 扭曲类型，支持 'elastic'（弹性）, 'wave'（波浪）, 'swirl'（漩涡）
+        severity: 扭曲严重程度 (0.0-1.0)
+        
+        # 场景跃变攻击参数
+        transition_type: 跃变类型，支持 'weather'（天气）, 'lighting'（光照）, 'blur'（模糊）
     """
     if task_id is None:
         task_id = str(uuid4())
@@ -525,6 +685,30 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
             attack_params = {"noise_std": noise_std}
         elif attack_name.lower() == "contrast":
             attack_params = {"contrast_factor": contrast_factor}
+        # 新增攻击算法参数
+        elif attack_name.lower() == "deepfool":
+            attack_params = {
+                "max_iter": max_iter,
+                "overshoot": overshoot
+            }
+        elif attack_name.lower() == "advpatch":
+            attack_params = {
+                "patch_size": patch_size,
+                "learning_rate": lr,
+                "max_iter": steps,
+                "random_locations": random_locations,
+                "num_patches": num_patches
+            }
+        elif attack_name.lower() == "distortion":
+            attack_params = {
+                "distortion_type": distortion_type,
+                "severity": severity
+            }
+        elif attack_name.lower() == "scene_transition":
+            attack_params = {
+                "transition_type": transition_type,
+                "severity": severity
+            }
         
         # 动态加载攻击算法
         attack = load_attack_by_name(attack_name, **attack_params)
@@ -547,11 +731,59 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
             iou_threshold=iou_threshold
         )
         
-        # 6. 执行评估
+        # 6. 执行评估，添加进度报告
+        total_images = len(image_paths)
+        
+        # 初始化进度
+        update_progress(task_id, {
+            "status": "running",
+            "attack_name": attack_name,
+            "current_image": 0,
+            "total_images": total_images,
+            "percent": 0,
+            "message": f"开始执行 {attack_name} 攻击评估"
+        })
+        
+        # 重写评估方法以添加进度报告
+        original_evaluate_image = evaluator.evaluate_image
+        
+        def evaluate_image_with_progress(image_path, image_idx=None):
+            result = original_evaluate_image(image_path, image_idx)
+            
+            # 更新进度
+            current = image_idx if image_idx is not None else evaluator.current_idx
+            percent = min(100, int((current + 1) / total_images * 100))
+            
+            update_progress(task_id, {
+                "status": "running",
+                "attack_name": attack_name,
+                "current_image": current + 1,
+                "total_images": total_images,
+                "percent": percent,
+                "message": f"正在处理图像 {current + 1}/{total_images}"
+            })
+            
+            return result
+        
+        # 替换评估方法
+        evaluator.evaluate_image = evaluate_image_with_progress
+        
+        # 执行评估
         evaluator.evaluate_dataset(image_paths)
         
         # 7. 生成报告
         metrics = evaluator.metrics.get("summary", {})
+        
+        # 更新最终进度
+        update_progress(task_id, {
+            "status": "completed",
+            "attack_name": attack_name,
+            "current_image": total_images,
+            "total_images": total_images,
+            "percent": 100,
+            "message": "攻击评估完成",
+            "metrics": metrics
+        })
         
         return {
             "status": "Completed",

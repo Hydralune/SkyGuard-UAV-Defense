@@ -316,7 +316,7 @@ export default function AttackScenarios() {
                         className="w-full"
                       />
                       <p className="text-xs text-muted-foreground">
-                        亮度调整因子（1.0=不变，>1.0=增亮，&lt;1.0=变暗）
+                        亮度调整因子（1.0=不变，{'>'}1.0=增亮，&lt;1.0=变暗）
                       </p>
                     </div>
                   )}
@@ -352,7 +352,7 @@ export default function AttackScenarios() {
                         className="w-full"
                       />
                       <p className="text-xs text-muted-foreground">
-                        对比度调整因子（1.0=不变，>1.0=增加对比度，&lt;1.0=降低对比度）
+                        对比度调整因子（1.0=不变，{'>'}1.0=增加对比度，&lt;1.0=降低对比度）
                       </p>
                     </div>
                   )}
