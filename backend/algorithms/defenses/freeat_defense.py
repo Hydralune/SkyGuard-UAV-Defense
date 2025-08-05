@@ -3,18 +3,18 @@ import torch.nn.functional as F
 from typing import Any, Optional
 from .base import BaseTrainingDefense
 
-class FGMDefense(BaseTrainingDefense):
+class FreeATDefense(BaseTrainingDefense):
     """
-    Fast Gradient Method (FGM) 对抗训练防御算法
+    Free Adversarial Training (FreeAT) 防御算法
     
-    通过在训练过程中注入对抗样本来提高模型的鲁棒性。
+    通过在每个训练步骤中同时更新模型参数和对抗样本，提高训练效率。
     支持YOLO模型的对抗训练。
     """
     
-    def __init__(self, eps: float = 8/255, alpha: float = 2/255, steps: int = 1, 
+    def __init__(self, eps: float = 8/255, alpha: float = 2/255, steps: int = 4, 
                  attack_ratio: float = 0.5, **kwargs):
         """
-        初始化FGM防御算法
+        初始化FreeAT防御算法
         
         Args:
             eps: 最大扰动幅度
@@ -22,7 +22,7 @@ class FGMDefense(BaseTrainingDefense):
             steps: 对抗攻击步数
             attack_ratio: 训练批次中使用对抗样本的比例
         """
-        super().__init__(name="fgm_defense")
+        super().__init__(name="freeat_defense")
         self.eps = eps
         self.alpha = alpha
         self.steps = steps
@@ -33,7 +33,7 @@ class FGMDefense(BaseTrainingDefense):
                                     images: torch.Tensor, 
                                     targets: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
-        生成对抗样本
+        生成对抗样本 (FreeAT版本)
         
         Args:
             model: 目标模型
@@ -79,10 +79,10 @@ class FGMDefense(BaseTrainingDefense):
                 print("警告: 梯度为None，跳过此步骤")
                 continue
             
-            # FGM更新
+            # FreeAT更新：同时更新图像和模型参数
             grad_sign = images.grad.data.sign()
             images = images.detach() + self.alpha * grad_sign
-            images = torch.clamp(images, 0, 1)
+            images = torch.clamp(images, 0, self.eps)
             images.requires_grad = True
         
         return images.detach()
@@ -151,7 +151,7 @@ class FGMDefense(BaseTrainingDefense):
     def train(self, model: torch.nn.Module, dataloader: Any, optimizer: torch.optim.Optimizer, 
               epochs: int, **kwargs) -> torch.nn.Module:
         """
-        执行对抗训练
+        执行FreeAT对抗训练
         
         Args:
             model: 要训练的模型
@@ -176,24 +176,26 @@ class FGMDefense(BaseTrainingDefense):
                 use_adversarial = torch.rand(1).item() < self.attack_ratio
                 
                 if use_adversarial:
-                    # 生成对抗样本
-                    adv_images = self.generate_adversarial_examples(model, images, targets)
-                    
-                    # 使用对抗样本训练
-                    optimizer.zero_grad()
-                    preds = model(adv_images)
-                    if isinstance(preds, (list, tuple)):
-                        preds = preds[0]
-                    
-                    # 计算损失
-                    if targets is not None:
-                        loss = self._compute_detection_loss(preds, targets)
-                    else:
-                        obj_conf = preds[..., 4]
-                        loss = -obj_conf.mean()
-                    
-                    loss.backward()
-                    optimizer.step()
+                    # FreeAT: 同时更新模型参数和对抗样本
+                    for step in range(self.steps):
+                        # 生成对抗样本
+                        adv_images = self.generate_adversarial_examples(model, images, targets)
+                        
+                        # 使用对抗样本训练
+                        optimizer.zero_grad()
+                        preds = model(adv_images)
+                        if isinstance(preds, (list, tuple)):
+                            preds = preds[0]
+                        
+                        # 计算损失
+                        if targets is not None:
+                            loss = self._compute_detection_loss(preds, targets)
+                        else:
+                            obj_conf = preds[..., 4]
+                            loss = -obj_conf.mean()
+                        
+                        loss.backward()
+                        optimizer.step()
                 else:
                     # 使用原始样本训练
                     optimizer.zero_grad()
@@ -224,10 +226,10 @@ class FGMDefense(BaseTrainingDefense):
             images: 输入图像
             
         Returns:
-            处理后的图像（这里直接返回原图，因为FGM是训练时防御）
+            处理后的图像（这里直接返回原图，因为FreeAT是训练时防御）
         """
-        # FGM是训练时防御，推理时直接返回原图
+        # FreeAT是训练时防御，推理时直接返回原图
         return images
 
 # 兼容动态加载
-Defense = FGMDefense 
+Defense = FreeATDefense 
