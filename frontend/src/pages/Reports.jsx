@@ -71,12 +71,12 @@ export default function Reports() {
   ]
 
   const algorithmData = [
-    { name: 'PGD', value: 25, color: '#8884d8' },
-    { name: 'FGSM', value: 20, color: '#82ca9d' },
-    { name: 'C&W', value: 15, color: '#ffc658' },
-    { name: 'AdvPatch', value: 18, color: '#ff7300' },
-    { name: 'DPatch', value: 12, color: '#00ff88' },
-    { name: '其他', value: 10, color: '#ff0088' }
+    { name: 'PGD', value: 25, color: '#fca5a5' },
+    { name: 'FGSM', value: 20, color: '#fdba74' },
+    { name: 'C&W', value: 15, color: '#c4b5fd' },
+    { name: 'AdvPatch', value: 18, color: '#67e8f9' },
+    { name: 'DPatch', value: 12, color: '#6ee7b7' },
+    { name: '其他', value: 10, color: '#d1d5db' }
   ]
 
   const radarData = [
@@ -119,18 +119,18 @@ export default function Reports() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-gradient-to-br from-blue-50 via-blue-25 to-white min-h-screen p-6">
       {/* 页面标题和控制 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">评分报告</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">评分报告</h1>
+          <p className="text-gray-600 mt-2">
             攻防演练结果分析和性能评估报告
           </p>
         </div>
         <div className="flex space-x-2">
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32 bg-white border-blue-200 hover:border-blue-300">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -140,11 +140,11 @@ export default function Reports() {
               <SelectItem value="year">本年</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline">
+          <Button variant="outline" className="bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 text-blue-700">
             <Download className="h-4 w-4 mr-2" />
             导出报告
           </Button>
-          <Button>
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
             <Share className="h-4 w-4 mr-2" />
             分享
           </Button>
@@ -153,111 +153,131 @@ export default function Reports() {
 
       {/* 总体概览 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">总演练次数</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">总演练次数</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <BarChart3 className="h-4 w-4 text-blue-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overviewData.totalExercises}</div>
-            <p className="text-xs text-muted-foreground">
-              +12 较上月
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{overviewData.totalExercises}</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+              <span className="text-xs text-gray-700">+12 较上月</span>
+            </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">成功率</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-medium text-gray-700">成功率</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overviewData.successRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              +5.2% 较上月
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{overviewData.successRate}%</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+              <span className="text-xs text-gray-700">+5.2% 较上月</span>
+            </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">平均得分</CardTitle>
-            <Award className="h-4 w-4 text-yellow-500" />
+            <CardTitle className="text-sm font-medium text-gray-700">平均得分</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center">
+              <Award className="h-4 w-4 text-yellow-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overviewData.averageScore}</div>
-            <p className="text-xs text-muted-foreground">
-              +3.1 较上月
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{overviewData.averageScore}</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+              <span className="text-xs text-gray-700">+3.1 较上月</span>
+            </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">参与团队</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">参与团队</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Users className="h-4 w-4 text-blue-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overviewData.participatingTeams}</div>
-            <p className="text-xs text-muted-foreground">
-              +3 较上月
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{overviewData.participatingTeams}</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+              <span className="text-xs text-gray-700">+3 较上月</span>
+            </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">提升率</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-medium text-gray-700">提升率</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overviewData.improvementRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              持续改进
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{overviewData.improvementRate}%</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">持续改进</span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* 详细报告 */}
       <Tabs defaultValue="performance" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="performance">性能分析</TabsTrigger>
-          <TabsTrigger value="trends">趋势分析</TabsTrigger>
-          <TabsTrigger value="algorithms">算法统计</TabsTrigger>
-          <TabsTrigger value="detailed">详细报告</TabsTrigger>
+        <TabsList className="bg-white/80 backdrop-blur-sm border border-blue-200">
+          <TabsTrigger value="performance" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">性能分析</TabsTrigger>
+          <TabsTrigger value="trends" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">趋势分析</TabsTrigger>
+          <TabsTrigger value="algorithms" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">算法统计</TabsTrigger>
+          <TabsTrigger value="detailed" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">详细报告</TabsTrigger>
         </TabsList>
 
         <TabsContent value="performance" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="card-hover">
+            <Card className="bg-white backdrop-blur-sm border-yellow-300 hover:border-yellow-400 hover:shadow-lg transition-all duration-200">
               <CardHeader>
-                <CardTitle>团队性能对比</CardTitle>
-                <CardDescription>各团队在攻击、防御和综合能力方面的表现</CardDescription>
+                <CardTitle className="text-gray-900">团队性能对比</CardTitle>
+                <CardDescription className="text-gray-600">各团队在攻击、防御和综合能力方面的表现</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={performanceData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="name" stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                        border: '1px solid #dbeafe',
+                        borderRadius: '8px'
+                      }}
+                    />
                     <Legend />
-                    <Bar dataKey="attack" fill="#ef4444" name="攻击能力" />
-                    <Bar dataKey="defense" fill="#22c55e" name="防御能力" />
-                    <Bar dataKey="overall" fill="#3b82f6" name="综合得分" />
+                    <Bar dataKey="attack" fill="#fca5a5" name="攻击能力" />
+                    <Bar dataKey="defense" fill="#86efac" name="防御能力" />
+                    <Bar dataKey="overall" fill="#93c5fd" name="综合得分" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <Card className="card-hover">
+            <Card className="bg-white/90 backdrop-blur-sm border-blue-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200">
               <CardHeader>
-                <CardTitle>能力雷达图</CardTitle>
-                <CardDescription>团队Alpha vs 团队Beta 综合能力对比</CardDescription>
+                <CardTitle className="text-gray-900">能力雷达图</CardTitle>
+                <CardDescription className="text-gray-600">团队Alpha vs 团队Beta 综合能力对比</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <RadarChart data={radarData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="subject" />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} />
+                    <PolarGrid stroke="#e5e7eb" />
+                    <PolarAngleAxis dataKey="subject" stroke="#6b7280" />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} stroke="#6b7280" />
                     <Radar name="团队Alpha" dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
                     <Radar name="团队Beta" dataKey="B" stroke="#ef4444" fill="#ef4444" fillOpacity={0.3} />
                     <Legend />
@@ -268,36 +288,36 @@ export default function Reports() {
           </div>
 
           {/* 排行榜 */}
-          <Card className="card-hover">
+          <Card className="bg-white backdrop-blur-sm border-green-300 hover:border-green-400 hover:shadow-lg transition-all duration-200">
             <CardHeader>
-              <CardTitle>团队排行榜</CardTitle>
-              <CardDescription>基于综合得分的团队排名</CardDescription>
+              <CardTitle className="text-gray-900">团队排行榜</CardTitle>
+              <CardDescription className="text-gray-600">基于综合得分的团队排名</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {performanceData
                   .sort((a, b) => b.overall - a.overall)
                   .map((team, index) => (
-                    <div key={team.name} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div key={team.name} className="flex items-center justify-between p-4 border border-green-200 rounded-lg bg-white/70 hover:bg-white/90 transition-all duration-200 shadow-sm">
                       <div className="flex items-center space-x-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                          index === 0 ? 'bg-yellow-500' :
-                          index === 1 ? 'bg-gray-400' :
-                          index === 2 ? 'bg-orange-600' :
-                          'bg-gray-600'
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-lg ${
+                          index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                          index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
+                          index === 2 ? 'bg-gradient-to-r from-orange-400 to-orange-500' :
+                          'bg-gradient-to-r from-purple-400 to-purple-500'
                         }`}>
                           {index + 1}
                         </div>
                         <div>
-                          <h3 className="font-semibold">{team.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            攻击: {team.attack} | 防御: {team.defense}
+                          <h3 className="font-semibold text-gray-900">{team.name}</h3>
+                          <p className="text-sm text-gray-600">
+                            攻击: <span className="text-red-600 font-medium">{team.attack}</span> | 防御: <span className="text-green-600 font-medium">{team.defense}</span>
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold">{team.overall}</div>
-                        <p className="text-sm text-muted-foreground">综合得分</p>
+                        <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{team.overall}</div>
+                        <p className="text-sm text-gray-600">综合得分</p>
                       </div>
                     </div>
                   ))}
@@ -412,23 +432,38 @@ export default function Reports() {
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { name: 'PGD', success: 92, difficulty: 'high' },
-                    { name: 'FGSM', success: 85, difficulty: 'medium' },
-                    { name: 'C&W', success: 88, difficulty: 'high' },
-                    { name: 'AdvPatch', success: 78, difficulty: 'medium' },
-                    { name: 'DPatch', success: 82, difficulty: 'medium' }
+                    { name: 'PGD', success: 92, difficulty: 'high', color: '#fca5a5' },
+                    { name: 'FGSM', success: 85, difficulty: 'medium', color: '#fdba74' },
+                    { name: 'C&W', success: 88, difficulty: 'high', color: '#c4b5fd' },
+                    { name: 'AdvPatch', success: 78, difficulty: 'medium', color: '#67e8f9' },
+                    { name: 'DPatch', success: 82, difficulty: 'medium', color: '#6ee7b7' }
                   ].map((algo) => (
                     <div key={algo.name} className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium">{algo.name}</span>
+                        <span className="font-medium text-gray-900">{algo.name}</span>
                         <div className="flex items-center space-x-2">
-                          <Badge variant={algo.difficulty === 'high' ? 'destructive' : 'secondary'}>
+                          <Badge variant={algo.difficulty === 'high' ? 'destructive' : 'secondary'} 
+                            className={`${
+                              algo.difficulty === 'high' 
+                                ? 'bg-red-100 text-red-800 border-red-200' 
+                                : 'bg-green-100 text-green-800 border-green-200'
+                            }`}>
                             {algo.difficulty === 'high' ? '高难度' : '中等难度'}
                           </Badge>
-                          <span className="text-sm">{algo.success}%</span>
+                          <span className="text-sm text-gray-700">{algo.success}%</span>
                         </div>
                       </div>
-                      <Progress value={algo.success} />
+                      <div className="relative">
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div 
+                            className="h-3 rounded-full transition-all duration-300" 
+                            style={{ 
+                              width: `${algo.success}%`, 
+                              backgroundColor: algo.color 
+                            }}
+                          ></div>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
