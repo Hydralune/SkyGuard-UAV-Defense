@@ -748,10 +748,10 @@ def run_attack_task(task_id=None, attack_name="pgd", model_name="yolov8s-visdron
         original_evaluate_image = evaluator.evaluate_image
         
         def evaluate_image_with_progress(image_path, image_idx=None):
-            result = original_evaluate_image(image_path, image_idx)
+            result = original_evaluate_image(image_path)
             
             # 更新进度
-            current = image_idx if image_idx is not None else evaluator.current_idx
+            current = image_idx if image_idx is not None else getattr(evaluator, 'current_idx', 0)
             percent = min(100, int((current + 1) / total_images * 100))
             
             update_progress(task_id, {

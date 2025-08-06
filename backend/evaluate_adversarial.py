@@ -94,6 +94,9 @@ class AdversarialEvaluator:
         
         # Transformation for converting tensor to PIL image
         self.to_pil = transforms.ToPILImage()
+        
+        # 添加当前图像索引跟踪
+        self.current_idx = 0
     
     def evaluate_image(self, image_path):
         """
@@ -245,7 +248,8 @@ class AdversarialEvaluator:
         print(f"Starting adversarial evaluation on {len(image_paths)} images...")
         
         # Use tqdm for progress bar
-        for image_path in tqdm(image_paths):
+        for i, image_path in enumerate(tqdm(image_paths)):
+            self.current_idx = i
             self.evaluate_image(image_path)
         
         # Calculate summary metrics

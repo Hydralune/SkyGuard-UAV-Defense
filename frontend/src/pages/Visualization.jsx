@@ -8,6 +8,8 @@ import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
+import FileViewer from '@/components/FileViewer'
+import ImageGallery from '@/components/ImageGallery'
 import {
   BarChart,
   Bar,
@@ -45,8 +47,17 @@ import {
 export default function Visualization() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedView, setSelectedView] = useState('comparison')
+  const [selectedView, setSelectedView] = useState('gallery')
   const [zoomLevel, setZoomLevel] = useState(1)
+  const [taskId, setTaskId] = useState(null)
+  const [taskResults, setTaskResults] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [imagesByType, setImagesByType] = useState({})
+  const [selectedType, setSelectedType] = useState(null)
+  const [fullScreenImage, setFullScreenImage] = useState(null)
+  const [selectedTab, setSelectedTab] = useState('gallery')
 
   // 模拟数据
   const attackProgress = [
@@ -78,6 +89,66 @@ export default function Visualization() {
     { method: 'Detection', clean: 91, robust: 85, improvement: 52 }
   ]
 
+  // 从URL获取任务ID
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('task_id');
+    if (id) {
+      setTaskId(id);
+    }
+  }, []);
+
+  // 获取任务结果数据
+  useEffect(() => {
+    const fetchTaskResults = async () => {
+      if (!taskId) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // 获取可视化结果 - 使用代理路径
+        const apiUrl = `/visualization/results/${taskId}`;
+        console.log(`尝试获取结果: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          throw new Error(`获取结果失败: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('获取到的可视化结果:', data);
+        
+        setTaskResults(data);
+        
+        // 按类型组织图像
+        if (data && data.images && data.images.length > 0) {
+          const imageTypes = {};
+          
+          // 按类型分组图像
+          data.images.forEach(img => {
+            if (!imageTypes[img.type]) {
+              imageTypes[img.type] = [];
+            }
+            imageTypes[img.type].push(img);
+          });
+          
+          setImagesByType(imageTypes);
+          console.log('按类型分组的图像:', imageTypes);
+        }
+      } catch (error) {
+        console.error('获取任务结果失败:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTaskResults();
+  }, [taskId]);
+  
+  // 动画播放控制
   useEffect(() => {
     let interval
     if (isPlaying) {
@@ -104,26 +175,49 @@ export default function Visualization() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">攻防过程可视化</h1>
           <p className="text-muted-foreground mt-2">
-            实时可视化攻防演练过程和结果分析
+            {taskId ? `任务ID: ${taskId}` : '请传入task_id参数'}
           </p>
+          {loading && <p className="text-blue-500">加载中...</p>}
+          {error && <p className="text-red-500">错误: {error}</p>}
         </div>
         <div className="flex space-x-2">
+          {taskResults && (
+            <div className="flex space-x-2">
+              <Select
+                value={selectedType || (Object.keys(imagesByType)[0] || '')}
+                onValueChange={setSelectedType}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="选择图像类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(imagesByType).map(type => (
+                    <SelectItem key={type} value={type}>
+                      {type.replace('_', ' ')}
+                      <span className="ml-2 text-xs text-muted-foreground">({imagesByType[type].length})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select
+                value={selectedTab}
+                onValueChange={setSelectedTab}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="选择视图" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gallery">图库视图</SelectItem>
+                  <SelectItem value="comparison">对比视图</SelectItem>
+                  <SelectItem value="metrics">指标分析</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Button variant="outline" onClick={handleReset}>
             <RotateCcw className="h-4 w-4 mr-2" />
             重置
-          </Button>
-          <Button onClick={handlePlayPause}>
-            {isPlaying ? (
-              <>
-                <Pause className="h-4 w-4 mr-2" />
-                暂停
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4 mr-2" />
-                播放
-              </>
-            )}
           </Button>
         </div>
       </div>
@@ -163,115 +257,186 @@ export default function Visualization() {
             <CardContent>
               <Tabs value={selectedView} onValueChange={setSelectedView}>
                 <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="comparison">对比视图</TabsTrigger>
-                  <TabsTrigger value="difference">差异图</TabsTrigger>
-                  <TabsTrigger value="heatmap">热力图</TabsTrigger>
-                  <TabsTrigger value="animation">动画</TabsTrigger>
+                  <TabsTrigger value="detection">原始检测</TabsTrigger>
+                  <TabsTrigger value="adversarial">对抗样本</TabsTrigger>
+                  <TabsTrigger value="comparison">对比结果</TabsTrigger>
+                  <TabsTrigger value="perturbation">扰动图</TabsTrigger>
                 </TabsList>
 
+                <TabsContent value="detection" className="mt-4">
+                  {imagesByType['detection_results'] ? (
+                    <FileViewer 
+                      files={imagesByType['detection_results']} 
+                      type="detection_results" 
+                      title="原始检测结果" 
+                    />
+                  ) : (
+                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <Image className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500">无原始检测结果</p>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="adversarial" className="mt-4">
+                  {imagesByType['adversarial_results'] ? (
+                    <FileViewer 
+                      files={imagesByType['adversarial_results']} 
+                      type="adversarial_results" 
+                      title="对抗样本检测结果" 
+                    />
+                  ) : (
+                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <AlertTriangle className="h-12 w-12 mx-auto text-red-500 mb-2" />
+                        <p className="text-sm text-red-600">无对抗样本结果</p>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+                
                 <TabsContent value="comparison" className="mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-center">原始图像</h4>
-                      <div className="aspect-square bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center border-2 border-dashed border-blue-300">
-                        <div className="text-center">
-                          <Image className="h-12 w-12 mx-auto text-blue-500 mb-2" />
-                          <p className="text-sm text-blue-600">原始样本</p>
-                          <p className="text-xs text-muted-foreground">置信度: 95%</p>
-                        </div>
+                  {imagesByType['comparison_results'] ? (
+                    <FileViewer 
+                      files={imagesByType['comparison_results']} 
+                      type="comparison_results" 
+                      title="检测结果对比" 
+                    />
+                  ) : (
+                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <Target className="h-12 w-12 mx-auto text-blue-500 mb-2" />
+                        <p className="text-sm text-blue-600">无对比结果</p>
                       </div>
-                      <div className="flex justify-center space-x-2">
-                        <Badge variant="default">person: 0.95</Badge>
-                        <Badge variant="secondary">car: 0.88</Badge>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="perturbation" className="mt-4">
+                  {imagesByType['perturbation_results'] ? (
+                    <FileViewer 
+                      files={imagesByType['perturbation_results']} 
+                      type="perturbation_results" 
+                      title="扰动可视化" 
+                    />
+                  ) : (
+                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <Zap className="h-12 w-12 mx-auto text-purple-500 mb-2" />
+                        <p className="text-sm text-purple-600">无扰动可视化结果</p>
                       </div>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="gallery" className="mt-4">
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium">图像库</h4>
+                      {fullScreenImage && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setFullScreenImage(null)}
+                        >
+                          关闭全屏
+                        </Button>
+                      )}
                     </div>
                     
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-center">对抗样本</h4>
-                      <div className="aspect-square bg-gradient-to-br from-red-100 to-red-200 rounded-lg flex items-center justify-center border-2 border-dashed border-red-300">
-                        <div className="text-center">
-                          <AlertTriangle className="h-12 w-12 mx-auto text-red-500 mb-2" />
-                          <p className="text-sm text-red-600">对抗样本</p>
-                          <p className="text-xs text-muted-foreground">置信度: 23%</p>
-                        </div>
+                    {fullScreenImage ? (
+                      <ImageGallery 
+                        images={imagesByType[selectedType] || []} 
+                        initialIndex={selectedImageIndex} 
+                        onClose={() => setFullScreenImage(null)} 
+                      />
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {Object.keys(imagesByType).length > 0 ? (
+                          Object.entries(imagesByType).map(([type, images]) => (
+                            <div key={`image-type-${type}`} className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <h5 className="text-sm font-medium capitalize">{type.replace('_', ' ')} ({images.length})</h5>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    setSelectedType(type);
+                                    setSelectedImageIndex(0);
+                                    setFullScreenImage(true);
+                                  }}
+                                >
+                                  查看全部
+                                </Button>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {images.slice(0, 6).map((image, idx) => (
+                                  <div 
+                                    key={`image-${type}-${idx}`} 
+                                    className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer"
+                                    onClick={() => {
+                                      setSelectedType(type);
+                                      setSelectedImageIndex(idx);
+                                      setFullScreenImage(true);
+                                    }}
+                                  >
+                                    <img 
+                                      src={image.url} 
+                                      alt={`${type} ${idx}`} 
+                                      className="max-w-full max-h-full object-cover hover:scale-105 transition-transform"
+                                    />
+                                  </div>
+                                ))}
+                                {images.length > 6 && (
+                                  <div 
+                                    className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+                                    onClick={() => {
+                                      setSelectedType(type);
+                                      setSelectedImageIndex(6);
+                                      setFullScreenImage(true);
+                                    }}
+                                  >
+                                    <div className="text-center">
+                                      <p className="text-sm text-muted-foreground">
+                                        +{images.length - 6} 更多
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center col-span-3">
+                            <div className="text-center">
+                              <Image className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                              <p className="text-sm text-gray-500">无可用图像</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex justify-center space-x-2">
-                        <Badge variant="destructive">person: 0.23</Badge>
-                        <Badge variant="outline">car: 0.15</Badge>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </TabsContent>
-
-                <TabsContent value="difference" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="aspect-video bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg flex items-center justify-center border-2 border-dashed border-purple-300">
+                
+                <TabsContent value="plots" className="mt-4">
+                  {imagesByType['plots'] ? (
+                    <FileViewer 
+                      files={imagesByType['plots']} 
+                      type="plots" 
+                      title="分析图表" 
+                    />
+                  ) : (
+                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
                       <div className="text-center">
-                        <Zap className="h-16 w-16 mx-auto text-purple-500 mb-2" />
-                        <p className="text-lg font-medium text-purple-600">扰动差异图</p>
-                        <p className="text-sm text-muted-foreground">显示添加的对抗扰动</p>
+                        <BarChart3 className="h-12 w-12 mx-auto text-blue-500 mb-2" />
+                        <p className="text-sm text-blue-600">无分析图表</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="text-center">
-                        <div className="w-4 h-4 bg-blue-500 rounded mx-auto mb-1"></div>
-                        <span>负扰动</span>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-4 h-4 bg-gray-300 rounded mx-auto mb-1"></div>
-                        <span>无变化</span>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-4 h-4 bg-red-500 rounded mx-auto mb-1"></div>
-                        <span>正扰动</span>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="heatmap" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="aspect-video bg-gradient-to-br from-yellow-100 via-orange-100 to-red-100 rounded-lg flex items-center justify-center border-2 border-dashed border-orange-300">
-                      <div className="text-center">
-                        <Target className="h-16 w-16 mx-auto text-orange-500 mb-2" />
-                        <p className="text-lg font-medium text-orange-600">注意力热力图</p>
-                        <p className="text-sm text-muted-foreground">模型关注区域分析</p>
-                      </div>
-                    </div>
-                    <div className="flex justify-center space-x-4 text-sm">
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                        <span>低关注</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                        <span>中等关注</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-red-500 rounded"></div>
-                        <span>高关注</span>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="animation" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="aspect-video bg-gradient-to-r from-green-100 to-blue-100 rounded-lg flex items-center justify-center border-2 border-dashed border-green-300">
-                      <div className="text-center">
-                        <div className={`h-16 w-16 mx-auto mb-2 ${isPlaying ? 'animate-pulse' : ''}`}>
-                          <Play className="h-16 w-16 text-green-500" />
-                        </div>
-                        <p className="text-lg font-medium text-green-600">攻击过程动画</p>
-                        <p className="text-sm text-muted-foreground">
-                          步骤 {currentStep + 1}/4: {attackProgress[currentStep]?.name}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex justify-center">
-                      <Progress value={(currentStep + 1) * 25} className="w-64" />
-                    </div>
-                  </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -287,17 +452,145 @@ export default function Visualization() {
               <CardDescription>原始样本与对抗样本的检测置信度对比</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={detectionResults}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="class" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="original" fill="#22c55e" name="原始置信度" />
-                  <Bar dataKey="adversarial" fill="#ef4444" name="对抗置信度" />
-                </BarChart>
-              </ResponsiveContainer>
+              <Tabs value="metrics" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="metrics">指标对比</TabsTrigger>
+                  <TabsTrigger value="vulnerability">类别脆弱性</TabsTrigger>
+                  <TabsTrigger value="confidence">置信度分析</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="metrics" className="mt-4">
+                  {taskResults?.metrics?.progress?.metrics ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                          <h3 className="text-sm font-medium">检测减少率</h3>
+                          <div className="mt-2 flex items-baseline">
+                            <span className="text-3xl font-semibold text-red-500">
+                              {(taskResults.metrics.progress.metrics.detection_reduction_rate * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">检测结果减少百分比</p>
+                        </div>
+                        
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                          <h3 className="text-sm font-medium">置信度降低</h3>
+                          <div className="mt-2 flex items-baseline">
+                            <span className="text-3xl font-semibold text-amber-500">
+                              {(taskResults.metrics.progress.metrics.avg_confidence_drop * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">平均置信度降低百分比</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                          <h3 className="text-sm font-medium">原始检测数</h3>
+                          <div className="mt-2 flex items-baseline">
+                            <span className="text-3xl font-semibold text-green-500">
+                              {taskResults.metrics.progress.metrics.total_original_detections}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">原始图像中的检测目标数</p>
+                        </div>
+                        
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                          <h3 className="text-sm font-medium">对抗检测数</h3>
+                          <div className="mt-2 flex items-baseline">
+                            <span className="text-3xl font-semibold text-blue-500">
+                              {taskResults.metrics.progress.metrics.total_adversarial_detections}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">对抗图像中的检测目标数</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                          <h3 className="text-sm font-medium">平均推理时间</h3>
+                          <div className="mt-2 flex items-baseline">
+                            <span className="text-3xl font-semibold">
+                              {taskResults.metrics.progress.metrics.avg_inference_time.toFixed(3)}
+                            </span>
+                            <span className="ml-1 text-sm text-muted-foreground">秒</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">模型推理平均时间</p>
+                        </div>
+                        
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                          <h3 className="text-sm font-medium">平均攻击时间</h3>
+                          <div className="mt-2 flex items-baseline">
+                            <span className="text-3xl font-semibold">
+                              {taskResults.metrics.progress.metrics.avg_attack_time.toFixed(3)}
+                            </span>
+                            <span className="ml-1 text-sm text-muted-foreground">秒</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">生成对抗样本平均时间</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <BarChart3 className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500">无指标数据</p>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="vulnerability" className="mt-4">
+                  {taskResults?.metrics?.progress?.metrics?.class_vulnerability ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart 
+                        data={Object.entries(taskResults.metrics.progress.metrics.class_vulnerability).map(([className, value]) => ({
+                          class: className,
+                          vulnerability: value
+                        }))}
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="class" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar 
+                          dataKey="vulnerability" 
+                          name="类别脆弱性" 
+                          fill="#8884d8"
+                          // 根据值的正负设置不同颜色
+                          >
+                          {Object.entries(taskResults.metrics.progress.metrics.class_vulnerability).map(([className, value], index) => (
+                            <Cell key={`vulnerability-cell-${className}-${index}`} fill={value > 0 ? "#ef4444" : "#22c55e"} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <BarChart3 className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500">无类别脆弱性数据</p>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="confidence" className="mt-4">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={detectionResults}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="class" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="original" fill="#22c55e" name="原始置信度" />
+                      <Bar dataKey="adversarial" fill="#ef4444" name="对抗置信度" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>
@@ -312,7 +605,7 @@ export default function Visualization() {
             </CardHeader>
             <CardContent className="space-y-4">
               {attackProgress.map((step, index) => (
-                <div key={index} className={`flex items-center space-x-3 p-2 rounded-lg ${
+                <div key={`progress-step-${index}`} className={`flex items-center space-x-3 p-2 rounded-lg ${
                   index === currentStep ? 'bg-blue-50 border border-blue-200' : ''
                 }`}>
                   <div className={`w-3 h-3 rounded-full ${
@@ -379,7 +672,7 @@ export default function Visualization() {
             <CardContent>
               <div className="space-y-4">
                 {defenseEffectiveness.map((defense, index) => (
-                  <div key={index} className="space-y-2">
+                  <div key={`defense-method-${index}`} className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">{defense.method}</span>
                       <Badge variant={defense.improvement > 40 ? 'default' : 'secondary'}>
