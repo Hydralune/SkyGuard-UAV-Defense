@@ -73,167 +73,152 @@ export default function ExerciseStatus() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题和控制 */}
+    <div className="space-y-6 bg-gradient-to-br from-blue-50 via-blue-25 to-white min-h-screen p-6">
+      {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">演练态势</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">演练态势</h1>
+          <p className="text-gray-600 mt-2">
             实时监控攻防演练进度和系统状态
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" className="bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 text-blue-700">
             <RotateCcw className="h-4 w-4 mr-2" />
-            刷新
+            刷新状态
           </Button>
-          <Button size="sm">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
             <Activity className="h-4 w-4 mr-2" />
             实时监控
           </Button>
         </div>
       </div>
 
-      {/* 系统状态警报 */}
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          系统负载较高，GPU使用率达到85%。建议优化任务调度或增加计算资源。
-        </AlertDescription>
-      </Alert>
-
-      {/* 总体状态概览 */}
+      {/* 系统状态概览 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">活跃演练</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">活跃演练</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+              <Activity className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">
-              2个进行中，1个已完成
-            </p>
+            <div className="text-2xl font-bold text-gray-900">3</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">进行中</span>
+            </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">参与团队</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">参与团队</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Users className="h-4 w-4 text-blue-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">
-              Alpha, Beta, Gamma
-            </p>
+            <div className="text-2xl font-bold text-gray-900">12</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">在线团队</span>
+            </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">平均进度</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">系统负载</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center">
+              <Zap className="h-4 w-4 text-yellow-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">73%</div>
-            <Progress value={73} className="mt-2" />
+            <div className="text-2xl font-bold text-gray-900">{systemMetrics.cpuUsage}%</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">CPU使用率</span>
+            </div>
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">系统负载</CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">队列任务</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+              <Clock className="h-4 w-4 text-purple-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">75%</div>
-            <p className="text-xs text-muted-foreground">
-              CPU: 68% | GPU: 85%
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{systemMetrics.queuedTasks}</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">等待中</span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 详细演练状态 */}
       <Tabs defaultValue="exercises" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="exercises">演练详情</TabsTrigger>
-          <TabsTrigger value="system">系统监控</TabsTrigger>
-          <TabsTrigger value="logs">实时日志</TabsTrigger>
+        <TabsList className="bg-white/80 backdrop-blur-sm border border-blue-200">
+          <TabsTrigger value="exercises" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">演练状态</TabsTrigger>
+          <TabsTrigger value="teams" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">团队状态</TabsTrigger>
+          <TabsTrigger value="system" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">系统监控</TabsTrigger>
         </TabsList>
 
         <TabsContent value="exercises" className="space-y-4">
           <div className="space-y-4">
             {activeExercises.map((exercise) => (
-              <Card key={exercise.id} className="card-hover">
+              <Card key={exercise.id} className="bg-white backdrop-blur-sm border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-3 h-3 rounded-full ${
-                        exercise.status === 'running' ? 'bg-green-500 animate-pulse' :
-                        exercise.status === 'paused' ? 'bg-yellow-500' :
-                        'bg-gray-500'
-                      }`} />
-                      <div>
-                        <CardTitle className="text-lg">{exercise.name}</CardTitle>
-                        <CardDescription>
-                          {exercise.team} • {exercise.model} • {exercise.dataset}
-                        </CardDescription>
-                      </div>
+                    <div>
+                      <CardTitle className="text-gray-900">{exercise.name}</CardTitle>
+                      <CardDescription className="text-gray-600">
+                        {exercise.team} • {exercise.attackType} • {exercise.model}
+                      </CardDescription>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge variant={
-                        exercise.status === 'running' ? 'default' :
-                        exercise.status === 'paused' ? 'secondary' :
-                        'outline'
+                      <Badge className={
+                        exercise.status === 'running' 
+                          ? 'bg-green-100 text-green-800 border-green-200' 
+                          : exercise.status === 'paused'
+                          ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                          : 'bg-blue-100 text-blue-800 border-blue-200'
                       }>
                         {exercise.status === 'running' ? '进行中' :
                          exercise.status === 'paused' ? '暂停' : '已完成'}
                       </Badge>
-                      {exercise.status === 'running' && (
-                        <Button variant="outline" size="sm">
-                          <Pause className="h-3 w-3" />
+                      <div className="flex space-x-1">
+                        {exercise.status === 'running' && (
+                          <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                            <Pause className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {exercise.status === 'paused' && (
+                          <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                            <Play className="h-3 w-3" />
+                          </Button>
+                        )}
+                        <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                          <RotateCcw className="h-3 w-3" />
                         </Button>
-                      )}
-                      {exercise.status === 'paused' && (
-                        <Button variant="outline" size="sm">
-                          <Play className="h-3 w-3" />
-                        </Button>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-sm">
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-gray-700">
                       <span>进度</span>
                       <span>{exercise.progress}%</span>
                     </div>
-                    <Progress value={exercise.progress} />
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">开始时间</span>
-                        <p className="font-medium">{exercise.startTime}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">预计结束</span>
-                        <p className="font-medium">{exercise.estimatedEnd}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">攻击类型</span>
-                        <p className="font-medium">{exercise.attackType}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">状态</span>
-                        <div className="flex items-center space-x-1">
-                          {exercise.status === 'running' && <CheckCircle className="h-3 w-3 text-green-500" />}
-                          {exercise.status === 'paused' && <Pause className="h-3 w-3 text-yellow-500" />}
-                          {exercise.status === 'completed' && <CheckCircle className="h-3 w-3 text-gray-500" />}
-                          <span className="font-medium">
-                            {exercise.status === 'running' ? '正常' :
-                             exercise.status === 'paused' ? '暂停' : '完成'}
-                          </span>
-                        </div>
-                      </div>
+                    <Progress value={exercise.progress} className="w-full" />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">开始时间</span>
+                      <div className="font-medium text-gray-900">{exercise.startTime}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">预计结束</span>
+                      <div className="font-medium text-gray-900">{exercise.estimatedEnd}</div>
                     </div>
                   </div>
                 </CardContent>
@@ -242,171 +227,123 @@ export default function ExerciseStatus() {
           </div>
         </TabsContent>
 
+        <TabsContent value="teams" className="space-y-4">
+          <Card className="bg-white backdrop-blur-sm border-blue-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200">
+            <CardHeader>
+              <CardTitle className="text-gray-900">团队协作状态</CardTitle>
+              <CardDescription className="text-gray-600">
+                各团队的协作状态和活动情况
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[
+                  { name: '团队Alpha', status: 'active', members: 5, tasks: 3, lastActivity: '2分钟前' },
+                  { name: '团队Beta', status: 'active', members: 4, tasks: 2, lastActivity: '5分钟前' },
+                  { name: '团队Gamma', status: 'idle', members: 6, tasks: 1, lastActivity: '15分钟前' },
+                  { name: '团队Delta', status: 'active', members: 3, tasks: 4, lastActivity: '1分钟前' }
+                ].map((team, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        team.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
+                      }`} />
+                      <div>
+                        <div className="font-medium text-gray-900">{team.name}</div>
+                        <div className="text-sm text-gray-600">
+                          {team.members}人 • {team.tasks}个任务
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-gray-600">{team.lastActivity}</div>
+                      <Badge className={
+                        team.status === 'active' 
+                          ? 'bg-green-100 text-green-800 border-green-200' 
+                          : 'bg-gray-100 text-gray-800 border-gray-200'
+                      }>
+                        {team.status === 'active' ? '活跃' : '空闲'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="system" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="card-hover">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="bg-white backdrop-blur-sm border-green-200 hover:border-green-300 hover:shadow-lg transition-all duration-200">
               <CardHeader>
-                <CardTitle className="text-lg">CPU 使用率</CardTitle>
+                <CardTitle className="text-gray-900">系统资源使用</CardTitle>
+                <CardDescription className="text-gray-600">
+                  实时系统资源监控
+                </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>当前使用率</span>
-                    <span className="font-bold">{systemMetrics.cpuUsage}%</span>
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>CPU使用率</span>
+                    <span>{systemMetrics.cpuUsage}%</span>
                   </div>
-                  <Progress value={systemMetrics.cpuUsage} />
-                  <p className="text-xs text-muted-foreground">
-                    8核心 @ 3.2GHz
-                  </p>
+                  <Progress value={systemMetrics.cpuUsage} className="w-full" />
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle className="text-lg">内存使用率</CardTitle>
-              </CardHeader>
-              <CardContent>
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>当前使用率</span>
-                    <span className="font-bold">{systemMetrics.memoryUsage}%</span>
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>内存使用率</span>
+                    <span>{systemMetrics.memoryUsage}%</span>
                   </div>
-                  <Progress value={systemMetrics.memoryUsage} />
-                  <p className="text-xs text-muted-foreground">
-                    32GB DDR4
-                  </p>
+                  <Progress value={systemMetrics.memoryUsage} className="w-full" />
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle className="text-lg">GPU 使用率</CardTitle>
-              </CardHeader>
-              <CardContent>
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>当前使用率</span>
-                    <span className="font-bold text-orange-500">{systemMetrics.gpuUsage}%</span>
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>GPU使用率</span>
+                    <span>{systemMetrics.gpuUsage}%</span>
                   </div>
-                  <Progress value={systemMetrics.gpuUsage} />
-                  <p className="text-xs text-muted-foreground">
-                    NVIDIA RTX 4090
-                  </p>
+                  <Progress value={systemMetrics.gpuUsage} className="w-full" />
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle className="text-lg">网络负载</CardTitle>
-              </CardHeader>
-              <CardContent>
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>当前负载</span>
-                    <span className="font-bold">{systemMetrics.networkLoad}%</span>
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>网络负载</span>
+                    <span>{systemMetrics.networkLoad}%</span>
                   </div>
-                  <Progress value={systemMetrics.networkLoad} />
-                  <p className="text-xs text-muted-foreground">
-                    10Gbps 以太网
-                  </p>
+                  <Progress value={systemMetrics.networkLoad} className="w-full" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="card-hover">
+            <Card className="bg-white backdrop-blur-sm border-purple-200 hover:border-purple-300 hover:shadow-lg transition-all duration-200">
               <CardHeader>
-                <CardTitle className="text-lg">活跃连接</CardTitle>
+                <CardTitle className="text-gray-900">连接状态</CardTitle>
+                <CardDescription className="text-gray-600">
+                  网络连接和活动状态
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center">
-                  <div className="text-3xl font-bold">{systemMetrics.activeConnections}</div>
-                  <p className="text-sm text-muted-foreground">个连接</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle className="text-lg">队列任务</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <div className="text-3xl font-bold">{systemMetrics.queuedTasks}</div>
-                  <p className="text-sm text-muted-foreground">个任务</p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">活跃连接</span>
+                    <Badge className="bg-green-100 text-green-800 border-green-200">
+                      {systemMetrics.activeConnections}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">队列任务</span>
+                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                      {systemMetrics.queuedTasks}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">系统状态</span>
+                    <Badge className="bg-green-100 text-green-800 border-green-200">
+                      正常
+                    </Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="logs" className="space-y-4">
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>实时系统日志</CardTitle>
-              <CardDescription>最新的系统活动和事件记录</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                <div className="flex items-start space-x-3 text-sm">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <span className="font-medium">团队Alpha PGD攻击演练进度更新</span>
-                      <span className="text-muted-foreground">15:32:45</span>
-                    </div>
-                    <p className="text-muted-foreground">当前进度: 75% | 预计剩余时间: 13分钟</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3 text-sm">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <span className="font-medium">GPU使用率警告</span>
-                      <span className="text-muted-foreground">15:31:20</span>
-                    </div>
-                    <p className="text-muted-foreground">GPU使用率达到85%，建议优化任务分配</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3 text-sm">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <span className="font-medium">团队Beta暂停光电干扰测试</span>
-                      <span className="text-muted-foreground">15:30:15</span>
-                    </div>
-                    <p className="text-muted-foreground">用户手动暂停，当前进度: 45%</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3 text-sm">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <span className="font-medium">团队Gamma防御算法验证完成</span>
-                      <span className="text-muted-foreground">15:28:30</span>
-                    </div>
-                    <p className="text-muted-foreground">FGM防御算法测试成功完成，准确率: 92.5%</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3 text-sm">
-                  <div className="w-2 h-2 bg-gray-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <span className="font-medium">系统资源调度优化</span>
-                      <span className="text-muted-foreground">15:25:10</span>
-                    </div>
-                    <p className="text-muted-foreground">自动调整任务优先级，优化GPU资源分配</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

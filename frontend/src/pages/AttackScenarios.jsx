@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
+import { Progress } from '@/components/ui/progress'
 import {
   Sword,
   Zap,
@@ -100,113 +101,119 @@ export default function AttackScenarios() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-gradient-to-br from-blue-50 via-blue-25 to-white min-h-screen p-6">
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">攻击场景选择</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">攻击场景选择</h1>
+          <p className="text-gray-600 mt-2">
             配置和执行对抗攻击与光电干扰场景
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline">
-            <Upload className="h-4 w-4 mr-2" />
-            导入配置
+          <Button variant="outline" className="bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 text-blue-700">
+            <Settings className="h-4 w-4 mr-2" />
+            配置模板
           </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            导出配置
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Play className="h-4 w-4 mr-2" />
+            开始攻击
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* 左侧配置面板 */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* 场景类型选择 */}
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Target className="h-5 w-5 mr-2" />
-                场景选择
-              </CardTitle>
-              <CardDescription>选择攻击场景类型和目标模型</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Tabs value={selectedScenario} onValueChange={handleScenarioChange}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="adversarial" className="flex items-center">
-                    <Sword className="h-4 w-4 mr-2" />
-                    对抗攻击
-                  </TabsTrigger>
-                  <TabsTrigger value="optical" className="flex items-center">
-                    <Zap className="h-4 w-4 mr-2" />
-                    光电干扰
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+      <Tabs defaultValue="configuration" className="space-y-4">
+        <TabsList className="bg-white/80 backdrop-blur-sm border border-blue-200">
+          <TabsTrigger value="configuration" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">场景配置</TabsTrigger>
+          <TabsTrigger value="execution" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">执行控制</TabsTrigger>
+          <TabsTrigger value="visualization" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">可视化设置</TabsTrigger>
+        </TabsList>
 
-              <div className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <Label htmlFor="model">模型</Label>
+        <TabsContent value="configuration" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* 场景类型选择 */}
+            <Card className="bg-white backdrop-blur-sm border-red-200 hover:border-red-300 hover:shadow-lg transition-all duration-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900">攻击场景类型</CardTitle>
+                <CardDescription className="text-gray-600">
+                  选择对抗攻击或光电干扰场景
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">场景类型</Label>
+                  <Select value={selectedScenario} onValueChange={handleScenarioChange}>
+                    <SelectTrigger className="bg-white border-gray-200 hover:border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="adversarial">对抗攻击</SelectItem>
+                      <SelectItem value="optical">光电干扰</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">目标模型</Label>
                   <Select value={selectedModel} onValueChange={setSelectedModel}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择模型" />
+                    <SelectTrigger className="bg-white border-gray-200 hover:border-gray-300">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {models.map((model) => (
                         <SelectItem key={model.id} value={model.id}>
-                          <div>
-                            <div className="font-medium">{model.name}</div>
-                            <div className="text-xs text-muted-foreground">{model.description}</div>
-                          </div>
+                          {model.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div>
-                  <Label htmlFor="dataset">数据集</Label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">数据集</Label>
                   <Select value={selectedDataset} onValueChange={setSelectedDataset}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择数据集" />
+                    <SelectTrigger className="bg-white border-gray-200 hover:border-gray-300">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {datasets.map((dataset) => (
                         <SelectItem key={dataset.id} value={dataset.id}>
-                          <div>
-                            <div className="font-medium">{dataset.name}</div>
-                            <div className="text-xs text-muted-foreground">{dataset.description}</div>
-                          </div>
+                          {dataset.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div>
-                  <Label htmlFor="algorithm">算法</Label>
+            {/* 算法选择 */}
+            <Card className="bg-white backdrop-blur-sm border-blue-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900">攻击算法</CardTitle>
+                <CardDescription className="text-gray-600">
+                  选择具体的攻击算法和参数
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">算法选择</Label>
                   <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择算法" />
+                    <SelectTrigger className="bg-white border-gray-200 hover:border-gray-300">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {attackAlgorithms[selectedScenario]?.map((algorithm) => (
                         <SelectItem key={algorithm.id} value={algorithm.id}>
                           <div className="flex items-center justify-between w-full">
-                            <div>
-                              <div className="font-medium">{algorithm.name}</div>
-                              <div className="text-xs text-muted-foreground">{algorithm.description}</div>
-                            </div>
-                            <Badge variant={
-                              algorithm.difficulty === 'high' ? 'destructive' :
-                              algorithm.difficulty === 'medium' ? 'default' :
-                              'secondary'
-                            }>
-                              {algorithm.difficulty === 'high' ? '高难度' :
-                               algorithm.difficulty === 'medium' ? '中等' : '简单'}
+                            <span>{algorithm.name}</span>
+                            <Badge variant={algorithm.difficulty === 'high' ? 'destructive' : 'secondary'} 
+                              className={`ml-2 ${
+                                algorithm.difficulty === 'high' 
+                                  ? 'bg-red-100 text-red-800 border-red-200' 
+                                  : 'bg-green-100 text-green-800 border-green-200'
+                              }`}>
+                              {algorithm.difficulty === 'high' ? '高难度' : '中等难度'}
                             </Badge>
                           </div>
                         </SelectItem>
@@ -214,344 +221,202 @@ export default function AttackScenarios() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* 算法参数配置 */}
-          <Card className="card-hover">
+                {selectedScenario === 'adversarial' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">扰动预算 (ε)</Label>
+                      <Slider
+                        value={[parameters.epsilon]}
+                        onValueChange={(value) => handleParameterChange('epsilon', value[0])}
+                        max={0.1}
+                        min={0.01}
+                        step={0.01}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>0.01</span>
+                        <span>{parameters.epsilon.toFixed(2)}</span>
+                        <span>0.10</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">学习率 (α)</Label>
+                      <Slider
+                        value={[parameters.alpha]}
+                        onValueChange={(value) => handleParameterChange('alpha', value[0])}
+                        max={0.05}
+                        min={0.001}
+                        step={0.001}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>0.001</span>
+                        <span>{parameters.alpha.toFixed(3)}</span>
+                        <span>0.050</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">迭代次数</Label>
+                      <Slider
+                        value={[parameters.iterations]}
+                        onValueChange={(value) => handleParameterChange('iterations', value[0])}
+                        max={50}
+                        min={1}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>1</span>
+                        <span>{parameters.iterations}</span>
+                        <span>50</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedScenario === 'optical' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">亮度调整</Label>
+                      <Slider
+                        value={[parameters.brightness]}
+                        onValueChange={(value) => handleParameterChange('brightness', value[0])}
+                        max={2.0}
+                        min={0.1}
+                        step={0.1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>0.1</span>
+                        <span>{parameters.brightness.toFixed(1)}</span>
+                        <span>2.0</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">对比度调整</Label>
+                      <Slider
+                        value={[parameters.contrast]}
+                        onValueChange={(value) => handleParameterChange('contrast', value[0])}
+                        max={3.0}
+                        min={0.1}
+                        step={0.1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>0.1</span>
+                        <span>{parameters.contrast.toFixed(1)}</span>
+                        <span>3.0</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">噪声强度</Label>
+                      <Slider
+                        value={[parameters.noise_level]}
+                        onValueChange={(value) => handleParameterChange('noise_level', value[0])}
+                        max={0.5}
+                        min={0.01}
+                        step={0.01}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>0.01</span>
+                        <span>{parameters.noise_level.toFixed(2)}</span>
+                        <span>0.50</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="execution" className="space-y-4">
+          <Card className="bg-white backdrop-blur-sm border-green-200 hover:border-green-300 hover:shadow-lg transition-all duration-200">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Settings className="h-5 w-5 mr-2" />
-                参数配置
-              </CardTitle>
-              <CardDescription>
-                调整{selectedScenario === 'adversarial' ? '对抗攻击' : '光电干扰'}算法参数
+              <CardTitle className="text-gray-900">执行控制</CardTitle>
+              <CardDescription className="text-gray-600">
+                控制攻击执行过程和状态
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {selectedScenario === 'adversarial' && (
-                <>
-                  <div className="space-y-2">
-                    <Label>扰动预算 (ε): {parameters.epsilon}</Label>
-                    <Slider
-                      value={[parameters.epsilon]}
-                      onValueChange={(value) => handleParameterChange('epsilon', value[0])}
-                      max={0.1}
-                      min={0.001}
-                      step={0.001}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      控制对抗扰动的最大幅度
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>学习率 (α): {parameters.alpha}</Label>
-                    <Slider
-                      value={[parameters.alpha]}
-                      onValueChange={(value) => handleParameterChange('alpha', value[0])}
-                      max={0.05}
-                      min={0.001}
-                      step={0.001}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      每次迭代的步长大小
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>迭代次数: {parameters.iterations}</Label>
-                    <Slider
-                      value={[parameters.iterations]}
-                      onValueChange={(value) => handleParameterChange('iterations', value[0])}
-                      max={50}
-                      min={1}
-                      step={1}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      攻击算法的迭代次数
-                    </p>
-                  </div>
-                </>
-              )}
-
-              {selectedScenario === 'optical' && (
-                <>
-                  <div className="space-y-2">
-                    <Label>亮度调整: {parameters.brightness}</Label>
-                    <Slider
-                      value={[parameters.brightness]}
-                      onValueChange={(value) => handleParameterChange('brightness', value[0])}
-                      max={2.0}
-                      min={0.1}
-                      step={0.1}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      调整图像整体亮度
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>对比度: {parameters.contrast}</Label>
-                    <Slider
-                      value={[parameters.contrast]}
-                      onValueChange={(value) => handleParameterChange('contrast', value[0])}
-                      max={3.0}
-                      min={0.1}
-                      step={0.1}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      调整图像对比度
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>噪声强度: {parameters.noise_level}</Label>
-                    <Slider
-                      value={[parameters.noise_level]}
-                      onValueChange={(value) => handleParameterChange('noise_level', value[0])}
-                      max={0.5}
-                      min={0.01}
-                      step={0.01}
-                      className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      高斯噪声的标准差
-                    </p>
-                  </div>
-                </>
-              )}
-
-              <Separator />
-
-              <div className="space-y-4">
-                <Label className="text-base font-medium">高级选项</Label>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-sm">随机种子</Label>
-                      <p className="text-xs text-muted-foreground">确保结果可重现</p>
-                    </div>
-                    <Input type="number" placeholder="42" className="w-20" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-sm">批处理大小</Label>
-                      <p className="text-xs text-muted-foreground">同时处理的样本数</p>
-                    </div>
-                    <Input type="number" placeholder="32" className="w-20" />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 可视化配置 */}
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Eye className="h-5 w-5 mr-2" />
-                可视化配置
-              </CardTitle>
-              <CardDescription>选择要显示的可视化内容</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                {visualizationTypes.map((type) => (
-                  <div key={type.id} className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-sm">{type.name}</Label>
-                    </div>
-                    <Switch defaultChecked={type.enabled} />
-                  </div>
-                ))}
-              </div>
-              
-              <Separator className="my-4" />
-              
-              <div className="space-y-2">
-                <Label>样本数量</Label>
-                <Input type="number" placeholder="10" className="w-full" />
-                <p className="text-xs text-muted-foreground">
-                  要处理和显示的样本数量
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* 右侧控制面板 */}
-        <div className="space-y-6">
-          {/* 执行控制 */}
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>执行控制</CardTitle>
-              <CardDescription>启动和控制攻击过程</CardDescription>
-            </CardHeader>
             <CardContent className="space-y-4">
-              <Button 
-                onClick={handleStartAttack}
-                disabled={isRunning}
-                className="w-full"
-                size="lg"
-              >
-                {isRunning ? (
-                  <>
-                    <Pause className="h-4 w-4 mr-2" />
-                    执行中...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    开始攻击
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center space-x-4">
+                <Button 
+                  onClick={handleStartAttack}
+                  disabled={isRunning}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isRunning ? (
+                    <>
+                      <Pause className="h-4 w-4 mr-2" />
+                      暂停攻击
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      开始攻击
+                    </>
+                  )}
+                </Button>
+                
+                <Button variant="outline" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  重置
+                </Button>
+                
+                <Button variant="outline" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                  <Download className="h-4 w-4 mr-2" />
+                  导出结果
+                </Button>
+              </div>
 
               {isRunning && (
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>进度</span>
-                    <span>60%</span>
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>攻击进度</span>
+                    <span>65%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full w-3/5 transition-all duration-300"></div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    正在生成对抗样本...
-                  </p>
+                  <Progress value={65} className="w-full" />
                 </div>
               )}
-
-              <div className="flex space-x-2">
-                <Button variant="outline" className="flex-1" disabled={!isRunning}>
-                  <Pause className="h-3 w-3 mr-1" />
-                  暂停
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  <RotateCcw className="h-3 w-3 mr-1" />
-                  重置
-                </Button>
-              </div>
             </CardContent>
           </Card>
+        </TabsContent>
 
-          {/* 当前配置摘要 */}
-          <Card className="card-hover">
+        <TabsContent value="visualization" className="space-y-4">
+          <Card className="bg-white backdrop-blur-sm border-purple-200 hover:border-purple-300 hover:shadow-lg transition-all duration-200">
             <CardHeader>
-              <CardTitle>配置摘要</CardTitle>
-              <CardDescription>当前选择的配置信息</CardDescription>
+              <CardTitle className="text-gray-900">可视化配置</CardTitle>
+              <CardDescription className="text-gray-600">
+                配置攻击过程的可视化选项
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">场景类型</span>
-                <Badge variant="outline">
-                  {selectedScenario === 'adversarial' ? '对抗攻击' : '光电干扰'}
-                </Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">目标模型</span>
-                <span className="text-sm font-medium">
-                  {models.find(m => m.id === selectedModel)?.name}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">数据集</span>
-                <span className="text-sm font-medium">
-                  {datasets.find(d => d.id === selectedDataset)?.name}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">攻击算法</span>
-                <span className="text-sm font-medium">
-                  {attackAlgorithms[selectedScenario]?.find(a => a.id === selectedAlgorithm)?.name}
-                </span>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-2">
-                <span className="text-sm font-medium">关键参数</span>
-                {selectedScenario === 'adversarial' ? (
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span>扰动预算</span>
-                      <span>{parameters.epsilon}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>学习率</span>
-                      <span>{parameters.alpha}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>迭代次数</span>
-                      <span>{parameters.iterations}</span>
-                    </div>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                {visualizationTypes.map((type) => (
+                  <div key={type.id} className="flex items-center space-x-2">
+                    <Switch
+                      id={type.id}
+                      checked={type.enabled}
+                      onCheckedChange={(checked) => {
+                        // 这里应该更新可视化类型的状态
+                      }}
+                    />
+                    <Label htmlFor={type.id} className="text-sm font-medium text-gray-700">
+                      {type.name}
+                    </Label>
                   </div>
-                ) : (
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span>亮度</span>
-                      <span>{parameters.brightness}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>对比度</span>
-                      <span>{parameters.contrast}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>噪声强度</span>
-                      <span>{parameters.noise_level}</span>
-                    </div>
-                  </div>
-                )}
+                ))}
               </div>
             </CardContent>
           </Card>
-
-          {/* 日志输出 */}
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileText className="h-4 w-4 mr-2" />
-                执行日志
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-48 overflow-y-auto text-xs font-mono">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span>配置验证完成</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span>模型加载成功</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span>数据集准备就绪</span>
-                </div>
-                {isRunning && (
-                  <>
-                    <div className="flex items-center space-x-2">
-                      <div className="h-3 w-3 bg-blue-500 rounded-full animate-pulse" />
-                      <span>开始生成对抗样本...</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="h-3 w-3 bg-blue-500 rounded-full animate-pulse" />
-                      <span>处理样本 6/10</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

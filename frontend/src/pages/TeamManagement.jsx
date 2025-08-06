@@ -71,19 +71,19 @@ export default function TeamManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题和控制 */}
+    <div className="space-y-6 bg-gradient-to-br from-blue-50 via-blue-25 to-white min-h-screen p-6">
+      {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">组队管理</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">组队管理</h1>
+          <p className="text-gray-600 mt-2">
             管理演练团队，分配角色和权限
           </p>
         </div>
         <div className="flex space-x-2">
           <Dialog>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                 <UserPlus className="h-4 w-4 mr-2" />
                 创建团队
               </Button>
@@ -97,16 +97,31 @@ export default function TeamManagement() {
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="teamName">团队名称</Label>
-                  <Input id="teamName" placeholder="输入团队名称" />
+                  <Label htmlFor="teamName" className="text-sm font-medium text-gray-700">团队名称</Label>
+                  <Input 
+                    id="teamName" 
+                    placeholder="输入团队名称" 
+                    className="bg-white border-gray-200 hover:border-gray-300"
+                  />
                 </div>
                 <div>
-                  <Label htmlFor="teamLeader">团队负责人</Label>
-                  <Input id="teamLeader" placeholder="输入负责人姓名" />
+                  <Label htmlFor="teamLeader" className="text-sm font-medium text-gray-700">团队队长</Label>
+                  <Input 
+                    id="teamLeader" 
+                    placeholder="输入队长姓名" 
+                    className="bg-white border-gray-200 hover:border-gray-300"
+                  />
                 </div>
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline">取消</Button>
-                  <Button>创建</Button>
+                <div>
+                  <Label htmlFor="teamSpeciality" className="text-sm font-medium text-gray-700">专长领域</Label>
+                  <select 
+                    id="teamSpeciality" 
+                    className="w-full p-2 border border-gray-200 rounded-md bg-white hover:border-gray-300"
+                  >
+                    <option value="attack">攻击专长</option>
+                    <option value="defense">防御专长</option>
+                    <option value="comprehensive">综合能力</option>
+                  </select>
                 </div>
               </div>
             </DialogContent>
@@ -114,138 +129,130 @@ export default function TeamManagement() {
         </div>
       </div>
 
-      {/* 团队统计 */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {/* 蓝色霓虹灯+科技感背景 */}
-        <Card className="relative overflow-hidden bg-black border-2 border-blue-500/60 shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] transition-all duration-500 group">
-          {/* 移除科技感渐变和光斑背景，仅保留黑色背景 */}
-          <div className="absolute inset-0 pointer-events-none"></div>
-          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-pulse delay-500"></div>
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 z-10">
-            <CardTitle className="text-sm font-medium text-blue-300">总团队数</CardTitle>
-            <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/30 group-hover:bg-blue-500/30 transition-all duration-300">
-              <Users className="h-4 w-4 text-blue-400" />
+      {/* 团队统计概览 */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700">总团队数</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Users className="h-4 w-4 text-blue-600" />
             </div>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="text-3xl font-bold text-blue-400 font-mono">{teams.length}</div>
-            <p className="text-xs text-blue-300/70">{teams.filter(t => t.status === 'active').length} 个活跃</p>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900">{teams.length}</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">活跃团队</span>
+            </div>
           </CardContent>
         </Card>
-        {/* 绿色霓虹灯+科技感背景 */}
-        <Card className="relative overflow-hidden bg-black border-2 border-emerald-400/60 shadow-[0_0_30px_rgba(52,211,153,0.4)] hover:shadow-[0_0_40px_rgba(52,211,153,0.6)] transition-all duration-500 group">
-          <div className="absolute inset-0 pointer-events-none"></div>
-          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-300 to-transparent animate-pulse delay-500"></div>
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 z-10">
-            <CardTitle className="text-sm font-medium text-emerald-300">总成员数</CardTitle>
-            <div className="p-2 bg-emerald-400/20 rounded-lg border border-emerald-400/30 group-hover:bg-emerald-400/30 transition-all duration-300">
-              <UserPlus className="h-4 w-4 text-emerald-300" />
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700">总成员数</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+              <UserPlus className="h-4 w-4 text-green-600" />
             </div>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="text-3xl font-bold text-emerald-300 font-mono">{teams.reduce((sum, team) => sum + team.members, 0)}</div>
-            <p className="text-xs text-emerald-300/70">平均 {Math.round(teams.reduce((sum, team) => sum + team.members, 0) / teams.length)} 人/团队</p>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900">{teams.reduce((sum, team) => sum + team.members, 0)}</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">参与成员</span>
+            </div>
           </CardContent>
         </Card>
-        {/* 紫色霓虹灯+科技感背景 */}
-        <Card className="relative overflow-hidden bg-black border-2 border-purple-400/60 shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_40px_rgba(168,85,247,0.6)] transition-all duration-500 group">
-          <div className="absolute inset-0 pointer-events-none"></div>
-          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-300 to-transparent animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-300 to-transparent animate-pulse delay-500"></div>
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 z-10">
-            <CardTitle className="text-sm font-medium text-purple-300">平均得分</CardTitle>
-            <div className="p-2 bg-purple-400/20 rounded-lg border border-purple-400/30 group-hover:bg-purple-400/30 transition-all duration-300">
-              <Trophy className="h-4 w-4 text-purple-300" />
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700">平均得分</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center">
+              <Trophy className="h-4 w-4 text-yellow-600" />
             </div>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="text-3xl font-bold text-purple-300 font-mono">{Math.round(teams.reduce((sum, team) => sum + team.score, 0) / teams.length * 10) / 10}</div>
-            <p className="text-xs text-purple-300/70">最高: {Math.max(...teams.map(t => t.score))}</p>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900">
+              {(teams.reduce((sum, team) => sum + team.score, 0) / teams.length).toFixed(1)}
+            </div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">综合评分</span>
+            </div>
           </CardContent>
         </Card>
-        {/* 橙色霓虹灯+科技感背景 */}
-        <Card className="relative overflow-hidden bg-black border-2 border-orange-400/60 shadow-[0_0_30px_rgba(251,146,60,0.4)] hover:shadow-[0_0_40px_rgba(251,146,60,0.6)] transition-all duration-500 group">
-          <div className="absolute inset-0 pointer-events-none"></div>
-          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-orange-300 to-transparent animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-orange-300 to-transparent animate-pulse delay-500"></div>
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 z-10">
-            <CardTitle className="text-sm font-medium text-orange-300">总演练次数</CardTitle>
-            <div className="p-2 bg-orange-400/20 rounded-lg border border-orange-400/30 group-hover:bg-orange-400/30 transition-all duration-300">
-              <Clock className="h-4 w-4 text-orange-300" />
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700">总演练数</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+              <Clock className="h-4 w-4 text-purple-600" />
             </div>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="text-3xl font-bold text-orange-300 font-mono">{teams.reduce((sum, team) => sum + team.exercises, 0)}</div>
-            <p className="text-xs text-orange-300/70">本月新增 +15</p>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900">{teams.reduce((sum, team) => sum + team.exercises, 0)}</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">完成演练</span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 团队管理 */}
       <Tabs defaultValue="teams" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="teams">团队列表</TabsTrigger>
-          <TabsTrigger value="members">成员管理</TabsTrigger>
-          <TabsTrigger value="permissions">权限设置</TabsTrigger>
+        <TabsList className="bg-white/80 backdrop-blur-sm border border-blue-200">
+          <TabsTrigger value="teams" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">团队列表</TabsTrigger>
+          <TabsTrigger value="members" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">成员管理</TabsTrigger>
+          <TabsTrigger value="roles" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">角色权限</TabsTrigger>
         </TabsList>
 
         <TabsContent value="teams" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {teams.map((team) => (
-              <Card key={team.id} className="card-hover">
+              <Card key={team.id} className="bg-white backdrop-blur-sm border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Crown className="h-5 w-5 text-yellow-500" />
-                      <CardTitle className="text-lg">{team.name}</CardTitle>
-                    </div>
-                    <Badge variant={team.status === 'active' ? 'default' : 'secondary'}>
+                    <CardTitle className="text-gray-900">{team.name}</CardTitle>
+                    <Badge className={
+                      team.status === 'active' 
+                        ? 'bg-green-100 text-green-800 border-green-200' 
+                        : 'bg-gray-100 text-gray-800 border-gray-200'
+                    }>
                       {team.status === 'active' ? '活跃' : '非活跃'}
                     </Badge>
                   </div>
-                  <CardDescription>
-                    负责人: {team.leader} • {team.members} 名成员
+                  <CardDescription className="text-gray-600">
+                    队长: {team.leader} • 成员: {team.members}人
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">专长领域</span>
-                    <div className="flex items-center space-x-1">
-                      {team.speciality === 'attack' && <Sword className="h-3 w-3 text-red-500" />}
-                      {team.speciality === 'defense' && <Shield className="h-3 w-3 text-green-500" />}
-                      {team.speciality === 'comprehensive' && <Trophy className="h-3 w-3 text-blue-500" />}
-                      <span className="text-sm">
-                        {team.speciality === 'attack' ? '攻击' :
-                         team.speciality === 'defense' ? '防御' : '综合'}
-                      </span>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">专长领域</span>
+                      <Badge variant="secondary" className={
+                        team.speciality === 'attack' ? 'bg-red-100 text-red-800 border-red-200' :
+                        team.speciality === 'defense' ? 'bg-green-100 text-green-800 border-green-200' :
+                        'bg-blue-100 text-blue-800 border-blue-200'
+                      }>
+                        {team.speciality === 'attack' ? '攻击专长' :
+                         team.speciality === 'defense' ? '防御专长' : '综合能力'}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">平均得分</span>
+                      <span className="text-lg font-bold text-gray-900">{team.score}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">演练次数</span>
+                      <span className="text-sm text-gray-600">{team.exercises}次</span>
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">团队得分</span>
-                    <span className="font-bold text-lg">{team.score}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">演练次数</span>
-                    <span className="font-medium">{team.exercises}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">创建时间</span>
-                    <span className="text-sm">{team.created}</span>
-                  </div>
-                  
-                  <div className="flex space-x-2 pt-2">
-                    <Button variant="outline" size="sm" className="flex-1">
-                      <Edit className="h-3 w-3 mr-1" />
-                      编辑
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
-                      <Settings className="h-3 w-3 mr-1" />
-                      设置
+                    <div className="flex space-x-1">
+                      <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                        <Edit className="h-3 w-3 mr-1" />
+                        编辑
+                      </Button>
+                      <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                        <Settings className="h-3 w-3 mr-1" />
+                        设置
+                      </Button>
+                    </div>
+                    <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </CardContent>
@@ -255,115 +262,84 @@ export default function TeamManagement() {
         </TabsContent>
 
         <TabsContent value="members" className="space-y-4">
-          <Card className="card-hover">
+          <Card className="bg-white backdrop-blur-sm border-blue-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200">
             <CardHeader>
-              <CardTitle>团队Alpha 成员管理</CardTitle>
-              <CardDescription>管理团队成员信息和角色分配</CardDescription>
+              <CardTitle className="text-gray-900">团队成员管理</CardTitle>
+              <CardDescription className="text-gray-600">
+                管理团队成员信息和权限
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {teamMembers[1]?.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <Avatar>
+                  <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-10 w-10">
                         <AvatarImage src={member.avatar} />
-                        <AvatarFallback>{member.name.slice(0, 2)}</AvatarFallback>
+                        <AvatarFallback className="bg-blue-100 text-blue-800">
+                          {member.name.charAt(0)}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-semibold">{member.name}</h3>
-                          {member.role === 'leader' && (
-                            <Badge variant="default">
-                              <Crown className="h-3 w-3 mr-1" />
-                              队长
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <div className="flex items-center space-x-1">
-                            <Mail className="h-3 w-3" />
-                            <span>{member.email}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Phone className="h-3 w-3" />
-                            <span>{member.phone}</span>
-                          </div>
-                        </div>
+                        <div className="font-medium text-gray-900">{member.name}</div>
+                        <div className="text-sm text-gray-600">{member.email}</div>
                       </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                    <div className="flex items-center space-x-2">
+                      <Badge className={
+                        member.role === 'leader' 
+                          ? 'bg-yellow-100 text-yellow-800 border-yellow-200' 
+                          : 'bg-gray-100 text-gray-800 border-gray-200'
+                      }>
+                        {member.role === 'leader' ? '队长' : '成员'}
+                      </Badge>
+                      <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
                         <Edit className="h-3 w-3" />
                       </Button>
-                      {member.role !== 'leader' && (
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      )}
                     </div>
                   </div>
                 ))}
-              </div>
-              
-              <div className="mt-6 pt-4 border-t">
-                <Button>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  添加成员
-                </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="permissions" className="space-y-4">
-          <Card className="card-hover">
+        <TabsContent value="roles" className="space-y-4">
+          <Card className="bg-white backdrop-blur-sm border-green-200 hover:border-green-300 hover:shadow-lg transition-all duration-200">
             <CardHeader>
-              <CardTitle>权限设置</CardTitle>
-              <CardDescription>配置不同角色的系统访问权限</CardDescription>
+              <CardTitle className="text-gray-900">角色权限管理</CardTitle>
+              <CardDescription className="text-gray-600">
+                配置不同角色的权限和功能
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">队长权限</h3>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {[
-                      '创建和管理演练',
-                      '邀请和移除成员',
-                      '查看所有报告',
-                      '修改团队设置',
-                      '分配成员角色',
-                      '访问系统管理'
-                    ].map((permission) => (
-                      <div key={permission} className="flex items-center space-x-2">
-                        <input type="checkbox" defaultChecked className="rounded" />
-                        <span className="text-sm">{permission}</span>
+              <div className="space-y-4">
+                {[
+                  { role: '队长', permissions: ['团队管理', '演练配置', '结果查看', '成员管理'], color: 'yellow' },
+                  { role: '副队长', permissions: ['演练配置', '结果查看', '成员管理'], color: 'blue' },
+                  { role: '成员', permissions: ['演练参与', '结果查看'], color: 'gray' },
+                  { role: '观察员', permissions: ['结果查看'], color: 'purple' }
+                ].map((roleInfo, index) => (
+                  <div key={index} className="p-3 border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <Crown className={`h-4 w-4 text-${roleInfo.color}-600`} />
+                        <span className="font-medium text-gray-900">{roleInfo.role}</span>
                       </div>
-                    ))}
+                      <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                        <Edit className="h-3 w-3 mr-1" />
+                        编辑
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {roleInfo.permissions.map((permission, permIndex) => (
+                        <Badge key={permIndex} variant="secondary" className="bg-gray-100 text-gray-800 border-gray-200">
+                          {permission}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">成员权限</h3>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {[
-                      '参与演练',
-                      '查看个人报告',
-                      '提交演练结果',
-                      '查看团队统计',
-                      '使用可视化工具',
-                      '下载个人数据'
-                    ].map((permission) => (
-                      <div key={permission} className="flex items-center space-x-2">
-                        <input type="checkbox" defaultChecked className="rounded" />
-                        <span className="text-sm">{permission}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="pt-4 border-t">
-                  <Button>保存权限设置</Button>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>

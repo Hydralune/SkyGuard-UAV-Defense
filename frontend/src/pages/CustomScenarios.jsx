@@ -129,456 +129,247 @@ export default function CustomScenarios() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-gradient-to-br from-blue-50 via-blue-25 to-white min-h-screen p-6">
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">自定义场景</h1>
-          <p className="text-muted-foreground mt-2">
-            创建和管理自定义攻防演练场景
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">自定义场景</h1>
+          <p className="text-gray-600 mt-2">
+            创建和管理自定义攻防场景
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline">
+          <Button variant="outline" className="bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 text-blue-700">
             <Upload className="h-4 w-4 mr-2" />
             导入场景
           </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            导出场景
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            新建场景
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* 左侧场景创建 */}
-        <div className="lg:col-span-2 space-y-6">
-          <Tabs defaultValue="basic" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="basic">基础配置</TabsTrigger>
-              <TabsTrigger value="attacks">攻击配置</TabsTrigger>
-              <TabsTrigger value="defenses">防御配置</TabsTrigger>
-              <TabsTrigger value="schedule">执行调度</TabsTrigger>
-            </TabsList>
+      <Tabs defaultValue="scenarios" className="space-y-4">
+        <TabsList className="bg-white/80 backdrop-blur-sm border border-blue-200">
+          <TabsTrigger value="scenarios" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">场景列表</TabsTrigger>
+          <TabsTrigger value="editor" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">场景编辑器</TabsTrigger>
+          <TabsTrigger value="templates" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">模板库</TabsTrigger>
+        </TabsList>
 
-            <TabsContent value="basic" className="space-y-4">
-              <Card className="card-hover">
+        <TabsContent value="scenarios" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {scenarios.map((scenario) => (
+              <Card key={scenario.id} className="bg-white backdrop-blur-sm border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
                 <CardHeader>
-                  <CardTitle>场景基础信息</CardTitle>
-                  <CardDescription>设置场景的基本属性和描述</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="scenarioName">场景名称</Label>
-                    <Input
-                      id="scenarioName"
-                      value={currentScenario.name}
-                      onChange={(e) => setCurrentScenario(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="输入场景名称"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="scenarioDescription">场景描述</Label>
-                    <Textarea
-                      id="scenarioDescription"
-                      value={currentScenario.description}
-                      onChange={(e) => setCurrentScenario(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="描述场景的目的和特点"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="scenarioType">场景类型</Label>
-                    <Select
-                      value={currentScenario.type}
-                      onValueChange={(value) => setCurrentScenario(prev => ({ ...prev, type: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="hybrid">复合场景</SelectItem>
-                        <SelectItem value="adversarial">对抗攻击场景</SelectItem>
-                        <SelectItem value="environmental">环境干扰场景</SelectItem>
-                        <SelectItem value="defense">防御测试场景</SelectItem>
-                        <SelectItem value="benchmark">基准测试场景</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>难度等级</Label>
-                      <Select defaultValue="medium">
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="easy">简单</SelectItem>
-                          <SelectItem value="medium">中等</SelectItem>
-                          <SelectItem value="hard">困难</SelectItem>
-                          <SelectItem value="expert">专家</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>预计时长</Label>
-                      <Select defaultValue="30">
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="15">15分钟</SelectItem>
-                          <SelectItem value="30">30分钟</SelectItem>
-                          <SelectItem value="60">1小时</SelectItem>
-                          <SelectItem value="120">2小时</SelectItem>
-                          <SelectItem value="custom">自定义</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="attacks" className="space-y-4">
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle>攻击方法配置</CardTitle>
-                  <CardDescription>选择和配置攻击算法</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <Label className="text-base font-medium">可用攻击方法</Label>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {availableAttacks.map((attack) => (
-                        <div key={attack.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <span className="font-medium">{attack.name}</span>
-                            <Badge variant="outline" className="ml-2">
-                              {attack.category === 'adversarial' ? '对抗' : '光电'}
-                            </Badge>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant={currentScenario.attacks.includes(attack.id) ? "default" : "outline"}
-                            onClick={() => currentScenario.attacks.includes(attack.id) 
-                              ? handleRemoveAttack(attack.id) 
-                              : handleAddAttack(attack.id)
-                            }
-                          >
-                            {currentScenario.attacks.includes(attack.id) ? '移除' : '添加'}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {currentScenario.attacks.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="space-y-4">
-                        <Label className="text-base font-medium">已选择的攻击方法</Label>
-                        <div className="space-y-3">
-                          {currentScenario.attacks.map((attackId) => {
-                            const attack = availableAttacks.find(a => a.id === attackId)
-                            return (
-                              <div key={attackId} className="p-3 bg-muted rounded-lg">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium">{attack?.name}</span>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleRemoveAttack(attackId)}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                                <div className="grid gap-2 md:grid-cols-2 text-sm">
-                                  <div>
-                                    <Label>强度</Label>
-                                    <Input type="number" placeholder="0.03" />
-                                  </div>
-                                  <div>
-                                    <Label>权重</Label>
-                                    <Input type="number" placeholder="1.0" />
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="defenses" className="space-y-4">
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle>防御方法配置</CardTitle>
-                  <CardDescription>选择和配置防御策略</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <Label className="text-base font-medium">可用防御方法</Label>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {availableDefenses.map((defense) => (
-                        <div key={defense.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <span className="font-medium">{defense.name}</span>
-                            <Badge variant="outline" className="ml-2">
-                              {defense.category === 'adversarial_training' ? '训练' : 
-                               defense.category === 'preprocessing' ? '预处理' : '检测'}
-                            </Badge>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant={currentScenario.defenses.includes(defense.id) ? "default" : "outline"}
-                            onClick={() => currentScenario.defenses.includes(defense.id) 
-                              ? handleRemoveDefense(defense.id) 
-                              : handleAddDefense(defense.id)
-                            }
-                          >
-                            {currentScenario.defenses.includes(defense.id) ? '移除' : '添加'}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {currentScenario.defenses.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="space-y-4">
-                        <Label className="text-base font-medium">已选择的防御方法</Label>
-                        <div className="space-y-3">
-                          {currentScenario.defenses.map((defenseId) => {
-                            const defense = availableDefenses.find(d => d.id === defenseId)
-                            return (
-                              <div key={defenseId} className="p-3 bg-muted rounded-lg">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium">{defense?.name}</span>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleRemoveDefense(defenseId)}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                                <div className="grid gap-2 md:grid-cols-2 text-sm">
-                                  <div>
-                                    <Label>强度</Label>
-                                    <Input type="number" placeholder="0.8" />
-                                  </div>
-                                  <div>
-                                    <Label>优先级</Label>
-                                    <Select defaultValue="medium">
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="low">低</SelectItem>
-                                        <SelectItem value="medium">中</SelectItem>
-                                        <SelectItem value="high">高</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="schedule" className="space-y-4">
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle>执行调度配置</CardTitle>
-                  <CardDescription>设置攻防序列的执行顺序和时间</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-base font-medium">启用调度</Label>
-                      <p className="text-sm text-muted-foreground">按预定顺序执行攻防操作</p>
-                    </div>
-                    <Switch
-                      checked={currentScenario.schedule.enabled}
-                      onCheckedChange={(checked) => 
-                        setCurrentScenario(prev => ({
-                          ...prev,
-                          schedule: { ...prev.schedule, enabled: checked }
-                        }))
-                      }
-                    />
+                    <CardTitle className="text-gray-900">{scenario.name}</CardTitle>
+                    <Badge className={
+                      scenario.status === 'active' 
+                        ? 'bg-green-100 text-green-800 border-green-200' 
+                        : 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                    }>
+                      {scenario.status === 'active' ? '活跃' : '草稿'}
+                    </Badge>
                   </div>
-
-                  {currentScenario.schedule.enabled && (
-                    <>
-                      <Separator />
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>执行模式</Label>
-                          <Select
-                            value={currentScenario.schedule.timing}
-                            onValueChange={(value) => 
-                              setCurrentScenario(prev => ({
-                                ...prev,
-                                schedule: { ...prev.schedule, timing: value }
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="sequential">顺序执行</SelectItem>
-                              <SelectItem value="parallel">并行执行</SelectItem>
-                              <SelectItem value="random">随机执行</SelectItem>
-                              <SelectItem value="adaptive">自适应执行</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>执行间隔 (秒)</Label>
-                          <Input type="number" placeholder="30" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>重复次数</Label>
-                          <Input type="number" placeholder="1" />
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-
-          <div className="flex space-x-2">
-            <Button onClick={handleSaveScenario} className="flex-1">
-              <Save className="h-4 w-4 mr-2" />
-              保存场景
-            </Button>
-            <Button variant="outline">
-              <Eye className="h-4 w-4 mr-2" />
-              预览
-            </Button>
-          </div>
-        </div>
-
-        {/* 右侧场景列表 */}
-        <div className="space-y-6">
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>已保存的场景</CardTitle>
-              <CardDescription>管理和使用自定义场景</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {scenarios.map((scenario) => (
-                  <div key={scenario.id} className="p-3 border rounded-lg">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h4 className="font-medium">{scenario.name}</h4>
-                        <p className="text-xs text-muted-foreground">{scenario.description}</p>
-                      </div>
-                      <Badge variant={scenario.status === 'active' ? 'default' : 'secondary'}>
-                        {scenario.status === 'active' ? '活跃' : '草稿'}
+                  <CardDescription className="text-gray-600">
+                    {scenario.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">场景类型</span>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200">
+                        {scenario.type === 'hybrid' ? '复合场景' : '环境测试'}
                       </Badge>
                     </div>
-                    
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground mb-3">
-                      <span>{scenario.attacks.length} 攻击</span>
-                      <span>•</span>
-                      <span>{scenario.defenses.length} 防御</span>
-                      <span>•</span>
-                      <span>{scenario.created}</span>
-                    </div>
-                    
-                    <div className="flex space-x-1">
-                      <Button size="sm" variant="outline" className="flex-1">
-                        <Play className="h-3 w-3 mr-1" />
-                        运行
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">创建时间</span>
+                      <span className="text-sm text-gray-600">{scenario.created}</span>
                     </div>
                   </div>
-                ))}
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex space-x-1">
+                      <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                        <Eye className="h-3 w-3 mr-1" />
+                        查看
+                      </Button>
+                      <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                        <Edit className="h-3 w-3 mr-1" />
+                        编辑
+                      </Button>
+                      <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                        <Play className="h-3 w-3 mr-1" />
+                        执行
+                      </Button>
+                    </div>
+                    <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                      <Download className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="editor" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="bg-white backdrop-blur-sm border-blue-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900">场景基本信息</CardTitle>
+                <CardDescription className="text-gray-600">
+                  配置场景的基本信息和描述
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">场景名称</Label>
+                  <Input 
+                    placeholder="输入场景名称" 
+                    className="bg-white border-gray-200 hover:border-gray-300"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">场景描述</Label>
+                  <Textarea 
+                    placeholder="描述场景的目的和特点" 
+                    className="bg-white border-gray-200 hover:border-gray-300"
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">场景类型</Label>
+                  <Select>
+                    <SelectTrigger className="bg-white border-gray-200 hover:border-gray-300">
+                      <SelectValue placeholder="选择场景类型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hybrid">复合场景</SelectItem>
+                      <SelectItem value="environmental">环境测试</SelectItem>
+                      <SelectItem value="adversarial">对抗测试</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white backdrop-blur-sm border-green-200 hover:border-green-300 hover:shadow-lg transition-all duration-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900">攻击配置</CardTitle>
+                <CardDescription className="text-gray-600">
+                  选择要包含的攻击算法和参数
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">攻击算法</Label>
+                  <div className="space-y-2">
+                    {['PGD', 'FGSM', 'C&W', 'AdvPatch', 'DPatch'].map((attack) => (
+                      <div key={attack} className="flex items-center space-x-2">
+                        <Switch id={attack} />
+                        <Label htmlFor={attack} className="text-sm text-gray-700">{attack}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">环境干扰</Label>
+                  <div className="space-y-2">
+                    {['亮度干扰', '高斯噪声', '对比度调整', '图像扭曲', '场景跃变'].map((interference) => (
+                      <div key={interference} className="flex items-center space-x-2">
+                        <Switch id={interference} />
+                        <Label htmlFor={interference} className="text-sm text-gray-700">{interference}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="bg-white backdrop-blur-sm border-purple-200 hover:border-purple-300 hover:shadow-lg transition-all duration-200">
+            <CardHeader>
+              <CardTitle className="text-gray-900">执行调度</CardTitle>
+              <CardDescription className="text-gray-600">
+                配置场景的执行顺序和时机
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch id="schedule-enabled" />
+                <Label htmlFor="schedule-enabled" className="text-sm font-medium text-gray-700">启用调度</Label>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">执行模式</Label>
+                <Select>
+                  <SelectTrigger className="bg-white border-gray-200 hover:border-gray-300">
+                    <SelectValue placeholder="选择执行模式" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sequential">顺序执行</SelectItem>
+                    <SelectItem value="parallel">并行执行</SelectItem>
+                    <SelectItem value="conditional">条件执行</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">执行间隔</span>
+                <Input 
+                  type="number" 
+                  placeholder="30" 
+                  className="w-20 bg-white border-gray-200 hover:border-gray-300"
+                />
+                <span className="text-sm text-gray-600">秒</span>
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
 
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>场景模板</CardTitle>
-              <CardDescription>使用预定义的场景模板</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {[
-                  { name: '基础对抗测试', attacks: 2, defenses: 1 },
-                  { name: '环境鲁棒性测试', attacks: 3, defenses: 2 },
-                  { name: '综合防御评估', attacks: 4, defenses: 3 }
-                ].map((template, index) => (
-                  <div key={index} className="p-3 border rounded-lg">
-                    <h4 className="font-medium mb-1">{template.name}</h4>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      {template.attacks} 攻击 • {template.defenses} 防御
-                    </p>
-                    <Button size="sm" variant="outline" className="w-full">
-                      <Plus className="h-3 w-3 mr-1" />
+        <TabsContent value="templates" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              { name: '基础对抗测试', description: '包含PGD和FGSM的基础对抗攻击测试', type: 'adversarial' },
+              { name: '环境干扰测试', description: '多种环境干扰的综合测试场景', type: 'environmental' },
+              { name: '复合攻击场景', description: '对抗攻击与环境干扰的复合测试', type: 'hybrid' },
+              { name: '鲁棒性评估', description: '全面的模型鲁棒性评估场景', type: 'evaluation' },
+              { name: '性能基准测试', description: '系统性能基准测试场景', type: 'benchmark' },
+              { name: '自定义模板', description: '用户自定义的测试模板', type: 'custom' }
+            ].map((template, index) => (
+              <Card key={index} className="bg-white backdrop-blur-sm border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200">
+                <CardHeader>
+                  <CardTitle className="text-gray-900">{template.name}</CardTitle>
+                  <CardDescription className="text-gray-600">
+                    {template.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200">
+                      {template.type === 'adversarial' ? '对抗测试' :
+                       template.type === 'environmental' ? '环境测试' :
+                       template.type === 'hybrid' ? '复合场景' :
+                       template.type === 'evaluation' ? '评估场景' :
+                       template.type === 'benchmark' ? '基准测试' : '自定义'}
+                    </Badge>
+                    <Button variant="outline" size="sm" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                      <Copy className="h-3 w-3 mr-1" />
                       使用模板
                     </Button>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>场景统计</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">总场景数</span>
-                <span className="font-medium">{scenarios.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">活跃场景</span>
-                <span className="font-medium">{scenarios.filter(s => s.status === 'active').length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">草稿场景</span>
-                <span className="font-medium">{scenarios.filter(s => s.status === 'draft').length}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

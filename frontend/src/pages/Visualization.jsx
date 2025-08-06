@@ -98,201 +98,114 @@ export default function Visualization() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题和控制 */}
+    <div className="space-y-6 bg-gradient-to-br from-blue-50 via-blue-25 to-white min-h-screen p-6">
+      {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">攻防过程可视化</h1>
-          <p className="text-muted-foreground mt-2">
-            实时可视化攻防演练过程和结果分析
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">攻防过程可视化</h1>
+          <p className="text-gray-600 mt-2">
+            攻防过程实时可视化和分析
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={handleReset}>
-            <RotateCcw className="h-4 w-4 mr-2" />
-            重置
+          <Button variant="outline" className="bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 text-blue-700">
+            <Settings className="h-4 w-4 mr-2" />
+            视图设置
           </Button>
-          <Button onClick={handlePlayPause}>
-            {isPlaying ? (
-              <>
-                <Pause className="h-4 w-4 mr-2" />
-                暂停
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4 mr-2" />
-                播放
-              </>
-            )}
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Download className="h-4 w-4 mr-2" />
+            导出结果
           </Button>
         </div>
       </div>
 
-      {/* 主要可视化区域 */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* 左侧图像对比 */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="card-hover">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center">
-                    <Image className="h-5 w-5 mr-2" />
-                    样本对比分析
-                  </CardTitle>
-                  <CardDescription>
-                    原始样本与对抗样本的视觉对比
-                  </CardDescription>
+      <Tabs defaultValue="comparison" className="space-y-4">
+        <TabsList className="bg-white/80 backdrop-blur-sm border border-blue-200">
+          <TabsTrigger value="comparison" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">样本对比</TabsTrigger>
+          <TabsTrigger value="analysis" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">差异分析</TabsTrigger>
+          <TabsTrigger value="animation" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">动画演示</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="comparison" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* 原始样本 */}
+            <Card className="bg-white backdrop-blur-sm border-green-200 hover:border-green-300 hover:shadow-lg transition-all duration-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900">原始样本</CardTitle>
+                <CardDescription className="text-gray-600">
+                  攻击前的原始图像和检测结果
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <Image className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">原始图像预览</p>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Label>缩放:</Label>
-                  <Slider
-                    value={[zoomLevel]}
-                    onValueChange={(value) => setZoomLevel(value[0])}
-                    max={3}
-                    min={0.5}
-                    step={0.1}
-                    className="w-20"
-                  />
-                  <Button variant="outline" size="sm">
-                    <Maximize className="h-3 w-3" />
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">检测置信度</span>
+                    <span className="text-sm font-bold text-green-600">95%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">检测状态</span>
+                    <Badge className="bg-green-100 text-green-800 border-green-200">已检测</Badge>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={selectedView} onValueChange={setSelectedView}>
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="comparison">对比视图</TabsTrigger>
-                  <TabsTrigger value="difference">差异图</TabsTrigger>
-                  <TabsTrigger value="heatmap">热力图</TabsTrigger>
-                  <TabsTrigger value="animation">动画</TabsTrigger>
-                </TabsList>
+              </CardContent>
+            </Card>
 
-                <TabsContent value="comparison" className="mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-center">原始图像</h4>
-                      <div className="aspect-square bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center border-2 border-dashed border-blue-300">
-                        <div className="text-center">
-                          <Image className="h-12 w-12 mx-auto text-blue-500 mb-2" />
-                          <p className="text-sm text-blue-600">原始样本</p>
-                          <p className="text-xs text-muted-foreground">置信度: 95%</p>
-                        </div>
-                      </div>
-                      <div className="flex justify-center space-x-2">
-                        <Badge variant="default">person: 0.95</Badge>
-                        <Badge variant="secondary">car: 0.88</Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-center">对抗样本</h4>
-                      <div className="aspect-square bg-gradient-to-br from-red-100 to-red-200 rounded-lg flex items-center justify-center border-2 border-dashed border-red-300">
-                        <div className="text-center">
-                          <AlertTriangle className="h-12 w-12 mx-auto text-red-500 mb-2" />
-                          <p className="text-sm text-red-600">对抗样本</p>
-                          <p className="text-xs text-muted-foreground">置信度: 23%</p>
-                        </div>
-                      </div>
-                      <div className="flex justify-center space-x-2">
-                        <Badge variant="destructive">person: 0.23</Badge>
-                        <Badge variant="outline">car: 0.15</Badge>
-                      </div>
-                    </div>
+            {/* 对抗样本 */}
+            <Card className="bg-white backdrop-blur-sm border-red-200 hover:border-red-300 hover:shadow-lg transition-all duration-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900">对抗样本</CardTitle>
+                <CardDescription className="text-gray-600">
+                  攻击后的对抗图像和检测结果
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <Image className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">对抗图像预览</p>
                   </div>
-                </TabsContent>
-
-                <TabsContent value="difference" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="aspect-video bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg flex items-center justify-center border-2 border-dashed border-purple-300">
-                      <div className="text-center">
-                        <Zap className="h-16 w-16 mx-auto text-purple-500 mb-2" />
-                        <p className="text-lg font-medium text-purple-600">扰动差异图</p>
-                        <p className="text-sm text-muted-foreground">显示添加的对抗扰动</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="text-center">
-                        <div className="w-4 h-4 bg-blue-500 rounded mx-auto mb-1"></div>
-                        <span>负扰动</span>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-4 h-4 bg-gray-300 rounded mx-auto mb-1"></div>
-                        <span>无变化</span>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-4 h-4 bg-red-500 rounded mx-auto mb-1"></div>
-                        <span>正扰动</span>
-                      </div>
-                    </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">检测置信度</span>
+                    <span className="text-sm font-bold text-red-600">23%</span>
                   </div>
-                </TabsContent>
-
-                <TabsContent value="heatmap" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="aspect-video bg-gradient-to-br from-yellow-100 via-orange-100 to-red-100 rounded-lg flex items-center justify-center border-2 border-dashed border-orange-300">
-                      <div className="text-center">
-                        <Target className="h-16 w-16 mx-auto text-orange-500 mb-2" />
-                        <p className="text-lg font-medium text-orange-600">注意力热力图</p>
-                        <p className="text-sm text-muted-foreground">模型关注区域分析</p>
-                      </div>
-                    </div>
-                    <div className="flex justify-center space-x-4 text-sm">
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                        <span>低关注</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                        <span>中等关注</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-red-500 rounded"></div>
-                        <span>高关注</span>
-                      </div>
-                    </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">检测状态</span>
+                    <Badge className="bg-red-100 text-red-800 border-red-200">未检测</Badge>
                   </div>
-                </TabsContent>
-
-                <TabsContent value="animation" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="aspect-video bg-gradient-to-r from-green-100 to-blue-100 rounded-lg flex items-center justify-center border-2 border-dashed border-green-300">
-                      <div className="text-center">
-                        <div className={`h-16 w-16 mx-auto mb-2 ${isPlaying ? 'animate-pulse' : ''}`}>
-                          <Play className="h-16 w-16 text-green-500" />
-                        </div>
-                        <p className="text-lg font-medium text-green-600">攻击过程动画</p>
-                        <p className="text-sm text-muted-foreground">
-                          步骤 {currentStep + 1}/4: {attackProgress[currentStep]?.name}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex justify-center">
-                      <Progress value={(currentStep + 1) * 25} className="w-64" />
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* 检测结果对比 */}
-          <Card className="card-hover">
+          <Card className="bg-white backdrop-blur-sm border-blue-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <BarChart3 className="h-5 w-5 mr-2" />
-                检测结果对比
-              </CardTitle>
-              <CardDescription>原始样本与对抗样本的检测置信度对比</CardDescription>
+              <CardTitle className="text-gray-900">检测结果对比</CardTitle>
+              <CardDescription className="text-gray-600">
+                不同类别的检测置信度变化
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={detectionResults}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="class" />
-                  <YAxis />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="class" stroke="#6b7280" />
+                  <YAxis stroke="#6b7280" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                      border: '1px solid #dbeafe',
+                      borderRadius: '8px'
+                    }}
+                  />
                   <Legend />
                   <Bar dataKey="original" fill="#22c55e" name="原始置信度" />
                   <Bar dataKey="adversarial" fill="#ef4444" name="对抗置信度" />
@@ -300,149 +213,150 @@ export default function Visualization() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </div>
+        </TabsContent>
 
-        {/* 右侧控制和统计 */}
-        <div className="space-y-6">
-          {/* 攻击进度 */}
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>攻击进度</CardTitle>
-              <CardDescription>当前攻击步骤和状态</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {attackProgress.map((step, index) => (
-                <div key={index} className={`flex items-center space-x-3 p-2 rounded-lg ${
-                  index === currentStep ? 'bg-blue-50 border border-blue-200' : ''
-                }`}>
-                  <div className={`w-3 h-3 rounded-full ${
-                    index < currentStep ? 'bg-green-500' :
-                    index === currentStep ? 'bg-blue-500 animate-pulse' :
-                    'bg-gray-300'
-                  }`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{step.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      置信度: {step.confidence}
-                    </p>
+        <TabsContent value="analysis" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* 差异图 */}
+            <Card className="bg-white backdrop-blur-sm border-yellow-200 hover:border-yellow-300 hover:shadow-lg transition-all duration-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900">扰动差异图</CardTitle>
+                <CardDescription className="text-gray-600">
+                  显示攻击添加的扰动分布
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <BarChart3 className="h-12 w-12 text-blue-600 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">扰动热力图</p>
                   </div>
-                  {step.detected ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                  )}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* 热力图 */}
+            <Card className="bg-white backdrop-blur-sm border-purple-200 hover:border-purple-300 hover:shadow-lg transition-all duration-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900">注意力热力图</CardTitle>
+                <CardDescription className="text-gray-600">
+                  模型注意力区域可视化
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-video bg-gradient-to-br from-red-100 to-orange-100 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <Target className="h-12 w-12 text-red-600 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">注意力分布</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* 扰动分析 */}
-          <Card className="card-hover">
+          <Card className="bg-white backdrop-blur-sm border-indigo-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-200">
             <CardHeader>
-              <CardTitle>扰动分析</CardTitle>
-              <CardDescription>像素级扰动统计</CardDescription>
+              <CardTitle className="text-gray-900">扰动分析</CardTitle>
+              <CardDescription className="text-gray-600">
+                扰动强度和分布统计
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={perturbationAnalysis}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="pixel" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="perturbation" stroke="#8884d8" strokeWidth={2} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="pixel" stroke="#6b7280" />
+                  <YAxis stroke="#6b7280" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                      border: '1px solid #dbeafe',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="original" stroke="#22c55e" strokeWidth={2} name="原始值" />
+                  <Line type="monotone" dataKey="adversarial" stroke="#ef4444" strokeWidth={2} name="对抗值" />
+                  <Line type="monotone" dataKey="perturbation" stroke="#3b82f6" strokeWidth={2} name="扰动值" />
                 </LineChart>
               </ResponsiveContainer>
-              
-              <div className="mt-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>平均扰动</span>
-                  <span className="font-medium">±5.2</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>最大扰动</span>
-                  <span className="font-medium">±8.0</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>L∞范数</span>
-                  <span className="font-medium">0.031</span>
-                </div>
-              </div>
             </CardContent>
           </Card>
+        </TabsContent>
 
-          {/* 防御效果 */}
-          <Card className="card-hover">
+        <TabsContent value="animation" className="space-y-4">
+          <Card className="bg-white backdrop-blur-sm border-green-200 hover:border-green-300 hover:shadow-lg transition-all duration-200">
             <CardHeader>
-              <CardTitle>防御效果评估</CardTitle>
-              <CardDescription>不同防御方法的效果对比</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {defenseEffectiveness.map((defense, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{defense.method}</span>
-                      <Badge variant={defense.improvement > 40 ? 'default' : 'secondary'}>
-                        +{defense.improvement}%
-                      </Badge>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>清洁准确率</span>
-                        <span>{defense.clean}%</span>
-                      </div>
-                      <Progress value={defense.clean} className="h-1" />
-                      <div className="flex justify-between text-xs">
-                        <span>鲁棒准确率</span>
-                        <span>{defense.robust}%</span>
-                      </div>
-                      <Progress value={defense.robust} className="h-1" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 可视化设置 */}
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Settings className="h-4 w-4 mr-2" />
-                可视化设置
-              </CardTitle>
+              <CardTitle className="text-gray-900">攻击过程动画</CardTitle>
+              <CardDescription className="text-gray-600">
+                动态展示攻击过程的关键步骤
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">实时更新</Label>
-                <Switch defaultChecked />
+              <div className="flex items-center justify-center space-x-4">
+                <Button 
+                  onClick={handlePlayPause}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isPlaying ? (
+                    <>
+                      <Pause className="h-4 w-4 mr-2" />
+                      暂停
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      播放
+                    </>
+                  )}
+                </Button>
+                
+                <Button 
+                  onClick={handleReset}
+                  variant="outline" 
+                  className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  重置
+                </Button>
+                
+                <Button variant="outline" className="bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700">
+                  <Maximize className="h-4 w-4 mr-2" />
+                  全屏
+                </Button>
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">显示置信度</Label>
-                <Switch defaultChecked />
+
+              <div className="aspect-video bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center border-2 border-dashed border-blue-200">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-blue-600 mb-2">
+                    {attackProgress[currentStep]?.name || '准备中...'}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    置信度: {attackProgress[currentStep]?.confidence || 0}%
+                  </div>
+                  <div className="mt-2">
+                    <Badge className={
+                      attackProgress[currentStep]?.detected 
+                        ? 'bg-green-100 text-green-800 border-green-200' 
+                        : 'bg-red-100 text-red-800 border-red-200'
+                    }>
+                      {attackProgress[currentStep]?.detected ? '已检测' : '未检测'}
+                    </Badge>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">显示边界框</Label>
-                <Switch />
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">进度</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {currentStep + 1} / {attackProgress.length}
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">高对比度模式</Label>
-                <Switch />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm">更新频率 (ms)</Label>
-                <Slider defaultValue={[1000]} max={5000} min={100} step={100} />
-              </div>
-              
-              <Button variant="outline" className="w-full">
-                <Download className="h-3 w-3 mr-2" />
-                导出可视化
-              </Button>
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

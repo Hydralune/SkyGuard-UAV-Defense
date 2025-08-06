@@ -74,410 +74,247 @@ export default function Operations() {
   ]
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题和控制 */}
+    <div className="space-y-6 bg-gradient-to-br from-blue-50 via-blue-25 to-white min-h-screen p-6">
+      {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">运维管理</h1>
-          <p className="text-muted-foreground mt-2">
-            系统监控、任务管理、资源调度和日志管理
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">运维管理</h1>
+          <p className="text-gray-600 mt-2">
+            系统运维和监控管理
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline">
+          <Button variant="outline" className="bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-300 text-blue-700">
             <RefreshCw className="h-4 w-4 mr-2" />
             刷新状态
           </Button>
-          <Button variant="outline">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
             <Settings className="h-4 w-4 mr-2" />
             系统设置
           </Button>
         </div>
       </div>
 
-      {/* 系统状态警报 */}
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          GPU使用率较高(85%)，建议优化任务调度。存储空间充足，网络状态正常。
-        </AlertDescription>
-      </Alert>
-
-      {/* 系统概览 */}
+      {/* 系统状态概览 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">CPU使用率</CardTitle>
-            <Cpu className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">系统状态</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemMetrics.cpu.usage}%</div>
-            <Progress value={systemMetrics.cpu.usage} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {systemMetrics.cpu.cores}核心 @ {systemMetrics.cpu.frequency}
-            </p>
+            <div className="text-2xl font-bold text-gray-900">运行正常</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">所有服务在线</span>
+            </div>
           </CardContent>
         </Card>
-        
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">内存使用率</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">CPU使用率</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Cpu className="h-4 w-4 text-blue-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemMetrics.memory.usage}%</div>
-            <Progress value={systemMetrics.memory.usage} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {systemMetrics.memory.available} / {systemMetrics.memory.total}
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{systemMetrics.cpu.usage}%</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">{systemMetrics.cpu.cores}核心</span>
+            </div>
           </CardContent>
         </Card>
-        
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">GPU使用率</CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">内存使用</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center">
+              <HardDrive className="h-4 w-4 text-yellow-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-500">{systemMetrics.gpu.usage}%</div>
-            <Progress value={systemMetrics.gpu.usage} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {systemMetrics.gpu.model}
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{systemMetrics.memory.usage}%</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">{systemMetrics.memory.total}</span>
+            </div>
           </CardContent>
         </Card>
-        
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">存储使用率</CardTitle>
-            <HardDrive className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">GPU使用率</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+              <Zap className="h-4 w-4 text-purple-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemMetrics.storage.usage}%</div>
-            <Progress value={systemMetrics.storage.usage} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {systemMetrics.storage.available} / {systemMetrics.storage.total}
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{systemMetrics.gpu.usage}%</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">{systemMetrics.gpu.model}</span>
+            </div>
           </CardContent>
         </Card>
-        
-        <Card className="card-hover">
+        <Card className="bg-white border-gray-200 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">网络负载</CardTitle>
-            <Network className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-700">存储使用</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+              <Server className="h-4 w-4 text-indigo-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemMetrics.network.usage}%</div>
-            <Progress value={systemMetrics.network.usage} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {systemMetrics.network.bandwidth}
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{systemMetrics.storage.usage}%</div>
+            <div className="inline-flex items-center space-x-1 mt-1 px-2 py-1 bg-gray-100 rounded-md">
+              <span className="text-xs text-gray-700">{systemMetrics.storage.total}</span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 详细管理 */}
       <Tabs defaultValue="monitoring" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="monitoring">任务监控</TabsTrigger>
-          <TabsTrigger value="scheduling">资源调度</TabsTrigger>
-          <TabsTrigger value="logs">日志管理</TabsTrigger>
-          <TabsTrigger value="system">系统管理</TabsTrigger>
+        <TabsList className="bg-white/80 backdrop-blur-sm border border-blue-200">
+          <TabsTrigger value="monitoring" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">性能监控</TabsTrigger>
+          <TabsTrigger value="tasks" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">任务管理</TabsTrigger>
+          <TabsTrigger value="logs" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">日志管理</TabsTrigger>
         </TabsList>
 
         <TabsContent value="monitoring" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="card-hover">
+            <Card className="bg-white backdrop-blur-sm border-blue-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200">
               <CardHeader>
-                <CardTitle>系统性能趋势</CardTitle>
-                <CardDescription>过去24小时的系统资源使用情况</CardDescription>
+                <CardTitle className="text-gray-900">系统性能趋势</CardTitle>
+                <CardDescription className="text-gray-600">
+                  过去24小时的系统性能变化
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={performanceData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis />
-                    <Tooltip />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="time" stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                        border: '1px solid #dbeafe',
+                        borderRadius: '8px'
+                      }}
+                    />
                     <Legend />
                     <Line type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} name="CPU" />
                     <Line type="monotone" dataKey="memory" stroke="#22c55e" strokeWidth={2} name="内存" />
-                    <Line type="monotone" dataKey="gpu" stroke="#f59e0b" strokeWidth={2} name="GPU" />
+                    <Line type="monotone" dataKey="gpu" stroke="#8b5cf6" strokeWidth={2} name="GPU" />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <Card className="card-hover">
+            <Card className="bg-white backdrop-blur-sm border-green-200 hover:border-green-300 hover:shadow-lg transition-all duration-200">
               <CardHeader>
-                <CardTitle>活跃任务</CardTitle>
-                <CardDescription>当前正在执行和排队的任务</CardDescription>
+                <CardTitle className="text-gray-900">资源使用详情</CardTitle>
+                <CardDescription className="text-gray-600">
+                  各组件资源使用情况
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {activeTasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          task.status === 'running' ? 'bg-green-500 animate-pulse' :
-                          task.status === 'paused' ? 'bg-yellow-500' :
-                          task.status === 'queued' ? 'bg-blue-500' :
-                          'bg-gray-500'
-                        }`} />
-                        <div>
-                          <h4 className="font-medium">{task.name}</h4>
-                          <p className="text-sm text-muted-foreground">{task.team}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Badge variant={
-                          task.priority === 'high' ? 'destructive' :
-                          task.priority === 'medium' ? 'default' :
-                          'secondary'
-                        }>
-                          {task.priority === 'high' ? '高优先级' :
-                           task.priority === 'medium' ? '中优先级' :
-                           '低优先级'}
-                        </Badge>
-                        <div className="text-right">
-                          <div className="text-sm font-medium">{task.progress}%</div>
-                          <Progress value={task.progress} className="w-16" />
-                        </div>
-                        <div className="flex space-x-1">
-                          {task.status === 'running' && (
-                            <Button variant="outline" size="sm">
-                              <Pause className="h-3 w-3" />
-                            </Button>
-                          )}
-                          {task.status === 'paused' && (
-                            <Button variant="outline" size="sm">
-                              <Play className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>CPU使用率</span>
+                    <span>{systemMetrics.cpu.usage}%</span>
+                  </div>
+                  <Progress value={systemMetrics.cpu.usage} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>内存使用率</span>
+                    <span>{systemMetrics.memory.usage}%</span>
+                  </div>
+                  <Progress value={systemMetrics.memory.usage} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>GPU使用率</span>
+                    <span>{systemMetrics.gpu.usage}%</span>
+                  </div>
+                  <Progress value={systemMetrics.gpu.usage} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>存储使用率</span>
+                    <span>{systemMetrics.storage.usage}%</span>
+                  </div>
+                  <Progress value={systemMetrics.storage.usage} className="w-full" />
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="scheduling" className="space-y-4">
-          <Card className="card-hover">
+        <TabsContent value="tasks" className="space-y-4">
+          <Card className="bg-white backdrop-blur-sm border-yellow-200 hover:border-yellow-300 hover:shadow-lg transition-all duration-200">
             <CardHeader>
-              <CardTitle>资源分配策略</CardTitle>
-              <CardDescription>配置系统资源的自动分配规则</CardDescription>
+              <CardTitle className="text-gray-900">任务管理</CardTitle>
+              <CardDescription className="text-gray-600">
+                系统任务状态和调度管理
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">自动负载均衡</h4>
-                  <p className="text-sm text-muted-foreground">根据任务优先级自动分配资源</p>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-sm font-medium text-gray-700">运行中任务</span>
                 </div>
-                <Switch defaultChecked />
+                <Badge className="bg-green-100 text-green-800 border-green-200">3个</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">GPU优先分配</h4>
-                  <p className="text-sm text-muted-foreground">优先为高优先级任务分配GPU</p>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <span className="text-sm font-medium text-gray-700">等待中任务</span>
                 </div>
-                <Switch defaultChecked />
+                <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">2个</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">内存预留</h4>
-                  <p className="text-sm text-muted-foreground">为系统保留20%内存</p>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span className="text-sm font-medium text-gray-700">错误任务</span>
                 </div>
-                <Switch defaultChecked />
+                <Badge className="bg-red-100 text-red-800 border-red-200">0个</Badge>
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">任务队列管理</h4>
-                  <p className="text-sm text-muted-foreground">智能排队和优先级调整</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>资源使用统计</CardTitle>
-              <CardDescription>各类任务的资源消耗分析</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={[
-                  { name: '攻击演练', cpu: 65, memory: 70, gpu: 85 },
-                  { name: '防御测试', cpu: 45, memory: 55, gpu: 60 },
-                  { name: '模型训练', cpu: 80, memory: 85, gpu: 95 },
-                  { name: '数据处理', cpu: 55, memory: 75, gpu: 40 }
-                ]}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="cpu" fill="#3b82f6" name="CPU" />
-                  <Bar dataKey="memory" fill="#22c55e" name="内存" />
-                  <Bar dataKey="gpu" fill="#f59e0b" name="GPU" />
-                </BarChart>
-              </ResponsiveContainer>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">
-          <Card className="card-hover">
+          <Card className="bg-white backdrop-blur-sm border-purple-200 hover:border-purple-300 hover:shadow-lg transition-all duration-200">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>系统日志</CardTitle>
-                  <CardDescription>实时系统活动和事件记录</CardDescription>
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <FileText className="h-3 w-3 mr-1" />
-                    导出日志
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    刷新
-                  </Button>
-                </div>
-              </div>
+              <CardTitle className="text-gray-900">系统日志</CardTitle>
+              <CardDescription className="text-gray-600">
+                实时系统日志和错误信息
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {systemLogs.map((log, index) => (
-                  <div key={index} className="flex items-start space-x-3 text-sm p-3 border rounded-lg">
-                    <div className={`w-2 h-2 rounded-full mt-2 ${
-                      log.level === 'success' ? 'bg-green-500' :
-                      log.level === 'warning' ? 'bg-yellow-500' :
-                      log.level === 'error' ? 'bg-red-500' :
-                      'bg-blue-500'
-                    }`} />
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{log.message}</span>
-                        <span className="text-muted-foreground text-xs">{log.time}</span>
-                      </div>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          {log.level}
-                        </Badge>
-                        <span className="text-muted-foreground text-xs">{log.source}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="flex items-center space-x-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-gray-700">系统启动完成 - 2025-01-03 10:30:15</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-gray-700">GPU驱动加载成功 - 2025-01-03 10:30:18</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-gray-700">模型服务启动完成 - 2025-01-03 10:30:25</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-gray-700">数据库连接正常 - 2025-01-03 10:30:30</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-gray-700">Web服务启动完成 - 2025-01-03 10:30:35</span>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="system" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle>系统控制</CardTitle>
-                <CardDescription>系统服务和组件管理</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <div>
-                      <h4 className="font-medium">演练引擎</h4>
-                      <p className="text-sm text-muted-foreground">运行中</p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Pause className="h-3 w-3" />
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <RefreshCw className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <div>
-                      <h4 className="font-medium">资源调度器</h4>
-                      <p className="text-sm text-muted-foreground">运行中</p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Pause className="h-3 w-3" />
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <RefreshCw className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                    <div>
-                      <h4 className="font-medium">监控服务</h4>
-                      <p className="text-sm text-muted-foreground">高负载</p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Settings className="h-3 w-3" />
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <RefreshCw className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle>系统配置</CardTitle>
-                <CardDescription>核心系统参数设置</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">最大并发任务数</h4>
-                  <div className="flex items-center space-x-2">
-                    <input type="range" min="1" max="10" defaultValue="5" className="flex-1" />
-                    <span className="text-sm font-medium">5</span>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">GPU内存限制 (%)</h4>
-                  <div className="flex items-center space-x-2">
-                    <input type="range" min="50" max="95" defaultValue="90" className="flex-1" />
-                    <span className="text-sm font-medium">90%</span>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">日志保留天数</h4>
-                  <div className="flex items-center space-x-2">
-                    <input type="range" min="7" max="90" defaultValue="30" className="flex-1" />
-                    <span className="text-sm font-medium">30天</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <Button>保存配置</Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
       </Tabs>
     </div>
