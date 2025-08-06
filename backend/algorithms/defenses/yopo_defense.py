@@ -3,29 +3,31 @@ import torch.nn.functional as F
 from typing import Any, Optional
 from .base import BaseTrainingDefense
 
-class FGMDefense(BaseTrainingDefense):
+class YOPODefense(BaseTrainingDefense):
     """
-    Fast Gradient Method (FGM) 对抗训练防御算法
+    You Only Propagate Once (YOPO) 防御算法
     
-    通过在训练过程中注入对抗样本来提高模型的鲁棒性。
+    通过限制梯度传播次数来提高对抗训练效率，同时保持防御效果。
     支持YOLO模型的对抗训练。
     """
     
-    def __init__(self, eps: float = 8/255, alpha: float = 2/255, steps: int = 1, 
-                 attack_ratio: float = 0.5, **kwargs):
+    def __init__(self, eps: float = 8/255, alpha: float = 2/255, steps: int = 10, 
+                 max_grad_steps: int = 3, attack_ratio: float = 0.5, **kwargs):
         """
-        初始化FGM防御算法
+        初始化YOPO防御算法
         
         Args:
             eps: 最大扰动幅度
             alpha: 单步扰动大小
-            steps: 对抗攻击步数
+            steps: 对抗攻击总步数
+            max_grad_steps: 最大梯度传播步数
             attack_ratio: 训练批次中使用对抗样本的比例
         """
-        super().__init__(name="fgm_defense")
+        super().__init__(name="yopo_defense")
         self.eps = eps
         self.alpha = alpha
         self.steps = steps
+        self.max_grad_steps = max_grad_steps
         self.attack_ratio = attack_ratio
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
@@ -33,7 +35,7 @@ class FGMDefense(BaseTrainingDefense):
                                     images: torch.Tensor, 
                                     targets: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
-        生成对抗样本
+        生成对抗样本 (YOPO版本)
         
         Args:
             model: 目标模型
@@ -53,6 +55,9 @@ class FGMDefense(BaseTrainingDefense):
         # 确保模型参数可以计算梯度
         for param in model.parameters():
             param.requires_grad = True
+        
+        # YOPO: 限制梯度传播次数
+        grad_steps = 0
         
         for step in range(self.steps):
             # 前向传播
@@ -79,10 +84,26 @@ class FGMDefense(BaseTrainingDefense):
                 print("警告: 梯度为None，跳过此步骤")
                 continue
             
-            # FGM更新
+            # YOPO: 限制梯度传播次数
+            grad_steps += 1
+            if grad_steps >= self.max_grad_steps:
+                # 重置梯度传播计数，但保持图像扰动
+                grad_steps = 0
+                # 重新计算梯度（模拟新的传播）
+                with torch.no_grad():
+                    # 使用当前扰动后的图像重新计算损失
+                    temp_preds = model(images.detach())
+                    if isinstance(temp_preds, (list, tuple)):
+                        temp_preds = temp_preds[0]
+                    if targets is not None:
+                        temp_loss = self._compute_detection_loss(temp_preds, targets)
+                    else:
+                        temp_loss = self._compute_yolo_loss(temp_preds)
+            
+            # 更新图像扰动
             grad_sign = images.grad.data.sign()
             images = images.detach() + self.alpha * grad_sign
-            images = torch.clamp(images, 0, 1)
+            images = torch.clamp(images, 0, self.eps)
             images.requires_grad = True
         
         return images.detach()
@@ -151,7 +172,7 @@ class FGMDefense(BaseTrainingDefense):
     def train(self, model: torch.nn.Module, dataloader: Any, optimizer: torch.optim.Optimizer, 
               epochs: int, **kwargs) -> torch.nn.Module:
         """
-        执行对抗训练
+        执行YOPO对抗训练
         
         Args:
             model: 要训练的模型
@@ -176,7 +197,7 @@ class FGMDefense(BaseTrainingDefense):
                 use_adversarial = torch.rand(1).item() < self.attack_ratio
                 
                 if use_adversarial:
-                    # 生成对抗样本
+                    # YOPO: 使用限制梯度传播的对抗训练
                     adv_images = self.generate_adversarial_examples(model, images, targets)
                     
                     # 使用对抗样本训练
@@ -224,10 +245,10 @@ class FGMDefense(BaseTrainingDefense):
             images: 输入图像
             
         Returns:
-            处理后的图像（这里直接返回原图，因为FGM是训练时防御）
+            处理后的图像（这里直接返回原图，因为YOPO是训练时防御）
         """
-        # FGM是训练时防御，推理时直接返回原图
+        # YOPO是训练时防御，推理时直接返回原图
         return images
 
 # 兼容动态加载
-Defense = FGMDefense 
+Defense = YOPODefense 

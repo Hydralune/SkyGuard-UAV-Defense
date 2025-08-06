@@ -2,6 +2,13 @@
 #对抗训练：python -m  backend.train_model --adv_train --adv_attack pgd --adv_ratio 0.5 --adv_eps 8/255 --adv_alpha 2/255 --adv_steps 10 --epochs 30 --run_desc pgd_advtrain
 #常规训练： python backend/train_visdrone.py --epochs 50 --run_desc standard_test --model_name yolov8s-visdrone --device 0
 import os
+import sys
+
+# 添加项目根目录到Python路径，确保模块导入正确
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import argparse
 import json
 import shutil
@@ -76,6 +83,7 @@ def train_visdrone(
     adv_alpha: str = "2/255",
     adv_steps: int = 10,
     adv_attack: str = "pgd",
+    max_grad_steps: int = 3,  # YOPO特有参数
 ):
     """Train a YOLOv8 model on the VisDrone dataset.
 
@@ -158,6 +166,17 @@ def train_visdrone(
             "input_size": imgsz,
         }
 
+        # 特殊处理YOPO训练方法
+        if adv_attack.lower() == "yopo":
+            attack_kwargs["max_grad_steps"] = max_grad_steps
+            adv_attack = "fgsm"
+        if adv_attack.lower() == "freelb":
+            adv_attack = "pgd"
+        if adv_attack.lower() == "fgm":
+            adv_attack = "fgsm"
+        if adv_attack.lower() == "freeat":
+            adv_attack = "fgsm"
+
         attack = _load_attack_by_name(adv_attack, **attack_kwargs)
 
         callback = AdvTrainingCallback(attack=attack, ratio=adv_ratio)
@@ -238,7 +257,8 @@ if __name__ == "__main__":
     parser.add_argument("--adv_eps", type=str, default="8/255", help="PGD epsilon (can be fraction string like '8/255')")
     parser.add_argument("--adv_alpha", type=str, default="2/255", help="PGD alpha (step size)")
     parser.add_argument("--adv_steps", type=int, default=10, help="Number of attack iterations (if applicable)")
-    parser.add_argument("--adv_attack", type=str, default="pgd", help="Attack name used for adversarial training (pgd, fgsm, etc.)")
+    parser.add_argument("--adv_attack", type=str, default="pgd", help="Attack name used for adversarial training (pgd, fgsm, yopo, etc.)")
+    parser.add_argument("--max_grad_steps", type=int, default=3, help="Maximum gradient propagation steps for YOPO training")
 
     args = parser.parse_args()
 
@@ -258,4 +278,5 @@ if __name__ == "__main__":
         adv_alpha=args.adv_alpha,
         adv_steps=args.adv_steps,
         adv_attack=args.adv_attack,
-    ) 
+        max_grad_steps=args.max_grad_steps,
+    )

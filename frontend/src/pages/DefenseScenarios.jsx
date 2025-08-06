@@ -39,14 +39,20 @@ export default function DefenseScenarios() {
     epochs: 10,
     batch_size: 32,
     defense_strength: 0.7,
-    regularization: 0.01
+    regularization: 0.01,
+    max_grad_steps: 3,
+    eps: 8/255,
+    alpha: 2/255,
+    steps: 10,
+    freelb_batch_size: 32,
+    freelb_steps: 8
   })
   const [isTraining, setIsTraining] = useState(false)
   const [trainingProgress, setTrainingProgress] = useState(0)
   const handleDefenseTypeChange = (value) => {
-    setSelectedDefenseType(value)          // 更新防御类型
-    const defaultAlg = defenseAlgorithms[value]?.[0]?.id   // 取该类型列表的第一个算法
-    if (defaultAlg) setSelectedAlgorithm(defaultAlg)       // 设置默认算法
+    setSelectedDefenseType(value)
+    const defaultAlg = defenseAlgorithms[value]?.[0]?.id
+    if (defaultAlg) setSelectedAlgorithm(defaultAlg)
   }
 
   const defenseAlgorithms = {
@@ -98,7 +104,6 @@ export default function DefenseScenarios() {
     setIsTraining(true)
     setTrainingProgress(0)
     
-    // 模拟训练过程
     const interval = setInterval(() => {
       setTrainingProgress(prev => {
         if (prev >= 100) {
@@ -113,7 +118,6 @@ export default function DefenseScenarios() {
 
   return (
     <div className="space-y-6">
-      {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">防御场景选择</h1>
@@ -134,9 +138,7 @@ export default function DefenseScenarios() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* 左侧配置面板 */}
         <div className="lg:col-span-2 space-y-6">
-          {/* 防御类型选择 */}
           <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -234,7 +236,6 @@ export default function DefenseScenarios() {
             </CardContent>
           </Card>
 
-          {/* 防御参数配置 */}
           <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -308,6 +309,232 @@ export default function DefenseScenarios() {
                       每个批次的样本数量
                     </p>
                   </div>
+
+                  {selectedAlgorithm === 'yopo' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>最大梯度传播步数: {parameters.max_grad_steps}</Label>
+                        <Slider
+                          value={[parameters.max_grad_steps]}
+                          onValueChange={(value) => handleParameterChange('max_grad_steps', value[0])}
+                          max={10}
+                          min={1}
+                          step={1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          YOPO算法中限制梯度传播的最大步数
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>扰动预算 (ε): {(parameters.eps * 255).toFixed(1)}/255</Label>
+                        <Slider
+                          value={[parameters.eps * 255]}
+                          onValueChange={(value) => handleParameterChange('eps', value[0] / 255)}
+                          max={16}
+                          min={1}
+                          step={0.5}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          对抗扰动的最大幅度
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>单步扰动 (α): {(parameters.alpha * 255).toFixed(1)}/255</Label>
+                        <Slider
+                          value={[parameters.alpha * 255]}
+                          onValueChange={(value) => handleParameterChange('alpha', value[0] / 255)}
+                          max={8}
+                          min={0.5}
+                          step={0.1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          每次迭代的扰动步长
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>攻击步数: {parameters.steps}</Label>
+                        <Slider
+                          value={[parameters.steps]}
+                          onValueChange={(value) => handleParameterChange('steps', value[0])}
+                          max={20}
+                          min={5}
+                          step={1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          生成对抗样本的总步数
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {selectedAlgorithm === 'freelb' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>大批量大小: {parameters.freelb_batch_size}</Label>
+                        <Slider
+                          value={[parameters.freelb_batch_size]}
+                          onValueChange={(value) => handleParameterChange('freelb_batch_size', value[0])}
+                          max={128}
+                          min={16}
+                          step={16}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          FreeLB算法使用的大批量大小
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>对抗训练步数: {parameters.freelb_steps}</Label>
+                        <Slider
+                          value={[parameters.freelb_steps]}
+                          onValueChange={(value) => handleParameterChange('freelb_steps', value[0])}
+                          max={15}
+                          min={5}
+                          step={1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          FreeLB算法中对抗训练的步数
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>扰动预算 (ε): {(parameters.eps * 255).toFixed(1)}/255</Label>
+                        <Slider
+                          value={[parameters.eps * 255]}
+                          onValueChange={(value) => handleParameterChange('eps', value[0] / 255)}
+                          max={16}
+                          min={1}
+                          step={0.5}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          对抗扰动的最大幅度
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>单步扰动 (α): {(parameters.alpha * 255).toFixed(1)}/255</Label>
+                        <Slider
+                          value={[parameters.alpha * 255]}
+                          onValueChange={(value) => handleParameterChange('alpha', value[0] / 255)}
+                          max={8}
+                          min={0.5}
+                          step={0.1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          每次迭代的扰动步长
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {selectedAlgorithm === 'fgm' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>快速梯度步数: {parameters.steps}</Label>
+                        <Slider
+                          value={[parameters.steps]}
+                          onValueChange={(value) => handleParameterChange('steps', value[0])}
+                          max={5}
+                          min={1}
+                          step={1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          FGM算法中快速梯度方法的步数
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>扰动预算 (ε): {(parameters.eps * 255).toFixed(1)}/255</Label>
+                        <Slider
+                          value={[parameters.eps * 255]}
+                          onValueChange={(value) => handleParameterChange('eps', value[0] / 255)}
+                          max={16}
+                          min={1}
+                          step={0.5}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          对抗扰动的最大幅度
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>单步扰动 (α): {(parameters.alpha * 255).toFixed(1)}/255</Label>
+                        <Slider
+                          value={[parameters.alpha * 255]}
+                          onValueChange={(value) => handleParameterChange('alpha', value[0] / 255)}
+                          max={8}
+                          min={0.5}
+                          step={0.1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          每次迭代的扰动步长
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {selectedAlgorithm === 'freeadv' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>免费对抗步数: {parameters.steps}</Label>
+                        <Slider
+                          value={[parameters.steps]}
+                          onValueChange={(value) => handleParameterChange('steps', value[0])}
+                          max={10}
+                          min={2}
+                          step={1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          FreeAT算法中免费对抗训练的步数
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>扰动预算 (ε): {(parameters.eps * 255).toFixed(1)}/255</Label>
+                        <Slider
+                          value={[parameters.eps * 255]}
+                          onValueChange={(value) => handleParameterChange('eps', value[0] / 255)}
+                          max={16}
+                          min={1}
+                          step={0.5}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          对抗扰动的最大幅度
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>单步扰动 (α): {(parameters.alpha * 255).toFixed(1)}/255</Label>
+                        <Slider
+                          value={[parameters.alpha * 255]}
+                          onValueChange={(value) => handleParameterChange('alpha', value[0] / 255)}
+                          max={8}
+                          min={0.5}
+                          step={0.1}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          每次迭代的扰动步长
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 
@@ -420,7 +647,6 @@ export default function DefenseScenarios() {
             </CardContent>
           </Card>
 
-          {/* 可视化配置 */}
           <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -463,9 +689,7 @@ export default function DefenseScenarios() {
           </Card>
         </div>
 
-        {/* 右侧控制面板 */}
         <div className="space-y-6">
-          {/* 训练控制 */}
           <Card className="card-hover">
             <CardHeader>
               <CardTitle>训练控制</CardTitle>
@@ -517,7 +741,6 @@ export default function DefenseScenarios() {
             </CardContent>
           </Card>
 
-          {/* 当前配置摘要 */}
           <Card className="card-hover">
             <CardHeader>
               <CardTitle>配置摘要</CardTitle>
@@ -589,7 +812,6 @@ export default function DefenseScenarios() {
             </CardContent>
           </Card>
 
-          {/* 训练日志 */}
           <Card className="card-hover">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -631,7 +853,6 @@ export default function DefenseScenarios() {
             </CardContent>
           </Card>
 
-          {/* 模型性能 */}
           <Card className="card-hover">
             <CardHeader>
               <CardTitle>模型性能</CardTitle>
@@ -675,4 +896,3 @@ export default function DefenseScenarios() {
     </div>
   )
 }
-

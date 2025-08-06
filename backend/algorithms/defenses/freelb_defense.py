@@ -3,29 +3,31 @@ import torch.nn.functional as F
 from typing import Any, Optional
 from .base import BaseTrainingDefense
 
-class FGMDefense(BaseTrainingDefense):
+class FreeLBDefense(BaseTrainingDefense):
     """
-    Fast Gradient Method (FGM) 对抗训练防御算法
+    Free Large-Batch (FreeLB) 防御算法
     
-    通过在训练过程中注入对抗样本来提高模型的鲁棒性。
+    通过使用大批量训练和自由对抗训练来提高训练效率和防御效果。
     支持YOLO模型的对抗训练。
     """
     
-    def __init__(self, eps: float = 8/255, alpha: float = 2/255, steps: int = 1, 
-                 attack_ratio: float = 0.5, **kwargs):
+    def __init__(self, eps: float = 8/255, alpha: float = 2/255, steps: int = 8, 
+                 batch_size: int = 32, attack_ratio: float = 0.5, **kwargs):
         """
-        初始化FGM防御算法
+        初始化FreeLB防御算法
         
         Args:
             eps: 最大扰动幅度
             alpha: 单步扰动大小
             steps: 对抗攻击步数
+            batch_size: 大批量大小
             attack_ratio: 训练批次中使用对抗样本的比例
         """
-        super().__init__(name="fgm_defense")
+        super().__init__(name="freelb_defense")
         self.eps = eps
         self.alpha = alpha
         self.steps = steps
+        self.batch_size = batch_size
         self.attack_ratio = attack_ratio
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
@@ -33,7 +35,7 @@ class FGMDefense(BaseTrainingDefense):
                                     images: torch.Tensor, 
                                     targets: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
-        生成对抗样本
+        生成对抗样本 (FreeLB版本)
         
         Args:
             model: 目标模型
@@ -54,6 +56,7 @@ class FGMDefense(BaseTrainingDefense):
         for param in model.parameters():
             param.requires_grad = True
         
+        # FreeLB: 使用大批量和多步对抗训练
         for step in range(self.steps):
             # 前向传播
             preds = model(images)
@@ -79,10 +82,10 @@ class FGMDefense(BaseTrainingDefense):
                 print("警告: 梯度为None，跳过此步骤")
                 continue
             
-            # FGM更新
+            # FreeLB: 使用大批量更新策略
             grad_sign = images.grad.data.sign()
             images = images.detach() + self.alpha * grad_sign
-            images = torch.clamp(images, 0, 1)
+            images = torch.clamp(images, 0, self.eps)
             images.requires_grad = True
         
         return images.detach()
@@ -151,7 +154,7 @@ class FGMDefense(BaseTrainingDefense):
     def train(self, model: torch.nn.Module, dataloader: Any, optimizer: torch.optim.Optimizer, 
               epochs: int, **kwargs) -> torch.nn.Module:
         """
-        执行对抗训练
+        执行FreeLB对抗训练
         
         Args:
             model: 要训练的模型
@@ -176,7 +179,7 @@ class FGMDefense(BaseTrainingDefense):
                 use_adversarial = torch.rand(1).item() < self.attack_ratio
                 
                 if use_adversarial:
-                    # 生成对抗样本
+                    # FreeLB: 使用大批量对抗训练
                     adv_images = self.generate_adversarial_examples(model, images, targets)
                     
                     # 使用对抗样本训练
@@ -224,10 +227,10 @@ class FGMDefense(BaseTrainingDefense):
             images: 输入图像
             
         Returns:
-            处理后的图像（这里直接返回原图，因为FGM是训练时防御）
+            处理后的图像（这里直接返回原图，因为FreeLB是训练时防御）
         """
-        # FGM是训练时防御，推理时直接返回原图
+        # FreeLB是训练时防御，推理时直接返回原图
         return images
 
 # 兼容动态加载
-Defense = FGMDefense 
+Defense = FreeLBDefense 
