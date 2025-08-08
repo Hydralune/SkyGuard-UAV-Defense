@@ -8,6 +8,7 @@ import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import FileViewer from '@/components/FileViewer'
 import ImageGallery from '@/components/ImageGallery'
 import {
@@ -47,7 +48,8 @@ import {
 export default function Visualization() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedView, setSelectedView] = useState('gallery')
+  const [selectedView, setSelectedView] = useState('gallery') // 默认显示图库
+  const [selectedCompareTab, setSelectedCompareTab] = useState('metrics')
   const [zoomLevel, setZoomLevel] = useState(1)
   const [taskId, setTaskId] = useState(null)
   const [taskResults, setTaskResults] = useState(null)
@@ -57,7 +59,11 @@ export default function Visualization() {
   const [imagesByType, setImagesByType] = useState({})
   const [selectedType, setSelectedType] = useState(null)
   const [fullScreenImage, setFullScreenImage] = useState(null)
-  const [selectedTab, setSelectedTab] = useState('gallery')
+  const [taskInfo, setTaskInfo] = useState(null)
+  const [recentTasks, setRecentTasks] = useState([])
+  const [manualTaskId, setManualTaskId] = useState('')
+  const [resolvingTask, setResolvingTask] = useState(false)
+  const [taskSelectOpen, setTaskSelectOpen] = useState(false)
 
   // 模拟数据
   const attackProgress = [
@@ -89,21 +95,146 @@ export default function Visualization() {
     { method: 'Detection', clean: 91, robust: 85, improvement: 52 }
   ]
 
-  // 从URL获取任务ID
+  // 从URL获取任务ID，如果没有则获取最新任务
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('task_id');
-    if (id) {
-      setTaskId(id);
-    }
+    const initializeVisualization = async () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('task_id');
+        console.log('URL参数 task_id:', id);
+        
+        if (id) {
+          console.log('使用URL中的task_id:', id);
+          setTaskId(id);
+        } else {
+          console.log('URL中没有task_id，获取最新任务');
+          // 如果没有指定task_id，获取最新的任务
+          await fetchLatestTask();
+        }
+      } catch (error) {
+        console.error('初始化可视化失败:', error);
+        setError(`初始化失败: ${error.message}`);
+      }
+    };
+
+    initializeVisualization();
   }, []);
+
+  // 周期性获取最近任务（如果后端仅提供 latest-task，则维护一个简单的最近列表）
+  const fetchRecentTasks = async () => {
+    try {
+      // 优先读新的 recent 列表；后备到 latest
+      const res = await fetch('/visualization/recent-tasks?limit=10')
+      if (res.ok) {
+        const list = await res.json()
+        if (Array.isArray(list) && list.length) {
+          setRecentTasks(list)
+          return
+        }
+      }
+      const res2 = await fetch('/visualization/latest-task')
+      if (res2.ok) {
+        const lt = await res2.json()
+        if (lt?.task_id) setRecentTasks([lt])
+      }
+    } catch (_) {}
+  }
+
+  useEffect(() => {
+    fetchRecentTasks()
+    const t = setInterval(fetchRecentTasks, 5000)
+    return () => clearInterval(t)
+  }, [])
+
+  const fetchTaskResultsById = async (id) => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/visualization/results/${id}`)
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
+      const data = await response.json()
+      setTaskResults(data)
+      if (data?.images?.length) {
+        const grouped = {}
+        data.images.forEach(img => {
+          if (!grouped[img.type]) grouped[img.type] = []
+          grouped[img.type].push(img)
+        })
+        setImagesByType(grouped)
+        if (!selectedType) setSelectedType(Object.keys(grouped)[0])
+      } else {
+        setImagesByType({})
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resolveTaskId = async (id) => {
+    if (!id) return
+    try {
+      setResolvingTask(true)
+      setError(null)
+      setTaskId(id)
+      setTaskInfo({ ...(taskInfo || {}), task_id: id })
+      const newUrl = new URL(window.location)
+      newUrl.searchParams.set('task_id', id)
+      window.history.replaceState({}, '', newUrl)
+      await fetchTaskResultsById(id)
+    } catch (e) {
+      setError(`任务 ${id} 加载失败：${e.message}`)
+    } finally {
+      setResolvingTask(false)
+    }
+  }
+
+  // 获取最新完成的任务
+  const fetchLatestTask = async () => {
+    try {
+      console.log('开始获取最新任务...');
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/visualization/latest-task');
+      console.log('最新任务API响应状态:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`获取最新任务失败: ${response.status} ${response.statusText}`);
+      }
+      
+      const latestTask = await response.json();
+      console.log('获取到最新任务:', latestTask);
+      
+      if (latestTask && latestTask.task_id) {
+        console.log('设置task_id:', latestTask.task_id);
+        setTaskId(latestTask.task_id);
+        setTaskInfo(latestTask);
+        // 更新URL以便用户可以刷新或分享
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('task_id', latestTask.task_id);
+        window.history.replaceState({}, '', newUrl);
+        console.log('已更新URL:', newUrl.toString());
+      } else {
+        console.warn('最新任务响应中没有task_id');
+        setError('未找到有效的任务ID');
+      }
+    } catch (error) {
+      console.error('获取最新任务失败:', error);
+      setError(`获取最新任务失败: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 获取任务结果数据
   useEffect(() => {
     const fetchTaskResults = async () => {
-      if (!taskId) return;
+      if (!taskId) {
+        console.log('没有taskId，跳过获取任务结果');
+        return;
+      }
       
       try {
+        console.log('开始获取任务结果，taskId:', taskId);
         setLoading(true);
         setError(null);
         
@@ -112,6 +243,7 @@ export default function Visualization() {
         console.log(`尝试获取结果: ${apiUrl}`);
         
         const response = await fetch(apiUrl);
+        console.log('任务结果API响应状态:', response.status);
         
         if (!response.ok) {
           throw new Error(`获取结果失败: ${response.status} ${response.statusText}`);
@@ -119,6 +251,8 @@ export default function Visualization() {
         
         const data = await response.json();
         console.log('获取到的可视化结果:', data);
+        console.log('图像数量:', data.images ? data.images.length : 0);
+        console.log('指标数据:', data.metrics ? 'exists' : 'missing');
         
         setTaskResults(data);
         
@@ -136,6 +270,16 @@ export default function Visualization() {
           
           setImagesByType(imageTypes);
           console.log('按类型分组的图像:', imageTypes);
+          
+          // 设置默认选择的类型
+          if (Object.keys(imageTypes).length > 0 && !selectedType) {
+            const firstType = Object.keys(imageTypes)[0];
+            console.log('设置默认选择类型:', firstType);
+            setSelectedType(firstType);
+          }
+        } else {
+          console.warn('没有找到图像数据');
+          setImagesByType({});
         }
       } catch (error) {
         console.error('获取任务结果失败:', error);
@@ -147,6 +291,52 @@ export default function Visualization() {
     
     fetchTaskResults();
   }, [taskId]);
+  
+  // 分析图表类型：排除基础检测类，剩余即为分析/图表类
+  const baseImageTypes = [
+    'detection_results',
+    'adversarial_results',
+    'comparison_results',
+    'perturbation_results',
+    // 兼容后端可能返回的额外命名
+    'detections', 'attacks', 'defenses'
+  ]
+  const analysisImageTypes = Object.keys(imagesByType).filter(type => !baseImageTypes.includes(type))
+
+  // 映射后端图表文件名到中文标题
+  const getChartTitle = (file) => {
+    const sourceRaw = (file?.filename || file?.path || '')
+    const source = sourceRaw.toLowerCase()
+    // 更全面的匹配（根据后端常见命名与图标题关键词）
+    if (source.includes('detection_count_comparison') || source.includes('count_comparison')) return '检测数量对比'
+    if (source.includes('class_distribution_comparison')) return '类别分布对比'
+    if (source.includes('confidence_distribution_comparison')) return '置信度分布对比'
+    if (source.includes('confusion_matrix')) return '混淆矩阵'
+    if (source.includes('pr_curve') || source.includes('precision-recall') || source.includes('precision_recall')) return '精确率-召回曲线'
+    if (source.includes('class_distribution')) return '类别分布'
+    if (source.includes('confidence_distribution')) return '置信度分布'
+    // 新增：Top 10 Most Vulnerable Classes
+    if (source.includes('most_vulnerable_classes') || source.includes('vulnerable_classes') || source.includes('top10_vulnerable') || source.includes('top_10_most_vulnerable')) return 'Top 10 易受攻击类别'
+    // 新增：Attack Time Distribution
+    if (source.includes('attack_time_distribution') || source.replace(/[^a-z]/g,'').includes('attacktimedistribution')) return '攻击时间分布'
+    // 新增：Confidence Drop by Image
+    if (source.includes('confidence_drop_by_image') || source.replace(/[^a-z]/g,'').includes('confidencedropbyimage') || source.includes('confidence_drop')) return '按图像的置信度下降'
+    // 新增：Detection Drop Rate by Image
+    if (source.includes('detection_drop_rate_by_image') || source.replace(/[^a-z]/g,'').includes('detectiondropratebyimage') || source.includes('detection_drop_rate')) return '按图像的检测下降率'
+    if (source.startsWith('metrics_') || source.includes('metrics')) return '性能指标'
+    return '图表'
+  }
+
+  // 将所有分析图表按中文标题分组（聚合所有 analysisImageTypes）
+  // 将所有分析图表合并为一个数组，并在每项上携带中文标题与来源类型
+  const allAnalysisFiles = (() => {
+    const list = []
+    analysisImageTypes.forEach((type) => {
+      const arr = imagesByType[type] || []
+      arr.forEach((img) => list.push({ ...img, _originType: type, _title: getChartTitle(img) }))
+    })
+    return list
+  })()
   
   // 动画播放控制
   useEffect(() => {
@@ -169,56 +359,87 @@ export default function Visualization() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题和控制 */}
-      <div className="flex items-center justify-between">
-        <div>
+    <>
+      {/* 全屏图片查看器 */}
+      {fullScreenImage && selectedType && imagesByType[selectedType] && (
+        <ImageGallery 
+          images={imagesByType[selectedType]} 
+          initialIndex={selectedImageIndex} 
+          onClose={() => setFullScreenImage(null)} 
+        />
+      )}
+
+      <div className={`space-y-6 ${fullScreenImage ? 'hidden' : ''}`}>
+        {/* 页面标题和控制 */}
+        <div className="space-y-3">
           <h1 className="text-3xl font-bold tracking-tight">攻防过程可视化</h1>
-          <p className="text-muted-foreground mt-2">
-            {taskId ? `任务ID: ${taskId}` : '请传入task_id参数'}
-          </p>
-          {loading && <p className="text-blue-500">加载中...</p>}
           {error && <p className="text-red-500">错误: {error}</p>}
-        </div>
-        <div className="flex space-x-2">
-          {taskResults && (
-            <div className="flex space-x-2">
-              <Select
-                value={selectedType || (Object.keys(imagesByType)[0] || '')}
-                onValueChange={setSelectedType}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="选择图像类型" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(imagesByType).map(type => (
-                    <SelectItem key={type} value={type}>
-                      {type.replace('_', ' ')}
-                      <span className="ml-2 text-xs text-muted-foreground">({imagesByType[type].length})</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select
-                value={selectedTab}
-                onValueChange={setSelectedTab}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="选择视图" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gallery">图库视图</SelectItem>
-                  <SelectItem value="comparison">对比视图</SelectItem>
-                  <SelectItem value="metrics">指标分析</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <Button variant="outline" onClick={handleReset}>
-            <RotateCcw className="h-4 w-4 mr-2" />
-            重置
-          </Button>
+          <div className="w-full flex items-center justify-between gap-2 flex-wrap">
+          {/* 任务ID 选择 + 手动输入（集成在同一个下拉中） */}
+          <div className="flex items-center space-x-2">
+            <Select
+              value={taskId || ''}
+              onOpenChange={setTaskSelectOpen}
+              open={taskSelectOpen}
+              onValueChange={(val) => resolveTaskId(val)}
+            >
+              <SelectTrigger className="w-full sm:w-[520px] max-w-[620px]" title={taskId || ''}>
+                <SelectValue placeholder="选择或输入任务ID" />
+              </SelectTrigger>
+              <SelectContent className="z-[10000] max-h-64">
+                <div className="p-2 border-b sticky top-0 bg-popover">
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      id="manual-task-input"
+                      className="w-[320px]"
+                      placeholder="手动输入任务ID"
+                      value={manualTaskId}
+                      onChange={(e) => setManualTaskId(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { resolveTaskId(manualTaskId.trim()); setTaskSelectOpen(false); }
+                      }}
+                    />
+                    <Button
+                      variant="default"
+                      disabled={!manualTaskId || resolvingTask}
+                      onClick={() => { resolveTaskId(manualTaskId.trim()); setTaskSelectOpen(false); }}
+                    >
+                      {resolvingTask ? '加载中...' : '载入任务'}
+                    </Button>
+                  </div>
+                </div>
+                {recentTasks.length === 0 && (
+                  <SelectItem value="__none__" disabled>
+                    暂无最近任务
+                  </SelectItem>
+                )}
+                {recentTasks.map(t => (
+                  <SelectItem key={t.task_id} value={t.task_id}>
+                    {t.task_id}
+                    {t.task_type && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {t.task_type === 'adversarial_results' ? '攻击' : t.task_type === 'defense_results' ? '防御' : '评估'}
+                        {t.attack_name ? ` · ${t.attack_name}` : t.defense_type ? ` · ${t.defense_type}` : ''}
+                      </span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* 已按要求移除右侧两个下拉列表（图像类型、视图切换） */}
+            {!fullScreenImage && (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={fetchLatestTask} disabled={loading}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  获取最新任务
+                </Button>
+                <Button variant="outline" onClick={handleReset}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  重置
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -256,15 +477,16 @@ export default function Visualization() {
             </CardHeader>
             <CardContent>
               <Tabs value={selectedView} onValueChange={setSelectedView}>
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="detection">原始检测</TabsTrigger>
                   <TabsTrigger value="adversarial">对抗样本</TabsTrigger>
                   <TabsTrigger value="comparison">对比结果</TabsTrigger>
                   <TabsTrigger value="perturbation">扰动图</TabsTrigger>
+                  <TabsTrigger value="plots">分析图表</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="detection" className="mt-4">
-                  {imagesByType['detection_results'] ? (
+                  {imagesByType['detection_results'] && imagesByType['detection_results'].length > 0 ? (
                     <FileViewer 
                       files={imagesByType['detection_results']} 
                       type="detection_results" 
@@ -275,13 +497,16 @@ export default function Visualization() {
                       <div className="text-center">
                         <Image className="h-12 w-12 mx-auto text-gray-400 mb-2" />
                         <p className="text-sm text-gray-500">无原始检测结果</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          可用类型: {Object.keys(imagesByType).join(', ') || '无'}
+                        </p>
                       </div>
                     </div>
                   )}
                 </TabsContent>
                 
                 <TabsContent value="adversarial" className="mt-4">
-                  {imagesByType['adversarial_results'] ? (
+                  {imagesByType['adversarial_results'] && imagesByType['adversarial_results'].length > 0 ? (
                     <FileViewer 
                       files={imagesByType['adversarial_results']} 
                       type="adversarial_results" 
@@ -292,13 +517,16 @@ export default function Visualization() {
                       <div className="text-center">
                         <AlertTriangle className="h-12 w-12 mx-auto text-red-500 mb-2" />
                         <p className="text-sm text-red-600">无对抗样本结果</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          可用类型: {Object.keys(imagesByType).join(', ') || '无'}
+                        </p>
                       </div>
                     </div>
                   )}
                 </TabsContent>
                 
                 <TabsContent value="comparison" className="mt-4">
-                  {imagesByType['comparison_results'] ? (
+                  {imagesByType['comparison_results'] && imagesByType['comparison_results'].length > 0 ? (
                     <FileViewer 
                       files={imagesByType['comparison_results']} 
                       type="comparison_results" 
@@ -309,13 +537,16 @@ export default function Visualization() {
                       <div className="text-center">
                         <Target className="h-12 w-12 mx-auto text-blue-500 mb-2" />
                         <p className="text-sm text-blue-600">无对比结果</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          可用类型: {Object.keys(imagesByType).join(', ') || '无'}
+                        </p>
                       </div>
                     </div>
                   )}
                 </TabsContent>
 
                 <TabsContent value="perturbation" className="mt-4">
-                  {imagesByType['perturbation_results'] ? (
+                  {imagesByType['perturbation_results'] && imagesByType['perturbation_results'].length > 0 ? (
                     <FileViewer 
                       files={imagesByType['perturbation_results']} 
                       type="perturbation_results" 
@@ -326,6 +557,9 @@ export default function Visualization() {
                       <div className="text-center">
                         <Zap className="h-12 w-12 mx-auto text-purple-500 mb-2" />
                         <p className="text-sm text-purple-600">无扰动可视化结果</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          可用类型: {Object.keys(imagesByType).join(', ') || '无'}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -335,24 +569,9 @@ export default function Visualization() {
                   <div className="space-y-6">
                     <div className="flex justify-between items-center">
                       <h4 className="font-medium">图像库</h4>
-                      {fullScreenImage && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => setFullScreenImage(null)}
-                        >
-                          关闭全屏
-                        </Button>
-                      )}
                     </div>
                     
-                    {fullScreenImage ? (
-                      <ImageGallery 
-                        images={imagesByType[selectedType] || []} 
-                        initialIndex={selectedImageIndex} 
-                        onClose={() => setFullScreenImage(null)} 
-                      />
-                    ) : (
+                    {!fullScreenImage && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {Object.keys(imagesByType).length > 0 ? (
                           Object.entries(imagesByType).map(([type, images]) => (
@@ -363,9 +582,18 @@ export default function Visualization() {
                                   variant="outline" 
                                   size="sm" 
                                   onClick={() => {
-                                    setSelectedType(type);
-                                    setSelectedImageIndex(0);
-                                    setFullScreenImage(true);
+                                    // 跳转到对应的标签页
+                                    if (type === 'detection_results') {
+                                      setSelectedView('detection');
+                                    } else if (type === 'adversarial_results') {
+                                      setSelectedView('adversarial');
+                                    } else if (type === 'comparison_results') {
+                                      setSelectedView('comparison');
+                                    } else if (type === 'perturbation_results') {
+                                      setSelectedView('perturbation');
+                                    } else if (type === 'plots') {
+                                      setSelectedView('plots');
+                                    }
                                   }}
                                 >
                                   查看全部
@@ -394,9 +622,18 @@ export default function Visualization() {
                                   <div 
                                     className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
                                     onClick={() => {
-                                      setSelectedType(type);
-                                      setSelectedImageIndex(6);
-                                      setFullScreenImage(true);
+                                      // 跳转到对应的标签页，而不是打开全屏
+                                      if (type === 'detection_results') {
+                                        setSelectedView('detection');
+                                      } else if (type === 'adversarial_results') {
+                                        setSelectedView('adversarial');
+                                      } else if (type === 'comparison_results') {
+                                        setSelectedView('comparison');
+                                      } else if (type === 'perturbation_results') {
+                                        setSelectedView('perturbation');
+                                      } else if (type === 'plots') {
+                                        setSelectedView('plots');
+                                      }
                                     }}
                                   >
                                     <div className="text-center">
@@ -423,17 +660,22 @@ export default function Visualization() {
                 </TabsContent>
                 
                 <TabsContent value="plots" className="mt-4">
-                  {imagesByType['plots'] ? (
-                    <FileViewer 
-                      files={imagesByType['plots']} 
-                      type="plots" 
-                      title="分析图表" 
+                  {allAnalysisFiles.length > 0 ? (
+                    <FileViewer
+                      files={allAnalysisFiles}
+                      type="分析图表"
+                      title="分析图表"
+                      getTitle={(file) => file?._title || getChartTitle(file)}
+                      getTypeLabel={(file) => (file?._originType || file?.type)?.replace?.('_',' ') || ''}
                     />
                   ) : (
                     <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
                       <div className="text-center">
-                        <BarChart3 className="h-12 w-12 mx-auto text-blue-500 mb-2" />
-                        <p className="text-sm text-blue-600">无分析图表</p>
+                        <BarChart3 className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500">无分析图表</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          可用类型: {Object.keys(imagesByType).join(', ') || '无'}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -452,7 +694,7 @@ export default function Visualization() {
               <CardDescription>原始样本与对抗样本的检测置信度对比</CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value="metrics" className="w-full">
+              <Tabs value={selectedCompareTab} onValueChange={setSelectedCompareTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="metrics">指标对比</TabsTrigger>
                   <TabsTrigger value="vulnerability">类别脆弱性</TabsTrigger>
@@ -736,7 +978,8 @@ export default function Visualization() {
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

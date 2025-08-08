@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,8 @@ import {
 } from 'lucide-react'
 
 export default function AttackScenarios() {
+  const PERSIST_KEY = 'attack_scenarios_state_v1'
+  const hasRestoredRef = useRef(false)
   const [selectedScenario, setSelectedScenario] = useState('adversarial')
   const [selectedModel, setSelectedModel] = useState('yolov8s')
   const [selectedDataset, setSelectedDataset] = useState('Visdrone')
@@ -81,6 +83,63 @@ export default function AttackScenarios() {
   const [progress, setProgress] = useState(0)
   const [resultImages, setResultImages] = useState([])
   const [logMessages, setLogMessages] = useState([])
+
+  // 前后端命名映射
+  const backendModelMap = {
+    yolov8s: 'yolov8s-visdrone',
+    yolov10: 'yolov10-visdrone',
+    faster_rcnn: 'faster_rcnn-visdrone',
+    ssd: 'ssd-visdrone'
+  }
+  const backendDatasetMap = {
+    Visdrone: 'VisDrone'
+  }
+
+  // 初次挂载：从本地存储恢复状态
+  useEffect(() => {
+    if (hasRestoredRef.current) return
+    try {
+      const raw = localStorage.getItem(PERSIST_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw)
+        if (saved.selectedScenario) setSelectedScenario(saved.selectedScenario)
+        if (saved.selectedModel) setSelectedModel(saved.selectedModel)
+        if (saved.selectedDataset) setSelectedDataset(saved.selectedDataset)
+        if (saved.selectedAlgorithm) setSelectedAlgorithm(saved.selectedAlgorithm)
+        if (saved.parameters) setParameters(prev => ({ ...prev, ...saved.parameters }))
+        if (typeof saved.isRunning === 'boolean') setIsRunning(saved.isRunning)
+        if (saved.taskId) setTaskId(saved.taskId)
+        if (saved.celeryTaskId) setCeleryTaskId(saved.celeryTaskId)
+        if (typeof saved.progress === 'number') setProgress(saved.progress)
+        if (saved.taskStatus) setTaskStatus(saved.taskStatus)
+        if (Array.isArray(saved.resultImages)) setResultImages(saved.resultImages)
+        if (Array.isArray(saved.logMessages)) setLogMessages(saved.logMessages)
+      }
+    } catch (_) {}
+    hasRestoredRef.current = true
+  }, [])
+
+  // 持久化：任何关键状态变化时，保存到本地存储
+  useEffect(() => {
+    const stateToSave = {
+      selectedScenario,
+      selectedModel,
+      selectedDataset,
+      selectedAlgorithm,
+      parameters,
+      isRunning,
+      taskId,
+      celeryTaskId,
+      taskStatus,
+      progress,
+      resultImages,
+      // 只保留最近的 100 条日志
+      logMessages: (logMessages || []).slice(0, 100)
+    }
+    try {
+      localStorage.setItem(PERSIST_KEY, JSON.stringify(stateToSave))
+    } catch (_) {}
+  }, [selectedScenario, selectedModel, selectedDataset, selectedAlgorithm, parameters, isRunning, taskId, celeryTaskId, taskStatus, progress, resultImages, logMessages])
 
   // 添加useEffect钩子用于轮询任务状态
   useEffect(() => {
@@ -141,6 +200,23 @@ export default function AttackScenarios() {
     };
   }, [celeryTaskId, isRunning]);
 
+  // 如果恢复到运行中状态但没有轮询，立即触发一次状态拉取并启动轮询
+  useEffect(() => {
+    if (celeryTaskId && isRunning) {
+      (async () => {
+        try {
+          const response = await fetch(`/api/task/${celeryTaskId}`);
+          if (response.ok) {
+            const data = await response.json();
+            setTaskStatus(data);
+            if (data.progress) setProgress(data.progress);
+            else if (data.percent) setProgress(data.percent);
+          }
+        } catch (_) {}
+      })();
+    }
+  }, [celeryTaskId, isRunning]);
+
   // 当场景切换时，自动选择该场景的默认算法（第一个算法）
   const handleScenarioChange = (value) => {
     setSelectedScenario(value)
@@ -162,7 +238,7 @@ export default function AttackScenarios() {
         timestamp: new Date().toLocaleTimeString()
       },
       ...prev
-    ].slice(0, 50)); // 只保留最新的50条消息
+    ].slice(0, 100)); // 只保留最新的100条消息
   }
 
   const attackAlgorithms = {
@@ -374,8 +450,8 @@ export default function AttackScenarios() {
       // 准备参数
       const attackParams = new URLSearchParams({
         attack_name: selectedAlgorithm,
-        model_name: selectedModel,
-        dataset_name: selectedDataset,
+        model_name: backendModelMap[selectedModel] || selectedModel || 'yolov8s-visdrone',
+        dataset_name: backendDatasetMap[selectedDataset] || selectedDataset || 'VisDrone',
         num_images: parameters.num_images || 10,
         conf_threshold: parameters.conf_threshold || 0.25,
         iou_threshold: parameters.iou_threshold || 0.5
@@ -415,8 +491,9 @@ export default function AttackScenarios() {
             
           case 'advpatch':
             attackParams.append('patch_size', parameters.patch_size);
-            attackParams.append('learning_rate', parameters.learning_rate);
-            attackParams.append('max_iter', parameters.max_iter);
+            // 后端期望的字段为 lr 和 steps
+            attackParams.append('lr', parameters.learning_rate);
+            attackParams.append('steps', parameters.max_iter);
             attackParams.append('random_locations', parameters.random_locations);
             attackParams.append('num_patches', parameters.num_patches);
             break;
@@ -461,14 +538,11 @@ export default function AttackScenarios() {
       
       // 调用API
       const apiUrl = `/api/attack/run`;
-      console.log(`调用API: ${apiUrl}?${attackParams.toString()}`);
+      const urlWithQuery = `${apiUrl}?${attackParams.toString()}`;
+      console.log(`调用API: ${urlWithQuery}`);
       
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: attackParams
+      const response = await fetch(urlWithQuery, {
+        method: 'POST'
       });
       
       if (!response.ok) {

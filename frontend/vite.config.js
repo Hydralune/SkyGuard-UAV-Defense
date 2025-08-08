@@ -24,11 +24,12 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/config/, '/config')
       },
-      '/visualization': {
+      // 避免与前端路由 /visualization 冲突，仅代理 /visualization/ 开头的 API
+      '/visualization/': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/visualization/, '/visualization')
+        rewrite: (path) => path.replace(/^\/visualization\//, '/visualization/')
       },
       '/progress': {
         target: 'http://127.0.0.1:8000',
@@ -43,6 +44,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/backend/, '/backend')
       }
     },
-    cors: true
+    cors: true,
+    historyApiFallback: true
   }
 }) 

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Maximize, Download } from 'lucide-react';
 import ImageGallery from './ImageGallery';
 
-const FileViewer = ({ files, type, title }) => {
+const FileViewer = ({ files, type, title, getTitle, getTypeLabel }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fullScreen, setFullScreen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -26,6 +27,8 @@ const FileViewer = ({ files, type, title }) => {
   }
   
   const currentFile = files[currentIndex];
+  const headerTitle = getTitle ? getTitle(currentFile) : (title || type);
+  const headerTypeLabel = getTypeLabel ? getTypeLabel(currentFile) : (type || currentFile?.type);
   
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : files.length - 1));
@@ -53,7 +56,12 @@ const FileViewer = ({ files, type, title }) => {
       <Card className="h-full">
         <CardContent className="p-4">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">{title || type}</h3>
+            <div className="flex items-center space-x-2">
+              <h3 className="text-lg font-medium">{headerTitle}</h3>
+              {headerTypeLabel && (
+                <Badge variant="secondary" className="capitalize">{headerTypeLabel}</Badge>
+              )}
+            </div>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">
                 {currentIndex + 1} / {files.length}
@@ -82,9 +90,12 @@ const FileViewer = ({ files, type, title }) => {
             />
           </div>
           
-          <p className="text-sm text-center text-muted-foreground mt-2">
-            {currentFile.path.split('/').pop()}
-          </p>
+          <div className="mt-2 text-center">
+            <p className="text-sm font-medium">{headerTitle}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {currentFile.path.split('/').pop()}
+            </p>
+          </div>
           
           {files.length > 1 && (
             <div className="mt-4 flex items-center justify-center space-x-1 overflow-x-auto py-2">

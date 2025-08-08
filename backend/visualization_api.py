@@ -20,6 +20,124 @@ router = APIRouter(
     }
 )
 
+@router.get("/latest-task")
+async def get_latest_task():
+    """
+    获取最新完成的任务ID
+    
+    返回:
+        最新完成任务的ID和基本信息
+    """
+    try:
+        # 检查不同类型的结果目录
+        result_dirs = [
+            ("adversarial_results", "results/adversarial_results"),
+            ("defense_results", "results/defense_results"), 
+            ("evaluation_results", "results/evaluation_results")
+        ]
+        
+        latest_task = None
+        latest_time = 0
+        
+        for task_type, base_dir in result_dirs:
+            if not os.path.exists(base_dir):
+                continue
+                
+            for task_id in os.listdir(base_dir):
+                task_dir = os.path.join(base_dir, task_id)
+                if not os.path.isdir(task_dir):
+                    continue
+                    
+                # 检查任务目录的修改时间
+                mtime = os.path.getmtime(task_dir)
+                
+                # 检查progress.json文件获取任务信息
+                progress_file = os.path.join(task_dir, "progress.json")
+                task_data = {
+                    "task_id": task_id,
+                    "task_type": task_type,
+                    "timestamp": mtime
+                }
+                
+                if os.path.exists(progress_file):
+                    try:
+                        with open(progress_file, 'r') as f:
+                            progress_data = json.load(f)
+                        task_data.update({
+                            "status": progress_data.get("status", "unknown"),
+                            "attack_name": progress_data.get("attack_name"),
+                            "message": progress_data.get("message")
+                        })
+                    except Exception as e:
+                        print(f"读取进度文件失败: {e}")
+                
+                if mtime > latest_time:
+                    latest_time = mtime
+                    latest_task = task_data
+        
+        if latest_task:
+            return latest_task
+        else:
+            raise HTTPException(status_code=404, detail="未找到任何完成的任务")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取最新任务失败: {str(e)}")
+
+@router.get("/recent-tasks")
+async def get_recent_tasks(limit: int = 10):
+    """
+    获取最近完成的多个任务（按时间倒序），包含任务类型与部分元信息。
+    
+    参数:
+        limit: 返回的任务数量上限
+    返回:
+        任务信息列表 [{task_id, task_type, timestamp, status, attack_name, defense_type, message}]
+    """
+    try:
+        result_dirs = [
+            ("adversarial_results", "results/adversarial_results"),
+            ("defense_results", "results/defense_results"),
+            ("evaluation_results", "results/evaluation_results"),
+        ]
+
+        tasks = []
+        for task_type, base_dir in result_dirs:
+            if not os.path.exists(base_dir):
+                continue
+            for task_id in os.listdir(base_dir):
+                task_dir = os.path.join(base_dir, task_id)
+                if not os.path.isdir(task_dir):
+                    continue
+                mtime = os.path.getmtime(task_dir)
+
+                task_data = {
+                    "task_id": task_id,
+                    "task_type": task_type,
+                    "timestamp": mtime,
+                }
+
+                progress_file = os.path.join(task_dir, "progress.json")
+                if os.path.exists(progress_file):
+                    try:
+                        with open(progress_file, "r") as f:
+                            progress_data = json.load(f)
+                        task_data.update({
+                            "status": progress_data.get("status", "unknown"),
+                            "attack_name": progress_data.get("attack_name"),
+                            "defense_type": progress_data.get("defense_type"),
+                            "message": progress_data.get("message"),
+                        })
+                    except Exception as e:
+                        print(f"读取进度文件失败: {e}")
+
+                tasks.append(task_data)
+
+        # 按时间倒序并截断数量
+        tasks.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+        return tasks[: max(1, min(100, limit))]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取最近任务失败: {str(e)}")
+
 @router.get("/results/{task_id}")
 async def get_task_results(task_id: str):
     """
@@ -55,18 +173,37 @@ async def get_task_results(task_id: str):
         "metadata": {}
     }
     
-    # 查找图像文件
+    # 查找图像文件，按目录组织
     image_extensions = ['.jpg', '.jpeg', '.png', '.bmp']
+    
+    # 遍历结果目录下的所有子目录
+    for item in os.listdir(result_dir):
+        item_path = os.path.join(result_dir, item)
+        if os.path.isdir(item_path):
+            # 在每个子目录中查找图像文件
+            for ext in image_extensions:
+                image_files = glob.glob(os.path.join(item_path, f"*{ext}"))
+                
+                for img_path in image_files:
+                    rel_path = os.path.relpath(img_path, start=result_dir)
+                    result_files["images"].append({
+                        "path": rel_path,
+                        "url": f"/visualization/image/{task_id}/{rel_path}",
+                        "type": item,  # 使用目录名作为type
+                        "filename": os.path.basename(img_path)
+                    })
+    
+    # 也查找根目录下的图像文件
     for ext in image_extensions:
         image_files = glob.glob(os.path.join(result_dir, f"*{ext}"))
-        image_files.extend(glob.glob(os.path.join(result_dir, f"**/*{ext}")))
         
         for img_path in image_files:
             rel_path = os.path.relpath(img_path, start=result_dir)
             result_files["images"].append({
                 "path": rel_path,
                 "url": f"/visualization/image/{task_id}/{rel_path}",
-                "type": os.path.basename(os.path.dirname(img_path)) if "/" in rel_path else "main"
+                "type": "main",  # 根目录文件归为main类型
+                "filename": os.path.basename(img_path)
             })
     
     # 查找JSON结果文件
