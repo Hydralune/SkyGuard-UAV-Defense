@@ -6,6 +6,7 @@ import os
 import json
 from pathlib import Path
 import glob
+import heapq
 
 # 引入可视化工具
 from utils.visualizer import Visualizer
@@ -33,7 +34,8 @@ async def get_latest_task():
         result_dirs = [
             ("adversarial_results", "results/adversarial_results"),
             ("defense_results", "results/defense_results"), 
-            ("evaluation_results", "results/evaluation_results")
+            ("evaluation_results", "results/evaluation_results"),
+            ("scenario_results", "results/scenario_results"),
         ]
         
         latest_task = None
@@ -94,47 +96,70 @@ async def get_recent_tasks(limit: int = 10):
         任务信息列表 [{task_id, task_type, timestamp, status, attack_name, defense_type, message}]
     """
     try:
+        # 归一化 limit，避免过大导致扫描后处理过多
+        limit = max(1, min(100, int(limit)))
+
         result_dirs = [
             ("adversarial_results", "results/adversarial_results"),
             ("defense_results", "results/defense_results"),
             ("evaluation_results", "results/evaluation_results"),
+            ("scenario_results", "results/scenario_results"),
         ]
 
-        tasks = []
+        # 使用固定大小的小顶堆，仅保留最近的前 limit 个任务目录
+        # 堆元素: (mtime, task_type, task_id, task_dir)
+        top_heap = []
+
         for task_type, base_dir in result_dirs:
             if not os.path.exists(base_dir):
                 continue
-            for task_id in os.listdir(base_dir):
-                task_dir = os.path.join(base_dir, task_id)
-                if not os.path.isdir(task_dir):
+            # 使用 scandir 比 listdir 更高效，并可直接获得 stat 信息
+            for entry in os.scandir(base_dir):
+                try:
+                    if not entry.is_dir():
+                        continue
+                    mtime = entry.stat().st_mtime
+                except Exception:
+                    # 某些目录可能在扫描时被删除，忽略
                     continue
-                mtime = os.path.getmtime(task_dir)
 
-                task_data = {
-                    "task_id": task_id,
-                    "task_type": task_type,
-                    "timestamp": mtime,
-                }
+                item = (mtime, task_type, entry.name, entry.path)
+                if len(top_heap) < limit:
+                    heapq.heappush(top_heap, item)
+                else:
+                    # 只在更“新”的情况下替换堆顶
+                    if mtime > top_heap[0][0]:
+                        heapq.heapreplace(top_heap, item)
 
-                progress_file = os.path.join(task_dir, "progress.json")
-                if os.path.exists(progress_file):
-                    try:
-                        with open(progress_file, "r") as f:
-                            progress_data = json.load(f)
-                        task_data.update({
-                            "status": progress_data.get("status", "unknown"),
-                            "attack_name": progress_data.get("attack_name"),
-                            "defense_type": progress_data.get("defense_type"),
-                            "message": progress_data.get("message"),
-                        })
-                    except Exception as e:
-                        print(f"读取进度文件失败: {e}")
+        # 将堆元素按时间倒序输出
+        top_items = sorted(top_heap, key=lambda x: x[0], reverse=True)
 
-                tasks.append(task_data)
+        tasks = []
+        for mtime, task_type, task_id, task_dir in top_items:
+            task_data = {
+                "task_id": task_id,
+                "task_type": task_type,
+                "timestamp": mtime,
+            }
 
-        # 按时间倒序并截断数量
-        tasks.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
-        return tasks[: max(1, min(100, limit))]
+            # 仅对入选的前 N 个任务读取一次 progress.json（若存在）
+            progress_file = os.path.join(task_dir, "progress.json")
+            if os.path.exists(progress_file):
+                try:
+                    with open(progress_file, "r") as f:
+                        progress_data = json.load(f)
+                    task_data.update({
+                        "status": progress_data.get("status", "unknown"),
+                        "attack_name": progress_data.get("attack_name"),
+                        "defense_type": progress_data.get("defense_type"),
+                        "message": progress_data.get("message"),
+                    })
+                except Exception as e:
+                    print(f"读取进度文件失败: {e}")
+
+            tasks.append(task_data)
+
+        return tasks
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取最近任务失败: {str(e)}")
 
@@ -153,7 +178,8 @@ async def get_task_results(task_id: str):
     task_dirs = [
         os.path.join("results", "evaluation_results", task_id),
         os.path.join("results", "adversarial_results", task_id),
-        os.path.join("results", "defense_results", task_id)
+        os.path.join("results", "defense_results", task_id),
+        os.path.join("results", "scenario_results", task_id),
     ]
     
     # 找到存在的目录，并记录任务类别
@@ -168,6 +194,8 @@ async def get_task_results(task_id: str):
                 task_group = "attack"
             elif "defense_results" in dir_path:
                 task_group = "defense"
+            elif "scenario_results" in dir_path:
+                task_group = "scenario"
             break
     
     if not result_dir:
@@ -333,7 +361,8 @@ async def get_result_image(task_id: str, image_path: str):
     task_dirs = [
         os.path.join("results", "evaluation_results", task_id),
         os.path.join("results", "adversarial_results", task_id),
-        os.path.join("results", "defense_results", task_id)
+        os.path.join("results", "defense_results", task_id),
+        os.path.join("results", "scenario_results", task_id),
     ]
     
     # 尝试在各个可能的目录中查找图像
@@ -436,7 +465,8 @@ async def get_metrics_visualization(task_id: str, metric_type: str = "performanc
     task_dirs = [
         os.path.join("results", "evaluation_results", task_id),
         os.path.join("results", "adversarial_results", task_id),
-        os.path.join("results", "defense_results", task_id)
+        os.path.join("results", "defense_results", task_id),
+        os.path.join("results", "scenario_results", task_id),
     ]
     
     # 找到存在的目录

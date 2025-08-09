@@ -20,11 +20,12 @@ celery_app.conf.update(
 )
 
 # 自动发现和注册任务
-celery_app.autodiscover_tasks(['tasks', 'airsim_task'])
+celery_app.autodiscover_tasks(['tasks', 'airsim_task', 'scenario_tasks'])
 
 # 导入所有任务函数，确保它们被注册
 # 注意：导入需要放在celery_app定义之后，以避免循环导入
-from tasks import test_model_task, run_attack_task, adv_defense_train_task, run_defense_eval_task
+from tasks import test_model_task, run_attack_task, adv_defense_train_task, run_defense_eval_task, run_statistical_detection_task
+from scenario_tasks import run_scenario_task
 from defense import run_defense_task
 # 导入AirSim任务
 try:
@@ -43,6 +44,12 @@ adv_defense_train_task = celery_app.task(name="defense.train")(adv_defense_train
 
 # 将输入预处理防御评估注册为celery任务
 run_defense_eval_task = celery_app.task(name="defense.eval")(run_defense_eval_task)
+
+# 将统计检测注册为celery任务（备用显式注册，tasks.py 已使用装饰器命名）
+run_statistical_detection_task = celery_app.task(name="defense.detect.statistical")(run_statistical_detection_task)
+
+# 注册自定义场景任务
+run_scenario_task = celery_app.task(name="scenario.run")(run_scenario_task)
 
 # 注册AirSim任务
 try:

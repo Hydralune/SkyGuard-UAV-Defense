@@ -16,6 +16,7 @@ from visualization_api import router as visualization_router # 引入 visualizat
 from progress_api import router as progress_router # 引入 progress_api 模块
 from attack_api import router as attack_router # 引入 attack_api 模块
 from system_api import router as system_router # 引入 system_api 模块
+from scenarios_api import router as scenarios_router # 引入 scenarios_api 模块
 
 app = FastAPI(title="SkyGuard API", version="1.0.0")
 
@@ -45,6 +46,7 @@ app.include_router(visualization_router)
 app.include_router(progress_router)
 app.include_router(attack_router)
 app.include_router(system_router)
+app.include_router(scenarios_router)
 # 如果直接运行此文件
 if __name__ == "__main__":
     import uvicorn

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,6 +23,34 @@ import {
 
 export default function ExerciseStatus() {
   const [exerciseStatus, setExerciseStatus] = useState('running') // running, paused, completed
+  const [sysLoad, setSysLoad] = useState(null)
+  const [sysError, setSysError] = useState(null)
+
+  const fmtBytes = (n) => {
+    if (!n && n !== 0) return '-'
+    const units = ['B', 'KB', 'MB', 'GB', 'TB']
+    let i = 0
+    let val = n
+    while (val >= 1024 && i < units.length - 1) { val /= 1024; i++ }
+    return `${val.toFixed(1)} ${units[i]}`
+  }
+
+  const fetchSystemLoad = async () => {
+    try {
+      const res = await fetch('/system/load')
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const data = await res.json()
+      setSysLoad(data)
+    } catch (e) {
+      setSysError(`系统监控获取失败: ${e.message}`)
+    }
+  }
+
+  useEffect(() => {
+    fetchSystemLoad()
+    const t = setInterval(fetchSystemLoad, 5000)
+    return () => clearInterval(t)
+  }, [])
 
   const activeExercises = [
     {
@@ -63,13 +91,14 @@ export default function ExerciseStatus() {
     }
   ]
 
+  // 从后端负载推导监控指标（缺失字段时回退为 0 或 '—'）
   const systemMetrics = {
-    cpuUsage: 68,
-    memoryUsage: 72,
-    gpuUsage: 85,
-    networkLoad: 45,
-    activeConnections: 24,
-    queuedTasks: 8
+    cpuUsage: typeof sysLoad?.cpu_percent === 'number' ? sysLoad.cpu_percent : 0,
+    memoryUsage: typeof sysLoad?.memory?.percent === 'number' ? sysLoad.memory.percent : 0,
+    gpuUsage: typeof sysLoad?.gpu?.percent === 'number' ? sysLoad.gpu.percent : 0,
+    networkLoad: typeof sysLoad?.network?.usage === 'number' ? sysLoad.network.usage : 0,
+    activeConnections: typeof sysLoad?.network?.active_connections === 'number' ? sysLoad.network.active_connections : 0,
+    queuedTasks: typeof sysLoad?.queue?.pending === 'number' ? sysLoad.queue.pending : 0
   }
 
   return (
@@ -144,9 +173,9 @@ export default function ExerciseStatus() {
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">75%</div>
+            <div className="text-2xl font-bold">{typeof sysLoad?.cpu_percent === 'number' ? Math.round(sysLoad.cpu_percent) : '—'}%</div>
             <p className="text-xs text-muted-foreground">
-              CPU: 68% | GPU: 85%
+              CPU: {typeof sysLoad?.cpu_percent === 'number' ? sysLoad.cpu_percent : '—'}% | GPU: {typeof sysLoad?.gpu?.percent === 'number' ? sysLoad.gpu.percent : '—'}%
             </p>
           </CardContent>
         </Card>
@@ -256,7 +285,7 @@ export default function ExerciseStatus() {
                   </div>
                   <Progress value={systemMetrics.cpuUsage} />
                   <p className="text-xs text-muted-foreground">
-                    8核心 @ 3.2GHz
+                    核心数：{sysLoad?.cpu_count ?? '—'} · 平均负载：{Array.isArray(sysLoad?.load_avg) ? sysLoad.load_avg.map(x => x.toFixed?.(2)).join(', ') : '—'}
                   </p>
                 </div>
               </CardContent>
@@ -274,7 +303,7 @@ export default function ExerciseStatus() {
                   </div>
                   <Progress value={systemMetrics.memoryUsage} />
                   <p className="text-xs text-muted-foreground">
-                    32GB DDR4
+                    {fmtBytes(sysLoad?.memory?.used)} / {fmtBytes(sysLoad?.memory?.total)}
                   </p>
                 </div>
               </CardContent>
@@ -292,7 +321,7 @@ export default function ExerciseStatus() {
                   </div>
                   <Progress value={systemMetrics.gpuUsage} />
                   <p className="text-xs text-muted-foreground">
-                    NVIDIA RTX 4090
+                    {sysLoad?.gpu?.model || 'GPU'} {sysLoad?.gpu?.memory ? `· ${sysLoad.gpu.memory}` : ''}
                   </p>
                 </div>
               </CardContent>
@@ -310,7 +339,7 @@ export default function ExerciseStatus() {
                   </div>
                   <Progress value={systemMetrics.networkLoad} />
                   <p className="text-xs text-muted-foreground">
-                    10Gbps 以太网
+                    {sysLoad?.network?.bandwidth || '—'}
                   </p>
                 </div>
               </CardContent>
@@ -340,6 +369,9 @@ export default function ExerciseStatus() {
               </CardContent>
             </Card>
           </div>
+          {sysError && (
+            <p className="text-xs text-red-500">{sysError}</p>
+          )}
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">

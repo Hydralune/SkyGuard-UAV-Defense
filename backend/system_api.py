@@ -162,6 +162,7 @@ async def get_system_logs(limit: int = 50) -> List[Dict[str, Any]]:
             (os.path.join("results", "defense_results"), "defense"),
             (os.path.join("results", "evaluation_results"), "evaluation"),
             (os.path.join("results", "airsim_results"), "airsim"),
+            (os.path.join("results", "scenario_results"), "scenario"),
         ]
 
         logs: List[Dict[str, Any]] = []

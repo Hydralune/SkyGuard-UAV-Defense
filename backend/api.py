@@ -177,6 +177,56 @@ async def run_defense(
     return {"task_id": task_id, "celery_task_id": task.id}
 
 
+# ------------------ 检测型防御（统计检测） ------------------
+@router.post("/defense/detect")
+async def detect_adversarial(
+    detector_type: str = "statistical",  # 预留未来可扩展：neural 等
+    model_name: str = "yolov8s-visdrone",
+    dataset_name: str = "VisDrone",
+    num_images: int = 10,
+    conf_threshold: float = 0.25,
+    iou_threshold: float = 0.5,
+    # 统计检测参数
+    threshold: float = 0.35,
+    alpha: float = 0.6,
+    hf_ratio: float = 0.1,
+    # 可选：若指定攻击，则执行 原始→对抗→检测 的流程，并在结果中对比
+    attack_name: Optional[str] = None,
+    eps: Optional[str] = "8/255",
+    alpha_attack: Optional[str] = "2/255",
+    steps: Optional[int] = 10,
+):
+    """
+    启动“检测型防御（统计检测）”任务。
+
+    结果保存到 results/defense_results/<task_id>/ 下，与预处理防御保持一致的结构：
+    - original_results/、adversarial_results/（可选）、defended_results/（本任务用作标注可视化）
+    - comparison_results/、plots/、metrics/
+    """
+    if detector_type.lower() not in {"statistical", "stats", "stat"}:
+        raise HTTPException(status_code=400, detail=f"暂不支持的检测器类型: {detector_type}")
+
+    task_id = str(uuid4())
+    # 推送到Celery：复用 defense.eval 的结果目录风格，便于可视化与前端兼容
+    from tasks import run_statistical_detection_task
+    task = run_statistical_detection_task.delay(
+        task_id=task_id,
+        model_name=model_name,
+        dataset_name=dataset_name,
+        num_images=num_images,
+        conf_threshold=conf_threshold,
+        iou_threshold=iou_threshold,
+        threshold=threshold,
+        alpha=alpha,
+        hf_ratio=hf_ratio,
+        attack_name=attack_name,
+        eps=eps,
+        alpha_attack=alpha_attack,
+        steps=steps,
+    )
+    return {"task_id": task_id, "celery_task_id": task.id}
+
+
 @router.post("/defense/train")
 async def train_defense(
     defense_type: str = "pgd",

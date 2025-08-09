@@ -85,7 +85,8 @@ async def update_progress(task_id: str, progress_data: Dict[str, Any]):
     task_dirs = [
         os.path.join("results", "evaluation_results", task_id),
         os.path.join("results", "adversarial_results", task_id),
-        os.path.join("results", "defense_results", task_id)
+        os.path.join("results", "defense_results", task_id),
+        os.path.join("results", "scenario_results", task_id),
     ]
     
     # 找到存在的目录或创建新目录
@@ -101,6 +102,8 @@ async def update_progress(task_id: str, progress_data: Dict[str, Any]):
             result_dir = os.path.join("results", "defense_results", task_id)
         elif "attack_name" in progress_data:
             result_dir = os.path.join("results", "adversarial_results", task_id)
+        elif progress_data.get("task_group") == "scenario" or progress_data.get("is_scenario"):
+            result_dir = os.path.join("results", "scenario_results", task_id)
         else:
             result_dir = os.path.join("results", "evaluation_results", task_id)
         
@@ -138,7 +141,8 @@ async def get_progress(task_id: str):
     task_dirs = [
         os.path.join("results", "evaluation_results", task_id),
         os.path.join("results", "adversarial_results", task_id),
-        os.path.join("results", "defense_results", task_id)
+        os.path.join("results", "defense_results", task_id),
+        os.path.join("results", "scenario_results", task_id),
     ]
     
     for dir_path in task_dirs:

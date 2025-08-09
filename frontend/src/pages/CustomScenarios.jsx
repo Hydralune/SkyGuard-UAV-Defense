@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Progress } from '@/components/ui/progress'
 import {
   Settings,
   Plus,
@@ -24,6 +26,14 @@ import {
 } from 'lucide-react'
 
 export default function CustomScenarios() {
+  const navigate = useNavigate()
+  const PERSIST_KEY = 'custom_scenarios_v1'
+  const hasRestoredRef = useRef(false)
+  const [isRunning, setIsRunning] = useState(false)
+  const [runTaskId, setRunTaskId] = useState(null)
+  const [runProgress, setRunProgress] = useState(0)
+  const [runStatusText, setRunStatusText] = useState('')
+  const [runLogs, setRunLogs] = useState([])
   const [scenarios, setScenarios] = useState([
     {
       id: 1,
@@ -64,15 +74,23 @@ export default function CustomScenarios() {
   const availableAttacks = [
     { id: 'pgd', name: 'PGD攻击', category: 'adversarial' },
     { id: 'fgsm', name: 'FGSM攻击', category: 'adversarial' },
-    { id: 'cw', name: 'C&W攻击', category: 'adversarial' },
+    { id: 'cw_l2', name: 'C&W攻击', category: 'adversarial' },
+    { id: 'deepfool', name: 'DeepFool', category: 'adversarial' },
+    { id: 'dpatch', name: 'DPatch', category: 'adversarial' },
+    { id: 'advpatch', name: 'AdvPatch', category: 'adversarial' },
     { id: 'brightness', name: '亮度干扰', category: 'optical' },
     { id: 'gaussian', name: '高斯噪声', category: 'optical' },
-    { id: 'contrast', name: '对比度调整', category: 'optical' }
+    { id: 'contrast', name: '对比度调整', category: 'optical' },
+    { id: 'distortion', name: '图像扭曲', category: 'optical' },
+    { id: 'scene_transition', name: '场景跃变', category: 'optical' }
   ]
 
   const availableDefenses = [
     { id: 'pgd_training', name: 'PGD训练', category: 'adversarial_training' },
     { id: 'fgm', name: 'FGM训练', category: 'adversarial_training' },
+    { id: 'freeadv', name: 'FreeAT训练', category: 'adversarial_training' },
+    { id: 'yopo', name: 'YOPO训练', category: 'adversarial_training' },
+    { id: 'freelb', name: 'FreeLB训练', category: 'adversarial_training' },
     { id: 'preprocessing', name: '预处理防御', category: 'preprocessing' },
     { id: 'detection', name: '检测防御', category: 'detection' }
   ]
@@ -126,6 +144,109 @@ export default function CustomScenarios() {
       parameters: {},
       schedule: { enabled: false, sequence: [], timing: 'sequential' }
     })
+  }
+
+  // 本地持久化（加载）
+  useEffect(() => {
+    if (hasRestoredRef.current) return
+    try {
+      const raw = localStorage.getItem(PERSIST_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw)
+        if (Array.isArray(saved)) setScenarios(saved)
+      }
+    } catch {}
+    hasRestoredRef.current = true
+  }, [])
+
+  // 本地持久化（保存）
+  useEffect(() => {
+    try { localStorage.setItem(PERSIST_KEY, JSON.stringify(scenarios)) } catch {}
+  }, [scenarios])
+
+  // 设置通用/逐攻击参数
+  const setParam = (key, value) => {
+    setCurrentScenario(prev => ({
+      ...prev,
+      parameters: { ...(prev.parameters || {}), [key]: value }
+    }))
+  }
+  const setAttackParam = (attackId, key, value) => {
+    setCurrentScenario(prev => ({
+      ...prev,
+      parameters: {
+        ...(prev.parameters || {}),
+        attack_params: {
+          ...((prev.parameters || {}).attack_params || {}),
+          [attackId]: {
+            ...(((prev.parameters || {}).attack_params || {})[attackId] || {}),
+            [key]: value
+          }
+        }
+      }
+    }))
+  }
+
+  // 后端映射与参数构建
+  const backendModelMap = {
+    yolov8s: 'yolov8s-visdrone',
+    yolov5: 'yolov5-visdrone',
+    yolov10: 'yolov10-visdrone',
+    faster_rcnn: 'faster_rcnn-visdrone',
+    ssd: 'ssd-visdrone'
+  }
+  const backendDatasetMap = { Visdrone: 'VisDrone', VisDrone: 'VisDrone' }
+
+  const buildScenarioPayload = (scenario) => {
+    const p = scenario?.parameters || {}
+    const payload = {
+      name: scenario?.name || '自定义场景',
+      description: scenario?.description || '',
+      type: scenario?.type || 'hybrid',
+      attacks: Array.isArray(scenario?.attacks) ? scenario.attacks : [],
+      defenses: Array.isArray(scenario?.defenses) ? scenario.defenses : [],
+      parameters: {
+        model_name: backendModelMap[p.model] || p.model_name || 'yolov8s-visdrone',
+        dataset_name: backendDatasetMap[p.dataset] || p.dataset_name || 'VisDrone',
+        num_images: Number.isFinite(p.num_images) ? p.num_images : 10,
+        conf_threshold: typeof p.conf_threshold === 'number' ? p.conf_threshold : 0.25,
+        iou_threshold: typeof p.iou_threshold === 'number' ? p.iou_threshold : 0.5,
+        eps: p.eps || '8/255',
+        alpha: p.alpha || '2/255',
+        steps: typeof p.steps === 'number' ? p.steps : 10,
+        // 预处理防御可选参数
+        defense_type: p.defense_type || 'gaussian_blur',
+        ksize: p.ksize,
+        sigma: p.sigma,
+        quality: p.quality,
+        bits: p.bits,
+        // 检测型防御可选参数
+        threshold: p.threshold,
+        alpha_stats: p.alpha_stats,
+        hf_ratio: p.hf_ratio,
+        // 若需要串联攻击
+        attack_name: p.attack_name,
+      },
+      schedule: scenario?.schedule || { enabled: false, sequence: [], timing: 'sequential' }
+    }
+    return payload
+  }
+
+  const runScenario = async (scenario) => {
+    try {
+      const body = buildScenarioPayload(scenario)
+      const res = await fetch('/scenarios/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const data = await res.json()
+      // 跳转可视化
+      navigate(`/visualization?task_id=${data.task_id}`)
+    } catch (e) {
+      console.error('运行场景失败:', e)
+    }
   }
 
   return (
@@ -297,15 +418,159 @@ export default function CustomScenarios() {
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
                                 </div>
-                                <div className="grid gap-2 md:grid-cols-2 text-sm">
-                                  <div>
-                                    <Label>强度</Label>
-                                    <Input type="number" placeholder="0.03" />
-                                  </div>
-                                  <div>
-                                    <Label>权重</Label>
-                                    <Input type="number" placeholder="1.0" />
-                                  </div>
+                                <div className="grid gap-3 md:grid-cols-2 text-sm">
+                                  {attackId === 'pgd' && (
+                                    <>
+                                      <div>
+                                        <Label>扰动预算 (ε)</Label>
+                                        <Input type="text" placeholder="8/255" onChange={(e)=>setAttackParam('pgd','eps',e.target.value)} />
+                                      </div>
+                                      <div>
+                                        <Label>单步扰动 (α)</Label>
+                                        <Input type="text" placeholder="2/255" onChange={(e)=>setAttackParam('pgd','alpha',e.target.value)} />
+                                      </div>
+                                      <div>
+                                        <Label>迭代步数</Label>
+                                        <Input type="number" placeholder="10" onChange={(e)=>setAttackParam('pgd','steps',parseInt(e.target.value)||10)} />
+                                      </div>
+                                    </>
+                                  )}
+                                  {attackId === 'fgsm' && (
+                                    <div>
+                                      <Label>扰动预算 (ε)</Label>
+                                      <Input type="text" placeholder="8/255" onChange={(e)=>setAttackParam('fgsm','eps',e.target.value)} />
+                                    </div>
+                                  )}
+                                  {attackId === 'cw_l2' && (
+                                    <>
+                                      <div>
+                                        <Label>置信度</Label>
+                                        <Input type="number" placeholder="0" onChange={(e)=>setAttackParam('cw_l2','confidence',parseFloat(e.target.value)||0)} />
+                                      </div>
+                                      <div>
+                                        <Label>学习率</Label>
+                                        <Input type="number" placeholder="0.01" step="0.001" onChange={(e)=>setAttackParam('cw_l2','lr',parseFloat(e.target.value)||0.01)} />
+                                      </div>
+                                      <div>
+                                        <Label>初始常数c</Label>
+                                        <Input type="number" placeholder="0.1" step="0.01" onChange={(e)=>setAttackParam('cw_l2','initial_const',parseFloat(e.target.value)||0.1)} />
+                                      </div>
+                                      <div>
+                                        <Label>优化步数</Label>
+                                        <Input type="number" placeholder="10" onChange={(e)=>setAttackParam('cw_l2','steps',parseInt(e.target.value)||10)} />
+                                      </div>
+                                    </>
+                                  )}
+                                  {attackId === 'dpatch' && (
+                                    <>
+                                      <div>
+                                        <Label>补丁大小</Label>
+                                        <Input type="number" placeholder="30" onChange={(e)=>setAttackParam('dpatch','patch_size',parseInt(e.target.value)||30)} />
+                                      </div>
+                                      <div>
+                                        <Label>优化步数</Label>
+                                        <Input type="number" placeholder="10" onChange={(e)=>setAttackParam('dpatch','steps',parseInt(e.target.value)||10)} />
+                                      </div>
+                                    </>
+                                  )}
+                                  {attackId === 'deepfool' && (
+                                    <>
+                                      <div>
+                                        <Label>最大迭代</Label>
+                                        <Input type="number" placeholder="50" onChange={(e)=>setAttackParam('deepfool','max_iter',parseInt(e.target.value)||50)} />
+                                      </div>
+                                      <div>
+                                        <Label>越界程度</Label>
+                                        <Input type="number" placeholder="0.02" step="0.01" onChange={(e)=>setAttackParam('deepfool','overshoot',parseFloat(e.target.value)||0.02)} />
+                                      </div>
+                                    </>
+                                  )}
+                                  {attackId === 'advpatch' && (
+                                    <>
+                                      <div>
+                                        <Label>补丁大小(比例)</Label>
+                                        <Input type="number" placeholder="0.1" step="0.01" onChange={(e)=>setAttackParam('advpatch','patch_size',parseFloat(e.target.value)||0.1)} />
+                                      </div>
+                                      <div>
+                                        <Label>学习率</Label>
+                                        <Input type="number" placeholder="0.1" step="0.01" onChange={(e)=>setAttackParam('advpatch','learning_rate',parseFloat(e.target.value)||0.1)} />
+                                      </div>
+                                      <div>
+                                        <Label>最大迭代</Label>
+                                        <Input type="number" placeholder="100" onChange={(e)=>setAttackParam('advpatch','max_iter',parseInt(e.target.value)||100)} />
+                                      </div>
+                                      <div>
+                                        <Label>随机位置</Label>
+                                        <Select onValueChange={(v)=>setAttackParam('advpatch','random_locations',v==='true')}>
+                                          <SelectTrigger><SelectValue placeholder="true/false" /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="true">是</SelectItem>
+                                            <SelectItem value="false">否</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label>补丁数量</Label>
+                                        <Input type="number" placeholder="1" onChange={(e)=>setAttackParam('advpatch','num_patches',parseInt(e.target.value)||1)} />
+                                      </div>
+                                    </>
+                                  )}
+                                  {attackId === 'brightness' && (
+                                    <div>
+                                      <Label>亮度因子</Label>
+                                      <Input type="number" placeholder="1.5" step="0.1" onChange={(e)=>setAttackParam('brightness','brightness_factor',parseFloat(e.target.value)||1.5)} />
+                                    </div>
+                                  )}
+                                  {attackId === 'gaussian' && (
+                                    <div>
+                                      <Label>噪声标准差</Label>
+                                      <Input type="number" placeholder="0.1" step="0.01" onChange={(e)=>setAttackParam('gaussian','noise_std',parseFloat(e.target.value)||0.1)} />
+                                    </div>
+                                  )}
+                                  {attackId === 'contrast' && (
+                                    <div>
+                                      <Label>对比度因子</Label>
+                                      <Input type="number" placeholder="1.5" step="0.1" onChange={(e)=>setAttackParam('contrast','contrast_factor',parseFloat(e.target.value)||1.5)} />
+                                    </div>
+                                  )}
+                                  {attackId === 'distortion' && (
+                                    <>
+                                      <div>
+                                        <Label>扭曲类型</Label>
+                                        <Select onValueChange={(v)=>setAttackParam('distortion','distortion_type',v)}>
+                                          <SelectTrigger><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="elastic">elastic</SelectItem>
+                                            <SelectItem value="wave">wave</SelectItem>
+                                            <SelectItem value="swirl">swirl</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label>严重程度</Label>
+                                        <Input type="number" placeholder="0.5" step="0.05" onChange={(e)=>setAttackParam('distortion','severity',parseFloat(e.target.value)||0.5)} />
+                                      </div>
+                                    </>
+                                  )}
+                                  {attackId === 'scene_transition' && (
+                                    <>
+                                      <div>
+                                        <Label>跃变类型</Label>
+                                        <Select onValueChange={(v)=>setAttackParam('scene_transition','transition_type',v)}>
+                                          <SelectTrigger><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="weather">weather</SelectItem>
+                                            <SelectItem value="lighting">lighting</SelectItem>
+                                            <SelectItem value="blur">blur</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label>严重程度</Label>
+                                        <Input type="number" placeholder="0.5" step="0.05" onChange={(e)=>setAttackParam('scene_transition','severity',parseFloat(e.target.value)||0.5)} />
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             )
@@ -373,23 +638,79 @@ export default function CustomScenarios() {
                                   </Button>
                                 </div>
                                 <div className="grid gap-2 md:grid-cols-2 text-sm">
-                                  <div>
-                                    <Label>强度</Label>
-                                    <Input type="number" placeholder="0.8" />
-                                  </div>
-                                  <div>
-                                    <Label>优先级</Label>
-                                    <Select defaultValue="medium">
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="low">低</SelectItem>
-                                        <SelectItem value="medium">中</SelectItem>
-                                        <SelectItem value="high">高</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
+                                  {/* 预处理、防御、训练参数面板（简版） */}
+                                  {defenseId === 'preprocessing' && (
+                                    <>
+                                      <div>
+                                        <Label>防御类型</Label>
+                                        <Select onValueChange={(v)=>setParam('defense_type',v)}>
+                                          <SelectTrigger><SelectValue placeholder="gaussian_blur" /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="gaussian_blur">gaussian_blur</SelectItem>
+                                            <SelectItem value="median_blur">median_blur</SelectItem>
+                                            <SelectItem value="jpeg_compression">jpeg_compression</SelectItem>
+                                            <SelectItem value="bit_depth_reduction">bit_depth_reduction</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label>ksize</Label>
+                                        <Input type="number" placeholder="5" onChange={(e)=>setParam('ksize',parseInt(e.target.value)||5)} />
+                                      </div>
+                                      <div>
+                                        <Label>sigma</Label>
+                                        <Input type="number" placeholder="0" step="0.1" onChange={(e)=>setParam('sigma',parseFloat(e.target.value)||0)} />
+                                      </div>
+                                      <div>
+                                        <Label>quality</Label>
+                                        <Input type="number" placeholder="85" onChange={(e)=>setParam('quality',parseInt(e.target.value)||85)} />
+                                      </div>
+                                      <div>
+                                        <Label>bits</Label>
+                                        <Input type="number" placeholder="5" onChange={(e)=>setParam('bits',parseInt(e.target.value)||5)} />
+                                      </div>
+                                    </>
+                                  )}
+                                  {defenseId === 'detection' && (
+                                    <>
+                                      <div>
+                                        <Label>检测阈值</Label>
+                                        <Input type="number" placeholder="0.35" step="0.01" onChange={(e)=>setParam('threshold',parseFloat(e.target.value)||0.35)} />
+                                      </div>
+                                      <div>
+                                        <Label>alpha_stats</Label>
+                                        <Input type="number" placeholder="0.6" step="0.01" onChange={(e)=>setParam('alpha_stats',parseFloat(e.target.value)||0.6)} />
+                                      </div>
+                                      <div>
+                                        <Label>hf_ratio</Label>
+                                        <Input type="number" placeholder="0.1" step="0.01" onChange={(e)=>setParam('hf_ratio',parseFloat(e.target.value)||0.1)} />
+                                      </div>
+                                    </>
+                                  )}
+                                  {['pgd_training','fgm','freeadv','yopo','freelb'].includes(defenseId) && (
+                                    <>
+                                      <div>
+                                        <Label>epochs</Label>
+                                        <Input type="number" placeholder="30" onChange={(e)=>setParam('epochs',parseInt(e.target.value)||30)} />
+                                      </div>
+                                      <div>
+                                        <Label>batch</Label>
+                                        <Input type="number" placeholder="16" onChange={(e)=>setParam('batch',parseInt(e.target.value)||16)} />
+                                      </div>
+                                      <div>
+                                        <Label>eps</Label>
+                                        <Input type="text" placeholder="8/255" onChange={(e)=>setParam('eps',e.target.value)} />
+                                      </div>
+                                      <div>
+                                        <Label>alpha</Label>
+                                        <Input type="text" placeholder="2/255" onChange={(e)=>setParam('alpha',e.target.value)} />
+                                      </div>
+                                      <div>
+                                        <Label>steps</Label>
+                                        <Input type="number" placeholder="10" onChange={(e)=>setParam('steps',parseInt(e.target.value)||10)} />
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             )
@@ -483,6 +804,27 @@ export default function CustomScenarios() {
 
         {/* 右侧场景列表 */}
         <div className="space-y-6">
+          {/* 运行状态与日志 */}
+          <Card className="card-hover">
+            <CardHeader>
+              <CardTitle>运行状态</CardTitle>
+              <CardDescription>实时查看场景执行进度</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-sm">{runTaskId ? `任务: ${runTaskId}` : '尚未运行'}</div>
+              <Progress value={runProgress} />
+              <div className="text-xs text-muted-foreground">{runStatusText}</div>
+              <div className="space-y-1 max-h-40 overflow-y-auto text-xs">
+                {runLogs.map((l)=> (
+                  <div key={l.id} className="flex items-center justify-between">
+                    <span className={l.type==='error'?'text-red-600':l.type==='success'?'text-green-600':'text-gray-700'}>{l.message}</span>
+                    <span className="text-[10px] text-gray-400">{l.time}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="card-hover">
             <CardHeader>
               <CardTitle>已保存的场景</CardTitle>
@@ -511,17 +853,25 @@ export default function CustomScenarios() {
                     </div>
                     
                     <div className="flex space-x-1">
-                      <Button size="sm" variant="outline" className="flex-1">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => startScenarioRun({
+                        name: scenario.name,
+                        description: scenario.description,
+                        type: scenario.type,
+                        attacks: scenario.attacks,
+                        defenses: scenario.defenses,
+                        parameters: scenario.parameters,
+                        schedule: currentScenario.schedule
+                      })}>
                         <Play className="h-3 w-3 mr-1" />
                         运行
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={()=>editScenario(scenario)}>
                         <Edit className="h-3 w-3" />
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={()=>copyScenario(scenario)}>
                         <Copy className="h-3 w-3" />
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={()=>deleteScenario(scenario.id)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>

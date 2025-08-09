@@ -6,3 +6,4 @@ from .fgm_defense import FGMDefense  # noqa: F401
 from .freeat_defense import FreeATDefense  # noqa: F401
 from .freelb_defense import FreeLBDefense  # noqa: F401
 from .yopo_defense import YOPODefense  # noqa: F401
+from .statistical_detector import StatisticalDetector  # noqa: F401

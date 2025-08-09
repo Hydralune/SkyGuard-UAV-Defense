@@ -56,6 +56,8 @@ export default function DefenseScenarios() {
     num_images: 10,
     conf_threshold: 0.25,
     iou_threshold: 0.5,
+    // 检测型防御评估参数
+    detection_threshold: 0.8,
     // 具体预处理防御参数
     ksize: 5,
     sigma: 0,
@@ -322,7 +324,7 @@ export default function DefenseScenarios() {
         addLogMessage(`评估任务已提交，任务ID: ${data.task_id}`)
         addLogMessage(`Celery任务ID: ${data.celery_task_id}`)
       } else if (selectedDefenseType === 'detection') {
-        // 映射 feature_squeezing → bit_depth_reduction；其余暂未实现
+        // 检测型：统计检测与特征压缩（映射至位深降低）
         if (selectedAlgorithm === 'feature_squeezing') {
           const params = new URLSearchParams({
             defense_type: 'bit_depth_reduction',
@@ -339,6 +341,29 @@ export default function DefenseScenarios() {
           setTaskId(data.task_id)
           setCeleryTaskId(data.celery_task_id)
           addLogMessage(`检测类（特征压缩）任务已提交，任务ID: ${data.task_id}`)
+        } else if (selectedAlgorithm === 'statistical_test') {
+          // 统计检测：调用新后端 /api/defense/detect
+          const params = new URLSearchParams({
+            detector_type: 'statistical',
+            model_name: backendModelMap[selectedModel] || selectedModel || 'yolov8s-visdrone',
+            dataset_name: backendDatasetMap[selectedDataset] || selectedDataset || 'VisDrone',
+            num_images: `${parameters.num_images}`,
+            conf_threshold: `${parameters.conf_threshold}`,
+            iou_threshold: `${parameters.iou_threshold}`,
+            threshold: `${parameters.detection_threshold}`,
+          })
+          // 关联攻击预设（可选）
+          if (attackPreset?.params?.attack_name) params.append('attack_name', attackPreset.params.attack_name)
+          if (attackPreset?.params?.eps) params.append('eps', attackPreset.params.eps)
+          if (attackPreset?.params?.alpha) params.append('alpha_attack', attackPreset.params.alpha)
+          if (attackPreset?.params?.steps) params.append('steps', attackPreset.params.steps)
+
+          const response = await fetch(`/api/defense/detect?${params.toString()}`, { method: 'POST' })
+          if (!response.ok) throw new Error(`API返回错误: ${response.status}`)
+          const data = await response.json()
+          setTaskId(data.task_id)
+          setCeleryTaskId(data.celery_task_id)
+          addLogMessage(`检测类（统计检测）任务已提交，任务ID: ${data.task_id}`)
         } else {
           addLogMessage('该检测型防御暂未实现后端，敬请期待', 'error')
           setIsRunning(false)
@@ -922,9 +947,10 @@ export default function DefenseScenarios() {
               {selectedDefenseType === 'detection' && (
                 <>
                   <div className="space-y-2">
-                    <Label>检测阈值: 0.8</Label>
+                    <Label>检测阈值: {parameters.detection_threshold}</Label>
                     <Slider
-                      defaultValue={[0.8]}
+                      value={[parameters.detection_threshold]}
+                      onValueChange={(value) => handleParameterChange('detection_threshold', value[0])}
                       max={1.0}
                       min={0.1}
                       step={0.05}

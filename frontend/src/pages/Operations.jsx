@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -41,22 +41,50 @@ import {
 export default function Operations() {
   const [systemStatus, setSystemStatus] = useState('running')
 
-  const systemMetrics = {
-    cpu: { usage: 68, cores: 8, frequency: '3.2GHz' },
-    memory: { usage: 72, total: '32GB', available: '8.96GB' },
-    gpu: { usage: 85, model: 'RTX 4090', memory: '24GB' },
-    storage: { usage: 45, total: '2TB', available: '1.1TB' },
-    network: { usage: 35, bandwidth: '10Gbps', latency: '2ms' }
+  // 实时系统负载（与 Dashboard 一致的接口）
+  const [sysLoad, setSysLoad] = useState(null)
+  const [perfHistory, setPerfHistory] = useState([]) // {time, cpu, memory, gpu}
+  const [sysError, setSysError] = useState(null)
+
+  const fmtBytes = (n) => {
+    if (!n && n !== 0) return '-'
+    const units = ['B', 'KB', 'MB', 'GB', 'TB']
+    let i = 0
+    let val = n
+    while (val >= 1024 && i < units.length - 1) { val /= 1024; i++ }
+    return `${val.toFixed(1)} ${units[i]}`
   }
 
-  const performanceData = [
-    { time: '00:00', cpu: 45, memory: 60, gpu: 70 },
-    { time: '04:00', cpu: 52, memory: 65, gpu: 75 },
-    { time: '08:00', cpu: 68, memory: 72, gpu: 85 },
-    { time: '12:00', cpu: 75, memory: 78, gpu: 90 },
-    { time: '16:00', cpu: 70, memory: 75, gpu: 88 },
-    { time: '20:00', cpu: 65, memory: 70, gpu: 80 }
-  ]
+  const fetchSystemLoad = async () => {
+    try {
+      const res = await fetch('/system/load')
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const data = await res.json()
+      setSysLoad(data)
+      // 推入历史
+      const now = new Date()
+      const time = now.toTimeString().slice(0, 5)
+      const point = {
+        time,
+        cpu: typeof data.cpu_percent === 'number' ? data.cpu_percent : null,
+        memory: typeof data?.memory?.percent === 'number' ? data.memory.percent : null,
+        gpu: typeof data?.gpu?.percent === 'number' ? data.gpu.percent : null
+      }
+      setPerfHistory((prev) => {
+        const next = [...prev, point]
+        // 限制 36 个点（约 3 分钟如果 5s 轮询）
+        return next.slice(Math.max(0, next.length - 36))
+      })
+    } catch (e) {
+      setSysError(`系统监控获取失败: ${e.message}`)
+    }
+  }
+
+  useEffect(() => {
+    fetchSystemLoad()
+    const t = setInterval(fetchSystemLoad, 5000)
+    return () => clearInterval(t)
+  }, [])
 
   const activeTasks = [
     { id: 1, name: 'PGD攻击演练', team: '团队Alpha', progress: 75, status: 'running', priority: 'high' },
@@ -65,13 +93,27 @@ export default function Operations() {
     { id: 4, name: '数据预处理', team: '团队Gamma', progress: 30, status: 'queued', priority: 'medium' }
   ]
 
-  const systemLogs = [
-    { time: '15:32:45', level: 'info', message: '团队Alpha PGD攻击演练进度更新: 75%', source: 'exercise-engine' },
-    { time: '15:31:20', level: 'warning', message: 'GPU使用率达到85%，建议优化任务分配', source: 'resource-monitor' },
-    { time: '15:30:15', level: 'info', message: '团队Beta暂停光电干扰测试', source: 'task-manager' },
-    { time: '15:28:30', level: 'success', message: '团队Gamma防御算法验证完成', source: 'exercise-engine' },
-    { time: '15:25:10', level: 'info', message: '系统资源调度优化完成', source: 'scheduler' }
-  ]
+  const [systemLogs, setSystemLogs] = useState([])
+
+  const fetchSystemLogs = async () => {
+    try {
+      const res = await fetch('/system/logs?limit=50')
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const data = await res.json()
+      setSystemLogs(Array.isArray(data) ? data.map(l => ({
+        time: typeof l.timestamp === 'number' ? new Date(l.timestamp * 1000).toLocaleTimeString() : l.timestamp,
+        level: l.severity || 'info',
+        message: l.message || '',
+        source: l.type || 'system'
+      })) : [])
+    } catch (_) {}
+  }
+
+  useEffect(() => {
+    fetchSystemLogs()
+    const t = setInterval(fetchSystemLogs, 5000)
+    return () => clearInterval(t)
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -111,10 +153,10 @@ export default function Operations() {
             <Cpu className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemMetrics.cpu.usage}%</div>
-            <Progress value={systemMetrics.cpu.usage} className="mt-2" />
+            <div className="text-2xl font-bold">{sysLoad?.cpu_percent ?? '—'}%</div>
+            <Progress value={sysLoad?.cpu_percent ?? 0} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
-              {systemMetrics.cpu.cores}核心 @ {systemMetrics.cpu.frequency}
+              CPU 核心：{sysLoad?.cpu_count ?? '—'} · 平均负载：{Array.isArray(sysLoad?.load_avg) ? sysLoad.load_avg.map(x => x.toFixed?.(2)).join(', ') : '—'}
             </p>
           </CardContent>
         </Card>
@@ -125,10 +167,10 @@ export default function Operations() {
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemMetrics.memory.usage}%</div>
-            <Progress value={systemMetrics.memory.usage} className="mt-2" />
+            <div className="text-2xl font-bold">{sysLoad?.memory?.percent ?? '—'}%</div>
+            <Progress value={sysLoad?.memory?.percent ?? 0} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
-              {systemMetrics.memory.available} / {systemMetrics.memory.total}
+              {fmtBytes(sysLoad?.memory?.used)} / {fmtBytes(sysLoad?.memory?.total)}
             </p>
           </CardContent>
         </Card>
@@ -139,10 +181,10 @@ export default function Operations() {
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-500">{systemMetrics.gpu.usage}%</div>
-            <Progress value={systemMetrics.gpu.usage} className="mt-2" />
+            <div className="text-2xl font-bold text-orange-500">{sysLoad?.gpu?.percent ?? '—'}%</div>
+            <Progress value={sysLoad?.gpu?.percent ?? 0} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
-              {systemMetrics.gpu.model}
+              {sysLoad?.gpu?.model || 'GPU'} {sysLoad?.gpu?.memory ? `· ${sysLoad.gpu.memory}` : ''}
             </p>
           </CardContent>
         </Card>
@@ -153,10 +195,10 @@ export default function Operations() {
             <HardDrive className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemMetrics.storage.usage}%</div>
-            <Progress value={systemMetrics.storage.usage} className="mt-2" />
+            <div className="text-2xl font-bold">{sysLoad?.disk?.percent ?? '—'}%</div>
+            <Progress value={sysLoad?.disk?.percent ?? 0} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
-              {systemMetrics.storage.available} / {systemMetrics.storage.total}
+              {fmtBytes(sysLoad?.disk?.available)} / {fmtBytes(sysLoad?.disk?.total)} 可用
             </p>
           </CardContent>
         </Card>
@@ -167,10 +209,10 @@ export default function Operations() {
             <Network className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemMetrics.network.usage}%</div>
-            <Progress value={systemMetrics.network.usage} className="mt-2" />
+            <div className="text-2xl font-bold">{typeof sysLoad?.network?.usage === 'number' ? sysLoad.network.usage : '—'}%</div>
+            <Progress value={typeof sysLoad?.network?.usage === 'number' ? sysLoad.network.usage : 0} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
-              {systemMetrics.network.bandwidth}
+              {sysLoad?.network?.bandwidth || '—'}
             </p>
           </CardContent>
         </Card>
@@ -190,21 +232,26 @@ export default function Operations() {
             <Card className="card-hover">
               <CardHeader>
                 <CardTitle>系统性能趋势</CardTitle>
-                <CardDescription>过去24小时的系统资源使用情况</CardDescription>
+                <CardDescription>实时系统资源使用情况（最近采样）</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={performanceData}>
+                  <LineChart data={perfHistory}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
+                    <XAxis dataKey="time" interval={4} />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} name="CPU" />
-                    <Line type="monotone" dataKey="memory" stroke="#22c55e" strokeWidth={2} name="内存" />
-                    <Line type="monotone" dataKey="gpu" stroke="#f59e0b" strokeWidth={2} name="GPU" />
+                    <Line type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} name="CPU(%)" dot={false} />
+                    <Line type="monotone" dataKey="memory" stroke="#22c55e" strokeWidth={2} name="内存(%)" dot={false} />
+                    {perfHistory.some(d => typeof d.gpu === 'number') && (
+                      <Line type="monotone" dataKey="gpu" stroke="#f59e0b" strokeWidth={2} name="GPU(%)" dot={false} />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
+                {sysError && (
+                  <p className="text-xs text-red-500 mt-2">{sysError}</p>
+                )}
               </CardContent>
             </Card>
 

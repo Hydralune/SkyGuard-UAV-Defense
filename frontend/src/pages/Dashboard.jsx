@@ -22,7 +22,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Loader2
+  Loader2,
+  ChevronDown
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -126,6 +127,7 @@ export default function Dashboard() {
   const [sysLoad, setSysLoad] = useState(null)
   const [sysLogs, setSysLogs] = useState([])
   const [sysError, setSysError] = useState(null)
+  const [logsExpanded, setLogsExpanded] = useState(false)
 
   const fetchSystemLoad = async () => {
     try {
@@ -169,6 +171,53 @@ export default function Dashboard() {
   const fmtTime = (ts) => {
     try { return new Date((typeof ts === 'number' ? ts * 1000 : ts)).toLocaleTimeString() } catch { return '' }
   }
+
+  // 迷你折线图（无需外部依赖）
+  const Sparkline = ({ data, color = '#3b82f6' }) => {
+    if (!Array.isArray(data) || data.length === 0) return null
+    const width = 120
+    const height = 36
+    const max = Math.max(...data)
+    const min = Math.min(...data)
+    const points = data
+      .map((v, i) => {
+        const x = (i / (data.length - 1)) * width
+        const y = height - ((v - min) / (max - min || 1)) * height
+        return `${x},${y}`
+      })
+      .join(' ')
+    return (
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="opacity-80">
+        <polyline fill="none" stroke={color} strokeWidth="2" points={points} />
+      </svg>
+    )
+  }
+
+  // 顶部统计卡片的模拟趋势数据（近7天）
+  const trendMock = {
+    drills: [2, 2, 3, 3, 4, 3, 3],
+    teams: [9, 10, 10, 11, 11, 12, 12],
+    success: [82.1, 84.2, 84.8, 85.7, 86.1, 86.9, 87.5]
+  }
+
+  const latestDrills = trendMock.drills[trendMock.drills.length - 1]
+  const prevDrills = trendMock.drills[trendMock.drills.length - 2] || latestDrills
+  const deltaDrills = latestDrills - prevDrills
+
+  const latestTeams = trendMock.teams[trendMock.teams.length - 1]
+  const weekTeamsBase = trendMock.teams[0]
+  const deltaTeamsWeek = latestTeams - weekTeamsBase
+
+  const latestSuccess = trendMock.success[trendMock.success.length - 1]
+  const prevSuccess = trendMock.success[trendMock.success.length - 2] || latestSuccess
+  const deltaSuccess = latestSuccess - prevSuccess
+
+  // 系统负载卡片折叠
+  const [loadExpanded, setLoadExpanded] = useState(false)
+  // 左侧三张卡片折叠
+  const [drillsExpanded, setDrillsExpanded] = useState(false)
+  const [teamsExpanded, setTeamsExpanded] = useState(false)
+  const [successExpanded, setSuccessExpanded] = useState(false)
 
   return (
     <div className="space-y-8">
@@ -248,55 +297,125 @@ export default function Dashboard() {
 
       {/* 系统状态概览 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="card-hover bg-blue-50 border-blue-200 text-blue-900">
+        <Card className="card-hover bg-blue-50 border-blue-200 text-blue-900 min-h-[128px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">活跃演练</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded p-1 hover:bg-blue-100/60"
+              onClick={() => setDrillsExpanded(v => !v)}
+              aria-label="切换活跃演练详情"
+              title={drillsExpanded ? '收起' : '展开'}
+            >
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${drillsExpanded ? 'rotate-180' : ''}`} />
+            </button>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">
-              +2 较昨日
-            </p>
+            <div className="flex items-end justify-between">
+              <div>
+                <div className="text-3xl font-bold">{latestDrills}</div>
+                <p className="text-xs text-muted-foreground">
+                  {deltaDrills >= 0 ? `+${Math.round(deltaDrills)}` : Math.round(deltaDrills)} 较昨日
+                </p>
+              </div>
+              <Sparkline data={trendMock.drills} color="#2563eb" />
+            </div>
+            {drillsExpanded && (
+              <div className="mt-2 text-xs space-y-1">
+                <div>今日新增演练：{deltaDrills >= 0 ? `+${Math.round(deltaDrills)}` : Math.round(deltaDrills)}，失败：0</div>
+                <div>峰值并发：4 场 · 平均时长：12 分钟</div>
+                <div className="text-[11px] text-blue-700/80">说明：活跃演练统计用于衡量系统当前训练强度与资源占用趋势。</div>
+              </div>
+            )}
           </CardContent>
         </Card>
-        <Card className="card-hover bg-green-50 border-green-200 text-green-900">
+        <Card className="card-hover bg-green-50 border-green-200 text-green-900 min-h-[128px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">参与团队</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded p-1 hover:bg-green-100/60"
+              onClick={() => setTeamsExpanded(v => !v)}
+              aria-label="切换参与团队详情"
+              title={teamsExpanded ? '收起' : '展开'}
+            >
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${teamsExpanded ? 'rotate-180' : ''}`} />
+            </button>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">
-              +3 较上周
-            </p>
+            <div className="flex items-end justify-between">
+              <div>
+                <div className="text-3xl font-bold">{latestTeams}</div>
+                <p className="text-xs text-muted-foreground">
+                  {deltaTeamsWeek >= 0 ? `+${deltaTeamsWeek}` : deltaTeamsWeek} 较上周
+                </p>
+              </div>
+              <Sparkline data={trendMock.teams} color="#16a34a" />
+            </div>
+            {teamsExpanded && (
+              <div className="mt-2 text-xs space-y-1">
+                <div>本周新增团队：{deltaTeamsWeek >= 0 ? `+${deltaTeamsWeek}` : deltaTeamsWeek} · 活跃成员：36</div>
+                <div>平均响应时延：120 ms · 完成率：93%</div>
+                <div className="text-[11px] text-green-700/80">说明：团队数据用于衡量协作参与度与平台粘性。</div>
+              </div>
+            )}
           </CardContent>
         </Card>
-        <Card className="card-hover bg-yellow-50 border-yellow-200 text-yellow-900">
+        <Card className="card-hover bg-yellow-50 border-yellow-200 text-yellow-900 min-h-[128px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">成功率</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded p-1 hover:bg-yellow-100/60"
+              onClick={() => setSuccessExpanded(v => !v)}
+              aria-label="切换成功率详情"
+              title={successExpanded ? '收起' : '展开'}
+            >
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${successExpanded ? 'rotate-180' : ''}`} />
+            </button>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">87.5%</div>
-            <p className="text-xs text-muted-foreground">
-              +5.2% 较上月
-            </p>
+            <div className="flex items-end justify-between">
+              <div>
+                <div className="text-3xl font-bold">{latestSuccess.toFixed(1)}%</div>
+                <p className="text-xs text-muted-foreground">
+                  {(deltaSuccess >= 0 ? `+${deltaSuccess.toFixed(1)}` : deltaSuccess.toFixed(1))}% 较昨日
+                </p>
+              </div>
+              <Sparkline data={trendMock.success} color="#ca8a04" />
+            </div>
+            {successExpanded && (
+              <div className="mt-2 text-xs space-y-1">
+                <div>过去24小时提升：{(deltaSuccess >= 0 ? `+${deltaSuccess.toFixed(1)}` : deltaSuccess.toFixed(1))}% · 样本量：1.2k</div>
+                <div>评估标准：mAP@0.5 · 统计口径：已完成任务</div>
+                <div className="text-[11px] text-yellow-700/80">说明：成功率反映模型在对抗条件下的整体稳定性与鲁棒性。</div>
+              </div>
+            )}
           </CardContent>
         </Card>
-        <Card className="card-hover bg-red-50 border-red-200 text-red-900">
+        <Card className="card-hover bg-red-50 border-red-200 text-red-900 min-h-[128px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">系统负载</CardTitle>
-            <Cpu className="h-4 w-4 text-muted-foreground" />
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded p-1 hover:bg-red-100/60"
+              onClick={() => setLoadExpanded(v => !v)}
+              aria-label="切换系统负载详情"
+              title={loadExpanded ? '收起' : '展开'}
+            >
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${loadExpanded ? 'rotate-180' : ''}`} />
+            </button>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{sysLoad?.cpu_percent ?? '—'}%</div>
+            <div className="text-3xl font-bold">{sysLoad?.cpu_percent ?? '—'}%</div>
             <Progress value={sysLoad?.cpu_percent ?? 0} className="mt-2" />
-            <div className="mt-2 text-xs space-y-1">
-              <div>内存：{fmtBytes(sysLoad?.memory?.used)} / {fmtBytes(sysLoad?.memory?.total)}（{sysLoad?.memory?.percent ?? '—'}%）</div>
-              <div>磁盘：{fmtBytes(sysLoad?.disk?.used)} / {fmtBytes(sysLoad?.disk?.total)}（{sysLoad?.disk?.percent ?? '—'}%）</div>
-              <div>平均负载：{Array.isArray(sysLoad?.load_avg) ? sysLoad.load_avg.map(x => x.toFixed?.(2)).join(', ') : '—'}</div>
-            </div>
+            {loadExpanded && (
+              <div className="mt-2 text-xs space-y-1">
+                <div>内存：{fmtBytes(sysLoad?.memory?.used)} / {fmtBytes(sysLoad?.memory?.total)}（{sysLoad?.memory?.percent ?? '—'}%）</div>
+                <div>磁盘：{fmtBytes(sysLoad?.disk?.used)} / {fmtBytes(sysLoad?.disk?.total)}（{sysLoad?.disk?.percent ?? '—'}%）</div>
+                <div>平均负载：{Array.isArray(sysLoad?.load_avg) ? sysLoad.load_avg.map(x => x.toFixed?.(2)).join(', ') : '—'}</div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -459,20 +578,35 @@ export default function Dashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* 系统日志 */}
+      {/* 系统日志（可折叠） */}
       <Card className="card-hover">
-        <CardHeader>
-          <CardTitle>系统日志</CardTitle>
-          <CardDescription>全局攻防任务的状态变化与错误汇总</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle>系统日志</CardTitle>
+            <CardDescription>全局攻防任务的状态变化与错误汇总</CardDescription>
+          </div>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded p-1 hover:bg-muted/60"
+            onClick={() => setLogsExpanded(v => !v)}
+            aria-label="切换日志展开"
+            title={logsExpanded ? '收起' : '展开'}
+          >
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${logsExpanded ? 'rotate-180' : ''}`} />
+          </button>
         </CardHeader>
-        <CardContent>
+        <CardContent className={`${logsExpanded ? 'max-h-[520px]' : 'max-h-[260px]'} overflow-auto`}>
           {sysError && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>{sysError}</AlertDescription>
             </Alert>
           )}
-          <div className="space-y-3">
-            {(sysLogs || []).map((log, idx) => (
+          {(() => {
+            const previewCount = 6
+            const logs = Array.isArray(sysLogs) ? (logsExpanded ? sysLogs : sysLogs.slice(0, previewCount)) : []
+            return (
+              <div className="space-y-3">
+                {logs.map((log, idx) => (
               <div key={`sys-log-${idx}`} className="flex items-start space-x-4">
                 <div className={`w-2 h-2 rounded-full mt-2 ${log.severity === 'error' ? 'bg-red-500' : log.severity === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
                 <div className="flex-1">
@@ -495,11 +629,16 @@ export default function Dashboard() {
                   {log.severity}
                 </Badge>
               </div>
-            ))}
-            {(!sysLogs || sysLogs.length === 0) && (
-              <div className="text-sm text-muted-foreground">暂无日志</div>
-            )}
-          </div>
+                ))}
+                {(!sysLogs || sysLogs.length === 0) && (
+                  <div className="text-sm text-muted-foreground">暂无日志</div>
+                )}
+                {Array.isArray(sysLogs) && sysLogs.length > previewCount && !logsExpanded && (
+                  <div className="text-xs text-muted-foreground pt-1">已显示最近 {previewCount} 条，点击右上角展开查看全部…</div>
+                )}
+              </div>
+            )
+          })()}
         </CardContent>
       </Card>
     </div>

@@ -20,6 +20,7 @@ from utils.dataset_manager import DatasetManager
 from evaluate_defense import DefenseEvaluator  # 防御评估器
 from evaluate_defense import load_defense as load_input_defense  # 动态加载输入预处理防御
 from typing import Optional, Dict, Any
+from algorithms.defenses.statistical_detector import StatisticalDetector
 
 def update_progress(task_id, progress_data):
     """向进度API发送进度更新"""
@@ -743,6 +744,347 @@ def run_defense_eval_task(task_id: Optional[str] = None,
             f.write("\n")
             traceback.print_exc(file=f)
         print(f"Error in defense eval task {task_id}: {str(e)}")
+        traceback.print_exc()
+        raise e
+
+
+@celery_app.task(name="defense.detect.statistical")
+def run_statistical_detection_task(
+    task_id: Optional[str] = None,
+    model_name: str = "yolov8s-visdrone",
+    dataset_name: str = "VisDrone",
+    num_images: int = 10,
+    conf_threshold: float = 0.25,
+    iou_threshold: float = 0.5,
+    threshold: float = 0.35,
+    alpha: float = 0.6,
+    hf_ratio: float = 0.1,
+    attack_name: Optional[str] = None,
+    eps: Optional[str] = "8/255",
+    alpha_attack: Optional[str] = "2/255",
+    steps: Optional[int] = 10,
+):
+    """统计检测型防御任务。
+
+    - 若指定 attack_name，则执行 原始→对抗→检测 三段流程；否则仅在原始图像上进行可疑检测并可视化。
+    - 输出目录与字段尽量复用 defense.eval，以便前端/可视化页面直接兼容。
+    """
+    if task_id is None:
+        task_id = str(uuid4())
+
+    try:
+        save_dir = os.path.join("results", "defense_results", task_id)
+        det_dir = os.path.join(save_dir, "original_results")
+        adv_dir = os.path.join(save_dir, "adversarial_results")
+        def_dir = os.path.join(save_dir, "defended_results")
+        cmp_dir = os.path.join(save_dir, "comparison_results")
+        plots_dir = os.path.join(save_dir, "plots")
+        metrics_dir = os.path.join(save_dir, "metrics")
+        for d in (save_dir, det_dir, adv_dir, def_dir, cmp_dir, plots_dir, metrics_dir):
+            os.makedirs(d, exist_ok=True)
+
+        # 模型用于绘制检测框（保持展示一致性）
+        model = ModelManager.load_yolov8_model(model_name=model_name)
+        model.overrides['conf'] = conf_threshold
+        model.overrides['iou'] = iou_threshold
+
+        # 准备检测器
+        detector = StatisticalDetector(threshold=threshold, alpha=alpha, hf_ratio=hf_ratio)
+
+        # 攻击可选
+        attack = None
+        attack_params: Dict[str, Any] = {}
+        if attack_name:
+            eps_val = parse_fraction(str(eps))
+            alpha_val = parse_fraction(str(alpha_attack))
+            attack_params = {"eps": eps_val}
+            if attack_name.lower() == "pgd":
+                attack_params.update({"alpha": alpha_val, "steps": steps or 10})
+            elif attack_name.lower() == "fgsm":
+                attack_params.update({"steps": steps or 1})
+            attack = load_attack_by_name(attack_name, **attack_params)
+
+        # 数据
+        image_paths = DatasetManager.get_test_images(
+            dataset_name=dataset_name,
+            num_images=(num_images if num_images != -1 else None),
+            random_select=(num_images != -1 and num_images is not None)
+        )
+        if not image_paths:
+            raise ValueError(f"未找到 {dataset_name} 数据集图像，请检查数据集目录是否存在")
+
+        total_images = len(image_paths)
+        update_progress(task_id, {
+            "status": "running",
+            "defense_type": "statistical_detector",
+            "attack_name": attack_name,
+            "current_image": 0,
+            "total_images": total_images,
+            "percent": 0,
+            "message": f"开始执行统计检测（攻击: {attack_name or 'none'}）"
+        })
+
+        import time as _time
+        import matplotlib.pyplot as _plt
+
+        # 与通用防御评估对齐的计数容器
+        m = {
+            "total_images": 0,
+            "original_detections": 0,
+            "adversarial_detections": 0,
+            "defended_detections": 0,
+            "inference_times": [],
+            "attack_times": [],
+            "defense_times": [],  # 此处指统计检测耗时
+            "original_by_class": {},
+            "adversarial_by_class": {},
+            "defended_by_class": {},
+            "per_image": {"o": [], "a": [], "d": []},
+        }
+        # 统计检测专用
+        det_extra = {
+            "detections_marked": 0,
+            "scores": [],
+        }
+
+        for idx, img_path in enumerate(image_paths):
+            img_bgr = cv2.imread(img_path)
+            if img_bgr is None:
+                continue
+            img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+            # 原始模型推理（用于可视化检测框）
+            t0 = _time.time()
+            orig_res = model.predict(img_rgb)
+            infer_t = _time.time() - t0
+
+            # 可选：生成对抗图像
+            cur_img = img_rgb
+            if attack is not None:
+                t1 = _time.time()
+                tensor = torch.from_numpy(img_rgb.transpose(2, 0, 1)).float().unsqueeze(0) / 255.0
+                try:
+                    adv_tensor = attack(model, tensor)
+                except Exception:
+                    adv_tensor = tensor
+                adv_img = adv_tensor[0].permute(1, 2, 0).cpu().numpy()
+                adv_img = np.clip(adv_img * 255.0, 0, 255).astype(np.uint8)
+                cur_img = np.ascontiguousarray(adv_img)
+                # 对抗样本检测结果（用于可视化与计数）
+                adv_res = model.predict(cur_img)
+                cv2.imwrite(
+                    os.path.join(adv_dir, f"{idx+1:04d}_" + os.path.basename(img_path)),
+                    adv_res[0].plot(),
+                )
+                attack_t = _time.time() - t1
+            else:
+                adv_res = None
+                attack_t = 0.0
+
+            # 统计检测
+            t2 = _time.time()
+            is_adv, score = detector.detect(cur_img)
+            det_t = _time.time() - t2
+
+            # 可视化：在“带检测框”的图上叠加统计检测标签
+            base_rgb = cv2.cvtColor((adv_res[0].plot() if adv_res is not None else orig_res[0].plot()), cv2.COLOR_BGR2RGB)
+            vis = detector.visualize(base_rgb, is_adv, score)
+
+            # 保存：原始检测可视化、检测器可视化到 defended_results 以复用前端展示
+            name = f"{idx+1:04d}_" + os.path.basename(img_path)
+            cv2.imwrite(os.path.join(det_dir, name), orig_res[0].plot())
+            cv2.imwrite(os.path.join(def_dir, name), cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
+
+            # 生成三联图 Original | Adversarial | Detector-Overlay
+            try:
+                h, w = img_bgr.shape[:2]
+                comp = np.zeros((h, w * 3, 3), dtype=np.uint8)
+                comp[:, :w] = cv2.cvtColor(orig_res[0].plot(), cv2.COLOR_BGR2RGB)
+                comp[:, w:2*w] = cv2.cvtColor((adv_res[0].plot() if adv_res is not None else orig_res[0].plot()), cv2.COLOR_BGR2RGB)
+                comp[:, 2*w:] = vis
+                cv2.imwrite(os.path.join(cmp_dir, name), cv2.cvtColor(comp, cv2.COLOR_RGB2BGR))
+            except Exception:
+                pass
+
+            # 指标
+            m["total_images"] += 1
+            m["inference_times"].append(float(infer_t))
+            m["attack_times"].append(float(attack_t))
+            m["defense_times"] .append(float(det_t))
+            # 计数
+            m["original_detections"] += len(orig_res[0].boxes)
+            # 类别累计（原始）
+            for b in orig_res[0].boxes:
+                try:
+                    cls = int(b.cls[0].item())
+                except Exception:
+                    continue
+                name = model.names.get(cls, str(cls))
+                m["original_by_class"][name] = m["original_by_class"].get(name, 0) + 1
+            if adv_res is not None:
+                m["adversarial_detections"] += len(adv_res[0].boxes)
+                m["defended_detections"] += len(adv_res[0].boxes)
+                for b in adv_res[0].boxes:
+                    try:
+                        cls = int(b.cls[0].item())
+                    except Exception:
+                        continue
+                    name = model.names.get(cls, str(cls))
+                    m["adversarial_by_class"][name] = m["adversarial_by_class"].get(name, 0) + 1
+                    m["defended_by_class"][name] = m["defended_by_class"].get(name, 0) + 1
+            else:
+                m["defended_detections"] += len(orig_res[0].boxes)
+                for b in orig_res[0].boxes:
+                    try:
+                        cls = int(b.cls[0].item())
+                    except Exception:
+                        continue
+                    name = model.names.get(cls, str(cls))
+                    m["defended_by_class"][name] = m["defended_by_class"].get(name, 0) + 1
+            # 每图检测数（用于曲线）
+            m["per_image"]["o"].append(len(orig_res[0].boxes))
+            m["per_image"]["a"].append(len(adv_res[0].boxes) if adv_res is not None else len(orig_res[0].boxes))
+            m["per_image"]["d"].append(len(adv_res[0].boxes) if adv_res is not None else len(orig_res[0].boxes))
+            det_extra["detections_marked"] += int(is_adv)
+            det_extra["scores"].append(float(score))
+
+            percent = min(100, int((idx + 1) / total_images * 100))
+            update_progress(task_id, {
+                "status": "running",
+                "defense_type": "statistical_detector",
+                "attack_name": attack_name,
+                "current_image": idx + 1,
+                "total_images": total_images,
+                "percent": percent,
+                "message": f"统计检测处理中 {idx + 1}/{total_images}",
+            })
+
+        # 汇总与图表
+        import numpy as _np, json as _json
+        summary = {
+            "avg_inference_time": float(_np.mean(m["inference_times"])) if m["inference_times"] else 0.0,
+            "avg_attack_time": float(_np.mean(m["attack_times"])) if m["attack_times"] else 0.0,
+            "avg_defense_time": float(_np.mean(m["defense_times"])) if m["defense_times"] else 0.0,
+            # 复用前端期望字段名
+            "detection_retention_rate": (m["defended_detections"] / m["original_detections"]) if m["original_detections"] else 0.0,
+            "attack_reduction_rate": (1.0 - (m["adversarial_detections"] / m["original_detections"])) if m["original_detections"] else 0.0,
+            "defense_recovery_rate": 0.0,
+            # 统计检测专有
+            "suspicious_rate": (det_extra["detections_marked"] / m["total_images"]) if m["total_images"] else 0.0,
+            "score_mean": float(_np.mean(det_extra["scores"])) if det_extra["scores"] else 0.0,
+            "score_std": float(_np.std(det_extra["scores"])) if det_extra["scores"] else 0.0,
+            # 类别脆弱性/恢复（统计检测不恢复，值多为0，但供前端展示）
+            "class_vulnerability_attack": {k: (1.0 - (m["adversarial_by_class"].get(k, 0) / v)) if v else 0.0 for k, v in m["original_by_class"].items()},
+            "class_recovery_defense": {k: ((m["defended_by_class"].get(k, 0) - m["adversarial_by_class"].get(k, 0)) / v) if v else 0.0 for k, v in m["original_by_class"].items()},
+        }
+
+        # 直方图
+        try:
+            _plt.figure(figsize=(6,4))
+            _plt.hist(det_extra["scores"], bins=20, color="#0ea5e9", alpha=0.85)
+            _plt.axvline(x=threshold, color="#ef4444", linestyle="--", label=f"thr={threshold:.2f}")
+            _plt.legend(); _plt.title("Statistical Detector Scores"); _plt.xlabel("score"); _plt.ylabel("count")
+            _plt.tight_layout(); _plt.savefig(os.path.join(plots_dir, "statistical_scores_hist.png")); _plt.close()
+        except Exception:
+            pass
+
+        # 生成更多分析图，与预处理防御保持一致
+        try:
+            # 三段检测数对比
+            _plt.figure(figsize=(6,4))
+            _plt.bar(["Original","Adversarial","Defended"], [m["original_detections"], m["adversarial_detections"], m["defended_detections"]], color=["#3b82f6","#ef4444","#22c55e"])
+            _plt.ylabel("Detections"); _plt.title("Detection Count (O/A/D)"); _plt.tight_layout()
+            _plt.savefig(os.path.join(plots_dir, "detection_count_triplet.png")); _plt.close()
+
+            # 类别Top10三段分布
+            if m["original_by_class"]:
+                items = sorted(m["original_by_class"].items(), key=lambda x: x[1], reverse=True)[:10]
+                labels = [k for k,_ in items]
+                o = [m["original_by_class"].get(k,0) for k in labels]
+                a = [m["adversarial_by_class"].get(k,0) for k in labels]
+                d = [m["defended_by_class"].get(k,0) for k in labels]
+                x = _np.arange(len(labels)); width = 0.27
+                _plt.figure(figsize=(10,5))
+                _plt.bar(x - width, o, width, label='Orig', color='#3b82f6')
+                _plt.bar(x, a, width, label='Adv', color='#ef4444')
+                _plt.bar(x + width, d, width, label='Def', color='#22c55e')
+                _plt.xticks(x, labels, rotation=45, ha='right')
+                _plt.ylabel('Detections'); _plt.title('Top-10 Class Distribution (O/A/D)')
+                _plt.legend(); _plt.tight_layout(); _plt.savefig(os.path.join(plots_dir, 'class_distribution_triplet.png')); _plt.close()
+
+                # 类别恢复率
+                rec = [summary["class_recovery_defense"].get(k,0.0) for k in labels]
+                _plt.figure(figsize=(10,4))
+                _plt.bar(labels, rec, color=['#22c55e' if v>0 else '#ef4444' for v in rec])
+                _plt.xticks(rotation=45, ha='right'); _plt.ylabel('Recovery (Def-Adv)/Orig')
+                _plt.title('Class-wise Recovery (higher=better)')
+                _plt.tight_layout(); _plt.savefig(os.path.join(plots_dir, 'recovery_by_class.png'))
+                _plt.close()
+
+            # 每图检测数曲线
+            if m["per_image"]["o"]:
+                _plt.figure(figsize=(10,4))
+                x = _np.arange(len(m["per_image"]["o"]))
+                _plt.plot(x, m["per_image"]["o"], label='Orig', color='#3b82f6')
+                _plt.plot(x, m["per_image"]["a"], label='Adv', color='#ef4444')
+                _plt.plot(x, m["per_image"]["d"], label='Def', color='#22c55e')
+                _plt.xlabel('Image idx'); _plt.ylabel('Detections'); _plt.title('Detections per Image (O/A/D)')
+                _plt.legend(); _plt.tight_layout(); _plt.savefig(os.path.join(plots_dir,'detection_counts_by_image.png')); _plt.close()
+
+                # 保留率曲线
+                o = _np.array(m["per_image"]["o"], dtype=float)
+                adv_rel = (_np.array(m["per_image"]["a"], dtype=float) / _np.maximum(o, 1))
+                def_rel = (_np.array(m["per_image"]["d"], dtype=float) / _np.maximum(o, 1))
+                _plt.figure(figsize=(10,4))
+                _plt.plot(x, adv_rel, label='Adv/Orig', color='#ef4444')
+                _plt.plot(x, def_rel, label='Def/Orig', color='#22c55e')
+                _plt.ylim(0, 1.2)
+                _plt.xlabel('Image idx'); _plt.ylabel('Ratio'); _plt.title('Retention per Image')
+                _plt.legend(); _plt.tight_layout(); _plt.savefig(os.path.join(plots_dir,'retention_by_image.png')); _plt.close()
+        except Exception as _e:
+            print(f"生成统计检测分析图失败: {_e}")
+
+        # 保存 metrics
+        out = {
+            "total_images": m["total_images"],
+            "original_detections": m["original_detections"],
+            "adversarial_detections": m["adversarial_detections"],
+            "defended_detections": m["defended_detections"],
+            "summary": summary,
+            "scores": det_extra["scores"],
+            "params": {"threshold": threshold, "alpha": alpha, "hf_ratio": hf_ratio},
+            "attack": {"name": attack_name, **attack_params} if attack_name else None,
+        }
+        with open(os.path.join(metrics_dir, "defense_metrics.json"), "w", encoding="utf-8") as f:
+            _json.dump(out, f, ensure_ascii=False, indent=2)
+
+        update_progress(task_id, {
+            "status": "completed",
+            "defense_type": "statistical_detector",
+            "attack_name": attack_name,
+            "current_image": total_images,
+            "total_images": total_images,
+            "percent": 100,
+            "message": "统计检测完成",
+            "metrics": summary,
+        })
+
+        return {
+            "status": "Completed",
+            "result_path": save_dir,
+            "num_images_tested": total_images,
+            "defense_type": "statistical_detector",
+            "metrics": summary,
+        }
+
+    except Exception as e:
+        error_path = os.path.join("results", "defense_results", task_id, "error.txt")
+        os.makedirs(os.path.dirname(error_path), exist_ok=True)
+        with open(error_path, "w") as f:
+            f.write(str(e))
+            f.write("\n")
+            traceback.print_exc(file=f)
+        print(f"Error in statistical detection task {task_id}: {str(e)}")
         traceback.print_exc()
         raise e
 
