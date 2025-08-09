@@ -1217,40 +1217,7 @@ export default function AttackScenarios() {
                 </p>
               </div>
               
-              {resultImages.length > 0 && (
-                <>
-                  <Separator className="my-4" />
-                  
-                  <div className="space-y-4">
-                    <Label className="text-base font-medium">结果图像</Label>
-                    <div className="grid grid-cols-1 gap-4">
-                      {resultImages.map((image, index) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm">{image.title}</Label>
-                            <Button variant="ghost" size="sm" asChild>
-                              <a href={image.url} target="_blank" rel="noopener noreferrer">
-                                <Image className="h-4 w-4 mr-1" />
-                                查看原图
-                              </a>
-                            </Button>
-                          </div>
-                          <div className="relative border rounded-md overflow-hidden">
-                            <img 
-                              src={image.url} 
-                              alt={image.title} 
-                              className="w-full h-auto object-contain" 
-                              onError={(e) => {
-                                e.target.src = 'https://placehold.co/600x400?text=图像加载失败';
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
+              {/* 结果图像展示已按需求移除。可在“过程可视化”页面查看完整结果。*/}
             </CardContent>
           </Card>
         </div>

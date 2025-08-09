@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,31 +29,60 @@ import {
 } from 'lucide-react'
 
 export default function DefenseScenarios() {
+  const PERSIST_KEY = 'defense_scenarios_state_v1'
+  const hasRestoredRef = useRef(false)
+
   const [selectedDefenseType, setSelectedDefenseType] = useState('adversarial_training')
   const [selectedModel, setSelectedModel] = useState('yolov8s')
   const [selectedDataset, setSelectedDataset] = useState('Visdrone')
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('pgd_training')
   const [parameters, setParameters] = useState({
+    // 通用训练参数
     adversarial_ratio: 0.5,
     learning_rate: 0.001,
     epochs: 10,
     batch_size: 32,
-    defense_strength: 0.7,
     regularization: 0.01,
+    // 对抗训练细节
     max_grad_steps: 3,
     eps: 8/255,
     alpha: 2/255,
     steps: 10,
     freelb_batch_size: 32,
-    freelb_steps: 8
+    freelb_steps: 8,
+    // 预处理防御评估参数
+    num_images: 10,
+    conf_threshold: 0.25,
+    iou_threshold: 0.5,
+    // 具体预处理防御参数
+    ksize: 5,
+    sigma: 0,
+    quality: 85,
+    bits: 5,
+    // UI展示参数
+    defense_strength: 0.7,
   })
-  const [isTraining, setIsTraining] = useState(false)
+  const [isRunning, setIsRunning] = useState(false)
   const [trainingProgress, setTrainingProgress] = useState(0)
+  const [taskId, setTaskId] = useState(null)
+  const [celeryTaskId, setCeleryTaskId] = useState(null)
+  const [taskStatus, setTaskStatus] = useState(null)
+  const [progress, setProgress] = useState(0)
+  const [logMessages, setLogMessages] = useState([])
   const handleDefenseTypeChange = (value) => {
     setSelectedDefenseType(value)
     const defaultAlg = defenseAlgorithms[value]?.[0]?.id
     if (defaultAlg) setSelectedAlgorithm(defaultAlg)
   }
+
+  // 前后端命名映射
+  const backendModelMap = {
+    yolov8s: 'yolov8s-visdrone',
+    yolov5: 'yolov5-visdrone',
+    faster_rcnn: 'faster_rcnn-visdrone',
+    ssd: 'ssd-visdrone'
+  }
+  const backendDatasetMap = { Visdrone: 'VisDrone' }
 
   const defenseAlgorithms = {
     adversarial_training: [
@@ -100,21 +129,230 @@ export default function DefenseScenarios() {
     setParameters(prev => ({ ...prev, [key]: value }))
   }
 
-  const handleStartTraining = () => {
-    setIsTraining(true)
-    setTrainingProgress(0)
-    
-    const interval = setInterval(() => {
-      setTrainingProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsTraining(false)
-          return 100
-        }
-        return prev + 2
-      })
-    }, 200)
+  // 恢复与持久化
+  useEffect(() => {
+    if (hasRestoredRef.current) return
+    try {
+      const raw = localStorage.getItem(PERSIST_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw)
+        if (saved.selectedDefenseType) setSelectedDefenseType(saved.selectedDefenseType)
+        if (saved.selectedModel) setSelectedModel(saved.selectedModel)
+        if (saved.selectedDataset) setSelectedDataset(saved.selectedDataset)
+        if (saved.selectedAlgorithm) setSelectedAlgorithm(saved.selectedAlgorithm)
+        if (saved.parameters) setParameters(prev => ({ ...prev, ...saved.parameters }))
+        if (typeof saved.isRunning === 'boolean') setIsRunning(saved.isRunning)
+        if (saved.taskId) setTaskId(saved.taskId)
+        if (saved.celeryTaskId) setCeleryTaskId(saved.celeryTaskId)
+        if (typeof saved.progress === 'number') setProgress(saved.progress)
+        if (saved.taskStatus) setTaskStatus(saved.taskStatus)
+        if (Array.isArray(saved.logMessages)) setLogMessages(saved.logMessages)
+      }
+    } catch (_) {}
+    hasRestoredRef.current = true
+  }, [])
+
+  useEffect(() => {
+    const stateToSave = {
+      selectedDefenseType,
+      selectedModel,
+      selectedDataset,
+      selectedAlgorithm,
+      parameters,
+      isRunning,
+      taskId,
+      celeryTaskId,
+      taskStatus,
+      progress,
+      logMessages: (logMessages || []).slice(0, 100),
+    }
+    try { localStorage.setItem(PERSIST_KEY, JSON.stringify(stateToSave)) } catch (_) {}
+  }, [selectedDefenseType, selectedModel, selectedDataset, selectedAlgorithm, parameters, isRunning, taskId, celeryTaskId, taskStatus, progress, logMessages])
+
+  // 日志
+  const addLogMessage = (message, type = 'info') => {
+    const uniqueId = `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    setLogMessages(prev => ([{ id: uniqueId, message, type, timestamp: new Date().toLocaleTimeString() }, ...prev]).slice(0, 100))
   }
+
+  // 轮询任务状态（通用，用celeryTaskId）
+  useEffect(() => {
+    let intervalId
+    if (celeryTaskId && isRunning) {
+      intervalId = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/task/${celeryTaskId}`)
+          if (!response.ok) throw new Error(`获取任务状态失败: ${response.status}`)
+          const data = await response.json()
+          setTaskStatus(data)
+          if (data.progress) setProgress(data.progress)
+          else if (data.percent) setProgress(data.percent)
+
+          if (data.message && data.message !== '任务进行中' && data.message !== '任务完成') {
+            addLogMessage(data.message)
+          }
+
+          if (data.state === 'SUCCESS' || data.status === 'completed') {
+            setIsRunning(false)
+            clearInterval(intervalId)
+            addLogMessage('任务完成', 'success')
+            setTimeout(() => {
+              const visPageUrl = `${window.location.origin}/visualization?task_id=${taskId}`
+              addLogMessage(`请在<a href="${visPageUrl}" target="_blank" class="text-blue-500 hover:underline">可视化页面</a>查看完整结果`, 'info')
+            }, 500)
+          } else if (data.state === 'FAILURE' || data.status === 'failed') {
+            setIsRunning(false)
+            clearInterval(intervalId)
+            const errorMsg = data.error || data.message || '未知错误'
+            addLogMessage(`任务失败: ${errorMsg}`, 'error')
+          }
+        } catch (error) {
+          console.error('获取任务状态失败:', error)
+        }
+      }, 2000)
+    }
+    return () => { if (intervalId) clearInterval(intervalId) }
+  }, [celeryTaskId, isRunning])
+
+  // 启动防御任务（根据类型分流）
+  const handleStart = async () => {
+    try {
+      setIsRunning(true)
+      setTaskId(null)
+      setCeleryTaskId(null)
+      setTaskStatus(null)
+      setProgress(0)
+      setTrainingProgress(0)
+      setLogMessages([])
+
+      addLogMessage('准备开始防御任务...')
+
+      if (selectedDefenseType === 'adversarial_training') {
+        // 对抗训练
+        const mapAlg = {
+          pgd_training: 'pgd',
+          fgm: 'fgm',
+          freeadv: 'freeat',
+          yopo: 'yopo',
+          freelb: 'freelb',
+        }
+        const params = new URLSearchParams({
+          defense_type: mapAlg[selectedAlgorithm] || 'pgd',
+          base_model: 'yolov8s.pt',
+          data_yaml: 'backend/datasets/VisDrone_Dataset/visdrone.yaml',
+          epochs: `${parameters.epochs}`,
+          imgsz: '640',
+          batch: `${parameters.batch_size}`,
+          device: '0',
+          eps: `${parameters.eps}`,
+          alpha: `${parameters.alpha}`,
+          steps: `${parameters.steps}`,
+          attack_ratio: `${parameters.adversarial_ratio}`,
+        })
+
+        const response = await fetch(`/api/defense/train?${params.toString()}`, { method: 'POST' })
+        if (!response.ok) throw new Error(`API返回错误: ${response.status}`)
+        const data = await response.json()
+        setTaskId(data.task_id)
+        setCeleryTaskId(data.celery_task_id)
+        addLogMessage(`训练任务已提交，任务ID: ${data.task_id}`)
+        addLogMessage(`Celery任务ID: ${data.celery_task_id}`)
+      } else if (selectedDefenseType === 'preprocessing') {
+        // 输入预处理类防御评估
+        const mapPre = {
+          gaussian_blur: 'gaussian_blur',
+          median_filter: 'median_blur',
+          jpeg_compression: 'jpeg_compression',
+          bit_depth_reduction: 'bit_depth_reduction',
+        }
+        const defenseType = mapPre[selectedAlgorithm] || 'gaussian_blur'
+        const params = new URLSearchParams({
+          defense_type: defenseType,
+          model_name: backendModelMap[selectedModel] || selectedModel || 'yolov8s-visdrone',
+          dataset_name: backendDatasetMap[selectedDataset] || selectedDataset || 'VisDrone',
+          num_images: `${parameters.num_images}`,
+          conf_threshold: `${parameters.conf_threshold}`,
+          iou_threshold: `${parameters.iou_threshold}`,
+        })
+        // 具体算法参数
+        if (defenseType === 'gaussian_blur') {
+          params.append('ksize', `${parameters.ksize}`)
+          params.append('sigma', `${parameters.sigma}`)
+        } else if (defenseType === 'median_blur') {
+          params.append('ksize', `${parameters.ksize}`)
+        } else if (defenseType === 'jpeg_compression') {
+          params.append('quality', `${parameters.quality}`)
+        } else if (defenseType === 'bit_depth_reduction') {
+          params.append('bits', `${parameters.bits}`)
+        }
+
+        const response = await fetch(`/api/defense/run?${params.toString()}`, { method: 'POST' })
+        if (!response.ok) throw new Error(`API返回错误: ${response.status}`)
+        const data = await response.json()
+        setTaskId(data.task_id)
+        setCeleryTaskId(data.celery_task_id)
+        addLogMessage(`评估任务已提交，任务ID: ${data.task_id}`)
+        addLogMessage(`Celery任务ID: ${data.celery_task_id}`)
+      } else if (selectedDefenseType === 'detection') {
+        // 映射 feature_squeezing → bit_depth_reduction；其余暂未实现
+        if (selectedAlgorithm === 'feature_squeezing') {
+          const params = new URLSearchParams({
+            defense_type: 'bit_depth_reduction',
+            model_name: backendModelMap[selectedModel] || selectedModel || 'yolov8s-visdrone',
+            dataset_name: backendDatasetMap[selectedDataset] || selectedDataset || 'VisDrone',
+            num_images: `${parameters.num_images}`,
+            conf_threshold: `${parameters.conf_threshold}`,
+            iou_threshold: `${parameters.iou_threshold}`,
+            bits: `${parameters.bits}`,
+          })
+          const response = await fetch(`/api/defense/run?${params.toString()}`, { method: 'POST' })
+          if (!response.ok) throw new Error(`API返回错误: ${response.status}`)
+          const data = await response.json()
+          setTaskId(data.task_id)
+          setCeleryTaskId(data.celery_task_id)
+          addLogMessage(`检测类（特征压缩）任务已提交，任务ID: ${data.task_id}`)
+        } else {
+          addLogMessage('该检测型防御暂未实现后端，敬请期待', 'error')
+          setIsRunning(false)
+        }
+      }
+
+      // 显示成功提示
+      const alertElement = document.createElement('div')
+      alertElement.innerHTML = `
+        <div class="fixed top-4 right-4 z-50 max-w-md">
+          <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+            <strong class="font-bold">防御任务已提交</strong>
+            <span class="block sm:inline"> 正在执行...</span>
+            <button class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.parentElement.remove()">
+              <span class="text-xl">&times;</span>
+            </button>
+          </div>
+        </div>
+      `
+      document.body.appendChild(alertElement.firstElementChild)
+      setTimeout(() => { if (alertElement.firstElementChild?.parentElement) alertElement.firstElementChild.remove() }, 4000)
+    } catch (error) {
+      console.error('启动防御失败:', error)
+      setIsRunning(false)
+      const alertElement = document.createElement('div')
+      alertElement.innerHTML = `
+        <div class="fixed top-4 right-4 z-50 max-w-md">
+          <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong class="font-bold">启动防御失败</strong>
+            <span class="block sm:inline">${error.message}</span>
+            <button class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.parentElement.remove()">
+              <span class="text-xl">&times;</span>
+            </button>
+          </div>
+        </div>
+      `
+      document.body.appendChild(alertElement.firstElementChild)
+      setTimeout(() => { if (alertElement.firstElementChild?.parentElement) alertElement.firstElementChild.remove() }, 5000)
+    }
+  }
+
+  const handleStartTraining = () => handleStart()
 
   return (
     <div className="space-y-6">
@@ -697,39 +935,39 @@ export default function DefenseScenarios() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button 
-                onClick={handleStartTraining}
-                disabled={isTraining}
+                onClick={handleStart}
+                disabled={isRunning}
                 className="w-full"
                 size="lg"
               >
-                {isTraining ? (
+                {isRunning ? (
                   <>
                     <Pause className="h-4 w-4 mr-2" />
-                    训练中...
+                    执行中...
                   </>
                 ) : (
                   <>
                     <Play className="h-4 w-4 mr-2" />
-                    开始训练
+                    开始执行
                   </>
                 )}
               </Button>
 
-              {isTraining && (
+              {isRunning && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>训练进度</span>
-                    <span>{trainingProgress}%</span>
+                    <span>任务进度</span>
+                    <span>{progress}%</span>
                   </div>
-                  <Progress value={trainingProgress} />
+                  <Progress value={progress} />
                   <p className="text-xs text-muted-foreground">
-                    Epoch {Math.floor(trainingProgress / 10)}/10 - 正在训练防御模型...
+                    {taskStatus?.status || '正在执行防御任务...'}
                   </p>
                 </div>
               )}
 
               <div className="flex space-x-2">
-                <Button variant="outline" className="flex-1" disabled={!isTraining}>
+                <Button variant="outline" className="flex-1" disabled={!isRunning}>
                   <Pause className="h-3 w-3 mr-1" />
                   暂停
                 </Button>
@@ -821,31 +1059,23 @@ export default function DefenseScenarios() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-48 overflow-y-auto text-xs font-mono">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span>模型架构验证完成</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span>数据集加载成功</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span>防御参数配置完成</span>
-                </div>
-                {isTraining && (
+                {logMessages.length > 0 ? (
+                  logMessages.map(log => (
+                    <div key={log.id} className="flex items-center space-x-2">
+                      {log.type === 'success' && <CheckCircle className="h-3 w-3 text-green-500" />}
+                      {log.type === 'error' && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                      {log.type === 'info' && (
+                        <div className={`h-3 w-3 ${isRunning ? 'bg-blue-500 animate-pulse' : 'bg-blue-400'} rounded-full`} />
+                      )}
+                      <span className="flex-1" dangerouslySetInnerHTML={{ __html: log.message }} />
+                      <span className="text-gray-400 text-[10px]">{log.timestamp}</span>
+                    </div>
+                  ))
+                ) : (
                   <>
                     <div className="flex items-center space-x-2">
-                      <div className="h-3 w-3 bg-blue-500 rounded-full animate-pulse" />
-                      <span>Epoch {Math.floor(trainingProgress / 10)}/10</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="h-3 w-3 bg-blue-500 rounded-full animate-pulse" />
-                      <span>Loss: 0.{Math.floor(Math.random() * 1000)}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse" />
-                      <span>Accuracy: {85 + Math.floor(trainingProgress / 10)}%</span>
+                      <CheckCircle className="h-3 w-3 text-green-500" />
+                      <span>准备就绪</span>
                     </div>
                   </>
                 )}

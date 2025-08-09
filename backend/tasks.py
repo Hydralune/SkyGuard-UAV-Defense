@@ -17,6 +17,9 @@ from algorithms.attacks.base import BaseAttack
 from algorithms.defenses.base import BaseTrainingDefense
 from utils.model_manager import ModelManager
 from utils.dataset_manager import DatasetManager
+from evaluate_defense import DefenseEvaluator  # 防御评估器
+from evaluate_defense import load_defense as load_input_defense  # 动态加载输入预处理防御
+from typing import Optional, Dict, Any
 
 def update_progress(task_id, progress_data):
     """向进度API发送进度更新"""
@@ -308,6 +311,146 @@ def load_defense_by_name(name: str, **kwargs):
                 return obj(**filtered_kwargs)
 
     raise ValueError(f"在模块 {module_name} 中未找到防御类")
+
+
+def run_defense_eval_task(task_id: Optional[str] = None,
+                          defense_type: str = "gaussian_blur",
+                          model_name: str = "yolov8s-visdrone",
+                          dataset_name: str = "VisDrone",
+                          num_images: int = 10,
+                          conf_threshold: float = 0.25,
+                          iou_threshold: float = 0.5,
+                          # 通用防御参数（根据不同算法选择性使用）
+                          ksize: Optional[int] = None,
+                          sigma: Optional[float] = None,
+                          quality: Optional[int] = None,
+                          bits: Optional[int] = None,
+                          **extra_params: Any):
+    """输入预处理类防御的评估任务。
+
+    生成目录: results/defense_results/{task_id}
+    输出: 原始检测、经防御检测、对比图、指标与图表
+    """
+    if task_id is None:
+        task_id = str(uuid4())
+
+    try:
+        save_dir = os.path.join("results", "defense_results", task_id)
+        os.makedirs(save_dir, exist_ok=True)
+
+        # 加载模型
+        model = ModelManager.load_yolov8_model(model_name=model_name)
+        model.overrides['conf'] = conf_threshold
+        model.overrides['iou'] = iou_threshold
+
+        # 解析防御参数
+        defense_type = defense_type.lower()
+        defense_kwargs = {}
+        if defense_type in ("gaussian_blur", "gaussian"):
+            if ksize is not None:
+                defense_kwargs["ksize"] = int(ksize)
+            if sigma is not None:
+                defense_kwargs["sigma"] = float(sigma)
+            defense_type = "gaussian_blur"
+        elif defense_type in ("median_blur", "median_filter", "median"):
+            if ksize is not None:
+                defense_kwargs["ksize"] = int(ksize)
+            defense_type = "median_blur"
+        elif defense_type in ("jpeg_compression", "jpeg"):
+            if quality is not None:
+                defense_kwargs["quality"] = int(quality)
+            defense_type = "jpeg_compression"
+        elif defense_type in ("bit_depth_reduction", "bit_depth", "feature_squeezing"):
+            if bits is not None:
+                defense_kwargs["bits"] = int(bits)
+            defense_type = "bit_depth_reduction"
+        # 透传额外参数（若与签名重复，以上优先）
+        for k, v in extra_params.items():
+            if k not in defense_kwargs and v is not None:
+                defense_kwargs[k] = v
+
+        # 加载防御
+        defense = load_input_defense(defense_type, **defense_kwargs)
+
+        # 收集数据集图像
+        image_paths = DatasetManager.get_test_images(
+            dataset_name=dataset_name,
+            num_images=(num_images if num_images != -1 else None),
+            random_select=(num_images != -1 and num_images is not None)
+        )
+        if not image_paths:
+            raise ValueError(f"未找到 {dataset_name} 数据集图像，请检查数据集目录是否存在")
+
+        evaluator = DefenseEvaluator(
+            model=model,
+            defense=defense,
+            save_dir=save_dir,
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold
+        )
+        evaluator.metrics["defense_params"] = {"name": defense_type, **defense_kwargs}
+
+        total_images = len(image_paths)
+
+        # 初始进度
+        update_progress(task_id, {
+            "status": "running",
+            "defense_type": defense_type,
+            "current_image": 0,
+            "total_images": total_images,
+            "percent": 0,
+            "message": f"开始执行 {defense_type} 防御评估"
+        })
+
+        # 逐张评估并更新进度
+        for idx, img_path in enumerate(image_paths):
+            evaluator.evaluate_image(img_path)
+            percent = min(100, int((idx + 1) / total_images * 100))
+            update_progress(task_id, {
+                "status": "running",
+                "defense_type": defense_type,
+                "current_image": idx + 1,
+                "total_images": total_images,
+                "percent": percent,
+                "message": f"正在处理图像 {idx + 1}/{total_images}"
+            })
+
+        # 汇总与可视化
+        evaluator._summarize()
+        evaluator.generate_visualizations()
+        evaluator._save_metrics()
+
+        # 读取summary指标（如果存在）
+        metrics_summary = evaluator.metrics.get("summary", {})
+
+        update_progress(task_id, {
+            "status": "completed",
+            "defense_type": defense_type,
+            "current_image": total_images,
+            "total_images": total_images,
+            "percent": 100,
+            "message": "防御评估完成",
+            "metrics": metrics_summary
+        })
+
+        return {
+            "status": "Completed",
+            "result_path": save_dir,
+            "num_images_tested": total_images,
+            "defense_type": defense_type,
+            "metrics": metrics_summary
+        }
+
+    except Exception as e:
+        error_path = os.path.join("results", "defense_results", task_id, "error.txt")
+        os.makedirs(os.path.dirname(error_path), exist_ok=True)
+        with open(error_path, "w") as f:
+            f.write(str(e))
+            f.write("\n")
+            traceback.print_exc(file=f)
+        print(f"Error in defense eval task {task_id}: {str(e)}")
+        traceback.print_exc()
+        raise e
 
 @celery_app.task(name="defense.train")
 def adv_defense_train_task(task_id=None, defense_type="pgd", base_model="yolov8s.pt",

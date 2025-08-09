@@ -19,3 +19,4 @@ seaborn
 msgpack-rpc-python
 pyaudio
 opencv-contrib-python
+psutil>=5.9.0

@@ -159,6 +159,13 @@ export default function Visualization() {
           if (!grouped[img.type]) grouped[img.type] = []
           grouped[img.type].push(img)
         })
+        // 兼容防御评估产生的目录命名：original_results / defended_results
+        if (!grouped['detection_results'] && grouped['original_results']) {
+          grouped['detection_results'] = grouped['original_results']
+        }
+        if (!grouped['adversarial_results'] && grouped['defended_results']) {
+          grouped['adversarial_results'] = grouped['defended_results']
+        }
         setImagesByType(grouped)
         if (!selectedType) setSelectedType(Object.keys(grouped)[0])
       } else {
@@ -299,7 +306,9 @@ export default function Visualization() {
     'comparison_results',
     'perturbation_results',
     // 兼容后端可能返回的额外命名
-    'detections', 'attacks', 'defenses'
+    'detections', 'attacks', 'defenses',
+    // 兼容防御评估
+    'original_results', 'defended_results'
   ]
   const analysisImageTypes = Object.keys(imagesByType).filter(type => !baseImageTypes.includes(type))
 

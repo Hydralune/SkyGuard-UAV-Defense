@@ -8,7 +8,14 @@ import os
 import json
 
 # 引入 Celery 异步任务
-from celery_app import celery_app, test_model_task, run_attack_task, run_defense_task, adv_defense_train_task
+from celery_app import (
+    celery_app,
+    test_model_task,
+    run_attack_task,
+    run_defense_task,
+    adv_defense_train_task,
+    run_defense_eval_task,
+)
 
 # 引入自定义功能函数（同步任务）
 import download_dataset  # 或 from function import some_function
@@ -117,16 +124,47 @@ async def run_attack(
 @router.post("/defense/run")
 async def run_defense(
     defense_type: str = "gaussian_blur",
-    params: Optional[Dict[str, Any]] = None
+    # 通用评估参数
+    model_name: str = "yolov8s-visdrone",
+    dataset_name: str = "VisDrone",
+    num_images: int = 10,
+    conf_threshold: float = 0.25,
+    iou_threshold: float = 0.5,
+    # 预处理防御参数
+    ksize: Optional[int] = None,
+    sigma: Optional[float] = None,
+    quality: Optional[int] = None,
+    bits: Optional[int] = None,
+    # 兼容旧版：接收 params 字典并合并
+    params: Optional[Dict[str, Any]] = None,
 ):
     """
-    启动防御任务，应用防御策略并评估效果
+    启动防御评估任务（输入预处理类），生成对比与指标，可配合 /visualization 使用。
+    支持的防御：gaussian_blur, median_blur, jpeg_compression, bit_depth_reduction。
     """
-    if params is None:
-        params = {}
-    
+    merged_params: Dict[str, Any] = {}
+    if params:
+        merged_params.update(params)
+    if ksize is not None:
+        merged_params["ksize"] = ksize
+    if sigma is not None:
+        merged_params["sigma"] = sigma
+    if quality is not None:
+        merged_params["quality"] = quality
+    if bits is not None:
+        merged_params["bits"] = bits
+
     task_id = str(uuid4())
-    task = run_defense_task.delay(task_id, defense_type=defense_type, params=params)
+    task = run_defense_eval_task.delay(
+        task_id=task_id,
+        defense_type=defense_type,
+        model_name=model_name,
+        dataset_name=dataset_name,
+        num_images=num_images,
+        conf_threshold=conf_threshold,
+        iou_threshold=iou_threshold,
+        **merged_params,
+    )
     return {"task_id": task_id, "celery_task_id": task.id}
 
 

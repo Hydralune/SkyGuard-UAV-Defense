@@ -37,6 +37,12 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/progress/, '/progress')
       },
+      '/system': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/system/, '/system')
+      },
       '/backend': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,

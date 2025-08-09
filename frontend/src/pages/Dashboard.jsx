@@ -122,6 +122,54 @@ export default function Dashboard() {
     }
   }
 
+  // 系统负载与日志
+  const [sysLoad, setSysLoad] = useState(null)
+  const [sysLogs, setSysLogs] = useState([])
+  const [sysError, setSysError] = useState(null)
+
+  const fetchSystemLoad = async () => {
+    try {
+      const res = await fetch('/system/load')
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const data = await res.json()
+      setSysLoad(data)
+    } catch (e) {
+      setSysError(`系统负载获取失败: ${e.message}`)
+    }
+  }
+
+  const fetchSystemLogs = async () => {
+    try {
+      const res = await fetch('/system/logs?limit=20')
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const data = await res.json()
+      setSysLogs(Array.isArray(data) ? data : [])
+    } catch (e) {
+      setSysError(`系统日志获取失败: ${e.message}`)
+    }
+  }
+
+  useEffect(() => {
+    fetchSystemLoad()
+    fetchSystemLogs()
+    const t1 = setInterval(fetchSystemLoad, 5000)
+    const t2 = setInterval(fetchSystemLogs, 5000)
+    return () => { clearInterval(t1); clearInterval(t2) }
+  }, [])
+
+  const fmtBytes = (n) => {
+    if (!n && n !== 0) return '-'
+    const units = ['B', 'KB', 'MB', 'GB', 'TB']
+    let i = 0
+    let val = n
+    while (val >= 1024 && i < units.length - 1) { val /= 1024; i++ }
+    return `${val.toFixed(1)} ${units[i]}`
+  }
+
+  const fmtTime = (ts) => {
+    try { return new Date((typeof ts === 'number' ? ts * 1000 : ts)).toLocaleTimeString() } catch { return '' }
+  }
+
   return (
     <div className="space-y-8">
       {/* 页面标题 */}
@@ -242,8 +290,13 @@ export default function Dashboard() {
             <Cpu className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">68%</div>
-            <Progress value={68} className="mt-2" />
+            <div className="text-2xl font-bold">{sysLoad?.cpu_percent ?? '—'}%</div>
+            <Progress value={sysLoad?.cpu_percent ?? 0} className="mt-2" />
+            <div className="mt-2 text-xs space-y-1">
+              <div>内存：{fmtBytes(sysLoad?.memory?.used)} / {fmtBytes(sysLoad?.memory?.total)}（{sysLoad?.memory?.percent ?? '—'}%）</div>
+              <div>磁盘：{fmtBytes(sysLoad?.disk?.used)} / {fmtBytes(sysLoad?.disk?.total)}（{sysLoad?.disk?.percent ?? '—'}%）</div>
+              <div>平均负载：{Array.isArray(sysLoad?.load_avg) ? sysLoad.load_avg.map(x => x.toFixed?.(2)).join(', ') : '—'}</div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -406,38 +459,46 @@ export default function Dashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* 最近活动 */}
+      {/* 系统日志 */}
       <Card className="card-hover">
         <CardHeader>
-          <CardTitle>最近活动</CardTitle>
-          <CardDescription>系统最新的演练活动和状态更新</CardDescription>
+          <CardTitle>系统日志</CardTitle>
+          <CardDescription>全局攻防任务的状态变化与错误汇总</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">团队Alpha完成PGD攻击演练</p>
-                <p className="text-xs text-muted-foreground">2分钟前</p>
+          {sysError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{sysError}</AlertDescription>
+            </Alert>
+          )}
+          <div className="space-y-3">
+            {(sysLogs || []).map((log, idx) => (
+              <div key={`sys-log-${idx}`} className="flex items-start space-x-4">
+                <div className={`w-2 h-2 rounded-full mt-2 ${log.severity === 'error' ? 'bg-red-500' : log.severity === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium">
+                      [{log.type}] {log.message}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{fmtTime(log.timestamp)}</div>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {log.task_id && (<span className="mr-3">task: {log.task_id}</span>)}
+                    {log.meta?.attack_name && (<span className="mr-3">attack: {log.meta.attack_name}</span>)}
+                    {log.meta?.defense_type && (<span className="mr-3">defense: {log.meta.defense_type}</span>)}
+                    {log.meta?.model_name && (<span className="mr-3">model: {log.meta.model_name}</span>)}
+                    {log.meta?.dataset_name && (<span className="mr-3">data: {log.meta.dataset_name}</span>)}
+                    {typeof log.meta?.percent === 'number' && (<span className="mr-3">{log.meta.percent}%</span>)}
+                  </div>
+                </div>
+                <Badge variant={log.severity === 'error' ? 'destructive' : log.severity === 'success' ? 'default' : 'secondary'}>
+                  {log.severity}
+                </Badge>
               </div>
-              <Badge variant="outline">成功</Badge>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">新的防御算法FreeLP已部署</p>
-                <p className="text-xs text-muted-foreground">15分钟前</p>
-              </div>
-              <Badge variant="secondary">更新</Badge>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">系统维护计划已安排</p>
-                <p className="text-xs text-muted-foreground">1小时前</p>
-              </div>
-              <Badge variant="outline">计划中</Badge>
-            </div>
+            ))}
+            {(!sysLogs || sysLogs.length === 0) && (
+              <div className="text-sm text-muted-foreground">暂无日志</div>
+            )}
           </div>
         </CardContent>
       </Card>
