@@ -159,12 +159,9 @@ export default function Visualization() {
           if (!grouped[img.type]) grouped[img.type] = []
           grouped[img.type].push(img)
         })
-        // 兼容防御评估产生的目录命名：original_results / defended_results
+        // 兼容：将 original_results 也映射到 detection_results，便于“原始检测”页签显示
         if (!grouped['detection_results'] && grouped['original_results']) {
           grouped['detection_results'] = grouped['original_results']
-        }
-        if (!grouped['adversarial_results'] && grouped['defended_results']) {
-          grouped['adversarial_results'] = grouped['defended_results']
         }
         setImagesByType(grouped)
         if (!selectedType) setSelectedType(Object.keys(grouped)[0])
@@ -252,7 +249,7 @@ export default function Visualization() {
         const response = await fetch(apiUrl);
         console.log('任务结果API响应状态:', response.status);
         
-        if (!response.ok) {
+      if (!response.ok) {
           throw new Error(`获取结果失败: ${response.status} ${response.statusText}`);
         }
         
@@ -264,7 +261,7 @@ export default function Visualization() {
         setTaskResults(data);
         
         // 按类型组织图像
-        if (data && data.images && data.images.length > 0) {
+        if (data && Array.isArray(data.images) && data.images.length > 0) {
           const imageTypes = {};
           
           // 按类型分组图像
@@ -274,6 +271,10 @@ export default function Visualization() {
             }
             imageTypes[img.type].push(img);
           });
+          // 兼容：将 original_results 也映射到 detection_results
+          if (!imageTypes['detection_results'] && imageTypes['original_results']) {
+            imageTypes['detection_results'] = imageTypes['original_results']
+          }
           
           setImagesByType(imageTypes);
           console.log('按类型分组的图像:', imageTypes);
@@ -317,9 +318,12 @@ export default function Visualization() {
     const sourceRaw = (file?.filename || file?.path || '')
     const source = sourceRaw.toLowerCase()
     // 更全面的匹配（根据后端常见命名与图标题关键词）
-    if (source.includes('detection_count_comparison') || source.includes('count_comparison')) return '检测数量对比'
+    if (source.includes('detection_count_comparison') || source.includes('count_comparison')) return '检测数量对比（原/攻）'
+    if (source.includes('detection_count_triplet')) return '检测数量三段对比（原/攻/防）'
     if (source.includes('class_distribution_comparison')) return '类别分布对比'
+    if (source.includes('class_distribution_triplet')) return '类别分布三段对比'
     if (source.includes('confidence_distribution_comparison')) return '置信度分布对比'
+    if (source.includes('confidence_distribution_triplet')) return '置信度分布三段对比'
     if (source.includes('confusion_matrix')) return '混淆矩阵'
     if (source.includes('pr_curve') || source.includes('precision-recall') || source.includes('precision_recall')) return '精确率-召回曲线'
     if (source.includes('class_distribution')) return '类别分布'
@@ -332,6 +336,10 @@ export default function Visualization() {
     if (source.includes('confidence_drop_by_image') || source.replace(/[^a-z]/g,'').includes('confidencedropbyimage') || source.includes('confidence_drop')) return '按图像的置信度下降'
     // 新增：Detection Drop Rate by Image
     if (source.includes('detection_drop_rate_by_image') || source.replace(/[^a-z]/g,'').includes('detectiondropratebyimage') || source.includes('detection_drop_rate')) return '按图像的检测下降率'
+    if (source.includes('detection_counts_by_image')) return '按图像的检测数（原/攻/防）'
+    if (source.includes('retention_by_image')) return '按图像保留率（攻/防相对原）'
+    if (source.includes('recovery_by_class')) return '类别恢复（(防-攻)/原）'
+    if (source.includes('delta_by_class')) return '类别差值（防-攻）'
     if (source.startsWith('metrics_') || source.includes('metrics')) return '性能指标'
     return '图表'
   }
@@ -486,13 +494,13 @@ export default function Visualization() {
             </CardHeader>
             <CardContent>
               <Tabs value={selectedView} onValueChange={setSelectedView}>
-                <TabsList className="grid w-full grid-cols-5">
-                  <TabsTrigger value="detection">原始检测</TabsTrigger>
-                  <TabsTrigger value="adversarial">对抗样本</TabsTrigger>
-                  <TabsTrigger value="comparison">对比结果</TabsTrigger>
-                  <TabsTrigger value="perturbation">扰动图</TabsTrigger>
-                  <TabsTrigger value="plots">分析图表</TabsTrigger>
-                </TabsList>
+                 <TabsList className="grid w-full grid-cols-5">
+                   <TabsTrigger value="detection">原始检测</TabsTrigger>
+                   <TabsTrigger value="adversarial">对抗样本</TabsTrigger>
+                   <TabsTrigger value="defended" disabled={taskResults?.metadata?.task_group !== 'defense'}>防御结果</TabsTrigger>
+                   <TabsTrigger value="comparison">{taskResults?.metadata?.task_group === 'defense' ? '三段对比' : '对比结果'}</TabsTrigger>
+                   <TabsTrigger value="plots">分析图表</TabsTrigger>
+                 </TabsList>
 
                 <TabsContent value="detection" className="mt-4">
                   {imagesByType['detection_results'] && imagesByType['detection_results'].length > 0 ? (
@@ -533,13 +541,33 @@ export default function Visualization() {
                     </div>
                   )}
                 </TabsContent>
+
+                <TabsContent value="defended" className="mt-4">
+                  {imagesByType['defended_results'] && imagesByType['defended_results'].length > 0 ? (
+                    <FileViewer 
+                      files={imagesByType['defended_results']} 
+                      type="defended_results" 
+                      title="防御结果检测" 
+                    />
+                  ) : (
+                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <Target className="h-12 w-12 mx-auto text-green-500 mb-2" />
+                        <p className="text-sm text-green-600">无防御结果</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          可用类型: {Object.keys(imagesByType).join(', ') || '无'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
                 
                 <TabsContent value="comparison" className="mt-4">
                   {imagesByType['comparison_results'] && imagesByType['comparison_results'].length > 0 ? (
                     <FileViewer 
                       files={imagesByType['comparison_results']} 
                       type="comparison_results" 
-                      title="检测结果对比" 
+                      title={taskResults?.metadata?.task_group === 'defense' ? '原始/对抗/防御 三段对比' : '检测结果对比'} 
                     />
                   ) : (
                     <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
@@ -704,43 +732,43 @@ export default function Visualization() {
             </CardHeader>
             <CardContent>
               <Tabs value={selectedCompareTab} onValueChange={setSelectedCompareTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="metrics">指标对比</TabsTrigger>
-                  <TabsTrigger value="vulnerability">类别脆弱性</TabsTrigger>
-                  <TabsTrigger value="confidence">置信度分析</TabsTrigger>
-                </TabsList>
+                 <TabsList className="grid w-full grid-cols-3">
+                   <TabsTrigger value="metrics">指标对比</TabsTrigger>
+                   <TabsTrigger value="vulnerability">类别脆弱性/恢复</TabsTrigger>
+                   <TabsTrigger value="confidence">置信度分析</TabsTrigger>
+                 </TabsList>
                 
                 <TabsContent value="metrics" className="mt-4">
                   {taskResults?.metrics?.progress?.metrics ? (
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-                          <h3 className="text-sm font-medium">检测减少率</h3>
+                          <h3 className="text-sm font-medium">检测减少率（攻击）</h3>
                           <div className="mt-2 flex items-baseline">
-                            <span className="text-3xl font-semibold text-red-500">
-                              {(taskResults.metrics.progress.metrics.detection_reduction_rate * 100).toFixed(1)}%
-                            </span>
+                             <span className="text-3xl font-semibold text-red-500">
+                               {typeof taskResults.metrics.progress.metrics.detection_reduction_rate === 'number' ? (taskResults.metrics.progress.metrics.detection_reduction_rate * 100).toFixed(1) : '—'}%
+                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">检测结果减少百分比</p>
+                          <p className="text-xs text-muted-foreground mt-1">攻击相对原始的检测减少</p>
                         </div>
                         
                         <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-                          <h3 className="text-sm font-medium">置信度降低</h3>
+                          <h3 className="text-sm font-medium">防御恢复率</h3>
                           <div className="mt-2 flex items-baseline">
-                            <span className="text-3xl font-semibold text-amber-500">
-                              {(taskResults.metrics.progress.metrics.avg_confidence_drop * 100).toFixed(1)}%
-                            </span>
+                            <span className="text-3xl font-semibold text-green-600">
+                              {typeof taskResults.metrics.progress.metrics.defense_recovery_rate === 'number' ? (taskResults.metrics.progress.metrics.defense_recovery_rate * 100).toFixed(1) : '—'}%
+                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">平均置信度降低百分比</p>
+                          <p className="text-xs text-muted-foreground mt-1">防御相对原始的恢复（{'>'}0 越好）</p>
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
                         <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
                           <h3 className="text-sm font-medium">原始检测数</h3>
                           <div className="mt-2 flex items-baseline">
                             <span className="text-3xl font-semibold text-green-500">
-                              {taskResults.metrics.progress.metrics.total_original_detections}
+                               {taskResults.metrics.progress.metrics.total_original_detections ?? '—'}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">原始图像中的检测目标数</p>
@@ -749,20 +777,30 @@ export default function Visualization() {
                         <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
                           <h3 className="text-sm font-medium">对抗检测数</h3>
                           <div className="mt-2 flex items-baseline">
-                            <span className="text-3xl font-semibold text-blue-500">
-                              {taskResults.metrics.progress.metrics.total_adversarial_detections}
+                            <span className="text-3xl font-semibold text-red-500">
+                               {taskResults.metrics.progress.metrics.total_adversarial_detections ?? '—'}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">对抗图像中的检测目标数</p>
                         </div>
+
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                          <h3 className="text-sm font-medium">防御检测数</h3>
+                          <div className="mt-2 flex items-baseline">
+                            <span className="text-3xl font-semibold text-blue-500">
+                              {taskResults.metrics.progress.metrics.total_defended_detections ?? '—'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">防御图像中的检测目标数</p>
+                        </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
                         <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
                           <h3 className="text-sm font-medium">平均推理时间</h3>
                           <div className="mt-2 flex items-baseline">
                             <span className="text-3xl font-semibold">
-                              {taskResults.metrics.progress.metrics.avg_inference_time.toFixed(3)}
+                               {typeof taskResults.metrics.progress.metrics.avg_inference_time === 'number' ? taskResults.metrics.progress.metrics.avg_inference_time.toFixed(3) : '—'}
                             </span>
                             <span className="ml-1 text-sm text-muted-foreground">秒</span>
                           </div>
@@ -773,11 +811,22 @@ export default function Visualization() {
                           <h3 className="text-sm font-medium">平均攻击时间</h3>
                           <div className="mt-2 flex items-baseline">
                             <span className="text-3xl font-semibold">
-                              {taskResults.metrics.progress.metrics.avg_attack_time.toFixed(3)}
+                               {typeof taskResults.metrics.progress.metrics.avg_attack_time === 'number' ? taskResults.metrics.progress.metrics.avg_attack_time.toFixed(3) : '—'}
                             </span>
                             <span className="ml-1 text-sm text-muted-foreground">秒</span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">生成对抗样本平均时间</p>
+                        </div>
+
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                          <h3 className="text-sm font-medium">平均防御时间</h3>
+                          <div className="mt-2 flex items-baseline">
+                            <span className="text-3xl font-semibold">
+                               {typeof taskResults.metrics.progress.metrics.avg_defense_time === 'number' ? taskResults.metrics.progress.metrics.avg_defense_time.toFixed(3) : '—'}
+                            </span>
+                            <span className="ml-1 text-sm text-muted-foreground">秒</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">应用防御的平均时间</p>
                         </div>
                       </div>
                     </div>
@@ -791,42 +840,64 @@ export default function Visualization() {
                   )}
                 </TabsContent>
                 
-                <TabsContent value="vulnerability" className="mt-4">
-                  {taskResults?.metrics?.progress?.metrics?.class_vulnerability ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart 
-                        data={Object.entries(taskResults.metrics.progress.metrics.class_vulnerability).map(([className, value]) => ({
-                          class: className,
-                          vulnerability: value
-                        }))}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="class" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar 
-                          dataKey="vulnerability" 
-                          name="类别脆弱性" 
-                          fill="#8884d8"
-                          // 根据值的正负设置不同颜色
-                          >
-                          {Object.entries(taskResults.metrics.progress.metrics.class_vulnerability).map(([className, value], index) => (
-                            <Cell key={`vulnerability-cell-${className}-${index}`} fill={value > 0 ? "#ef4444" : "#22c55e"} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                      <div className="text-center">
-                        <BarChart3 className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500">无类别脆弱性数据</p>
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
+                 <TabsContent value="vulnerability" className="mt-4">
+                   {taskResults?.metrics?.progress?.metrics && (
+                     <div className="space-y-6">
+                       {/* 攻击脆弱性 */}
+                       {taskResults.metrics.progress.metrics.class_vulnerability_attack && (
+                         <div>
+                           <h4 className="text-sm font-medium mb-2">攻击下类别脆弱性（越高越脆弱）</h4>
+                           <ResponsiveContainer width="100%" height={260}>
+                             <BarChart 
+                               data={Object.entries(taskResults.metrics.progress.metrics.class_vulnerability_attack).map(([className, value]) => ({ class: className, vuln: value }))}
+                               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                             >
+                               <CartesianGrid strokeDasharray="3 3" />
+                               <XAxis dataKey="class" />
+                               <YAxis />
+                               <Tooltip />
+                               <Legend />
+                               <Bar dataKey="vuln" name="脆弱性" fill="#ef4444" />
+                             </BarChart>
+                           </ResponsiveContainer>
+                         </div>
+                       )}
+
+                       {/* 防御恢复 */}
+                       {taskResults.metrics.progress.metrics.class_recovery_defense && (
+                         <div>
+                           <h4 className="text-sm font-medium mb-2">防御后类别恢复（(Def-Adv)/Orig，越高越好）</h4>
+                           <ResponsiveContainer width="100%" height={260}>
+                             <BarChart 
+                               data={Object.entries(taskResults.metrics.progress.metrics.class_recovery_defense).map(([className, value]) => ({ class: className, rec: value }))}
+                               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                             >
+                               <CartesianGrid strokeDasharray="3 3" />
+                               <XAxis dataKey="class" />
+                               <YAxis />
+                               <Tooltip />
+                               <Legend />
+                               <Bar dataKey="rec" name="恢复" >
+                                 {Object.entries(taskResults.metrics.progress.metrics.class_recovery_defense).map(([className, value], idx) => (
+                                   <Cell key={`rec-cell-${className}-${idx}`} fill={value > 0 ? "#22c55e" : "#ef4444"} />
+                                 ))}
+                               </Bar>
+                             </BarChart>
+                           </ResponsiveContainer>
+                         </div>
+                       )}
+
+                       {!(taskResults.metrics.progress.metrics.class_vulnerability_attack || taskResults.metrics.progress.metrics.class_recovery_defense) && (
+                         <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                           <div className="text-center">
+                             <BarChart3 className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                             <p className="text-sm text-gray-500">无类别脆弱性/恢复数据</p>
+                           </div>
+                         </div>
+                       )}
+                     </div>
+                   )}
+                 </TabsContent>
                 
                 <TabsContent value="confidence" className="mt-4">
                   <ResponsiveContainer width="100%" height={300}>

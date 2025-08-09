@@ -130,6 +130,11 @@ async def run_defense(
     num_images: int = 10,
     conf_threshold: float = 0.25,
     iou_threshold: float = 0.5,
+    # 可选：指定攻击（推荐在真实评估中显式指定，以便“攻击→防御”）
+    attack_name: Optional[str] = "pgd",
+    eps: Optional[str] = "8/255",
+    alpha: Optional[str] = "2/255",
+    steps: Optional[int] = 10,
     # 预处理防御参数
     ksize: Optional[int] = None,
     sigma: Optional[float] = None,
@@ -163,6 +168,10 @@ async def run_defense(
         num_images=num_images,
         conf_threshold=conf_threshold,
         iou_threshold=iou_threshold,
+        attack_name=attack_name,
+        eps=eps,
+        alpha=alpha,
+        steps=steps,
         **merged_params,
     )
     return {"task_id": task_id, "celery_task_id": task.id}

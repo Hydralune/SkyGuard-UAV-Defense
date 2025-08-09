@@ -156,11 +156,18 @@ async def get_task_results(task_id: str):
         os.path.join("results", "defense_results", task_id)
     ]
     
-    # 找到存在的目录
+    # 找到存在的目录，并记录任务类别
     result_dir = None
+    task_group = None
     for dir_path in task_dirs:
         if os.path.exists(dir_path):
             result_dir = dir_path
+            if "evaluation_results" in dir_path:
+                task_group = "evaluation"
+            elif "adversarial_results" in dir_path:
+                task_group = "attack"
+            elif "defense_results" in dir_path:
+                task_group = "defense"
             break
     
     if not result_dir:
@@ -170,7 +177,7 @@ async def get_task_results(task_id: str):
     result_files = {
         "images": [],
         "metrics": {},
-        "metadata": {}
+        "metadata": {"task_group": task_group}
     }
     
     # 查找图像文件，按目录组织
@@ -206,15 +213,23 @@ async def get_task_results(task_id: str):
                 "filename": os.path.basename(img_path)
             })
     
-    # 查找JSON结果文件
+    # 查找JSON结果文件（根目录与常见子目录，如 metrics/）
     json_files = glob.glob(os.path.join(result_dir, "*.json"))
+    metrics_dir = os.path.join(result_dir, "metrics")
+    if os.path.isdir(metrics_dir):
+        json_files.extend(glob.glob(os.path.join(metrics_dir, "*.json")))
     for json_path in json_files:
         try:
             with open(json_path, 'r') as f:
                 json_data = json.load(f)
-                
-            file_name = os.path.basename(json_path).replace('.json', '')
-            result_files["metrics"][file_name] = json_data
+            base = os.path.basename(json_path)
+            if base.endswith('.json'):
+                base = base[:-5]
+            # 将 metrics 目录下的文件加上前缀，避免覆盖
+            key = base
+            if os.path.commonpath([os.path.dirname(json_path), metrics_dir]) == metrics_dir:
+                key = f"metrics_{base}"
+            result_files["metrics"][key] = json_data
         except Exception as e:
             print(f"读取JSON文件 {json_path} 出错: {str(e)}")
     
@@ -223,10 +238,83 @@ async def get_task_results(task_id: str):
     if os.path.exists(metadata_file):
         try:
             with open(metadata_file, 'r') as f:
-                result_files["metadata"] = json.load(f)
+                meta = json.load(f)
+                if isinstance(meta, dict):
+                    # 合并并保留task_group
+                    result_files["metadata"].update(meta)
         except Exception as e:
             print(f"读取元数据文件出错: {str(e)}")
+    else:
+        # 回落：探测是否仅有result.json且无图像，标记为可能的训练任务
+        try:
+            images_exist = any(
+                fn.lower().endswith((".jpg", ".jpeg", ".png", ".bmp"))
+                for root, _, files in os.walk(result_dir)
+                for fn in files
+            )
+            if not images_exist:
+                result_files["metadata"].setdefault("task_kind", "training_or_metrics_only")
+        except Exception:
+            pass
     
+    # 为前端构造统一的 progress.metrics 视图（兼容攻防不同来源）
+    try:
+        # 攻击/评估流程通常通过 progress.json 提供进度与指标
+        progress_file = os.path.join(result_dir, "progress.json")
+        if os.path.exists(progress_file):
+            with open(progress_file, 'r') as f:
+                progress_data = json.load(f)
+            result_files["metrics"]["progress"] = progress_data
+        # 防御评估流程的指标在 metrics/defense_metrics.json
+        defense_metrics = None
+        for k, v in result_files["metrics"].items():
+            if isinstance(k, str) and k.endswith("defense_metrics") and isinstance(v, dict):
+                defense_metrics = v
+                break
+        if defense_metrics and "summary" in defense_metrics:
+            summary = defense_metrics.get("summary", {})
+            # 转换为前端常用结构
+            original_dets = defense_metrics.get("original_detections") or defense_metrics.get("original_detections", 0)
+            defended_dets = defense_metrics.get("defended_detections") or defense_metrics.get("defended_detections", 0)
+            adversarial_dets = defense_metrics.get("adversarial_detections", 0)
+            # 有些字段是 defaultdict 转换后的字典
+            if not original_dets:
+                original_dets = int(defense_metrics.get("original_detections", 0))
+            if not defended_dets:
+                defended_dets = int(defense_metrics.get("defended_detections", 0))
+
+            retention = summary.get("detection_retention_rate")
+            reduction_rate = None
+            if isinstance(retention, (int, float)):
+                reduction_rate = max(0.0, 1.0 - float(retention))
+
+            avg_conf_change = summary.get("avg_confidence_change")
+            avg_conf_drop = None
+            if isinstance(avg_conf_change, (int, float)):
+                # 变化为 (defended - original)，下降取正值
+                avg_conf_drop = max(0.0, -float(avg_conf_change))
+
+            front_metrics = {
+                "detection_reduction_rate": reduction_rate if reduction_rate is not None else 0.0,
+                "avg_confidence_drop": avg_conf_drop if avg_conf_drop is not None else 0.0,
+                "total_original_detections": original_dets,
+                "total_adversarial_detections": adversarial_dets,
+                "total_defended_detections": defended_dets,
+                "avg_inference_time": float(summary.get("avg_inference_time", 0.0)) if isinstance(summary.get("avg_inference_time"), (int, float)) else 0.0,
+                "avg_attack_time": float(summary.get("avg_attack_time", 0.0)) if isinstance(summary.get("avg_attack_time"), (int, float)) else 0.0,
+                "avg_defense_time": float(summary.get("avg_defense_time", 0.0)) if isinstance(summary.get("avg_defense_time"), (int, float)) else 0.0,
+                "defense_recovery_rate": float(summary.get("defense_recovery_rate", 0.0)) if isinstance(summary.get("defense_recovery_rate"), (int, float)) else 0.0,
+            }
+            # 类别维度（若存在）
+            if isinstance(summary.get("class_vulnerability_attack"), dict):
+                front_metrics["class_vulnerability_attack"] = summary["class_vulnerability_attack"]
+            if isinstance(summary.get("class_recovery_defense"), dict):
+                front_metrics["class_recovery_defense"] = summary["class_recovery_defense"]
+            result_files["metrics"].setdefault("progress", {})
+            result_files["metrics"]["progress"]["metrics"] = front_metrics
+    except Exception as e:
+        print(f"构造前端指标视图失败: {e}")
+
     return result_files
 
 @router.get("/image/{task_id}/{image_path:path}")

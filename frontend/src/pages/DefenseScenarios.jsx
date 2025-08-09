@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react'
 
 export default function DefenseScenarios() {
+  const navigate = useNavigate()
   const PERSIST_KEY = 'defense_scenarios_state_v1'
   const hasRestoredRef = useRef(false)
 
@@ -62,6 +64,7 @@ export default function DefenseScenarios() {
     // UI展示参数
     defense_strength: 0.7,
   })
+  const [attackPreset, setAttackPreset] = useState(null)
   const [isRunning, setIsRunning] = useState(false)
   const [trainingProgress, setTrainingProgress] = useState(0)
   const [taskId, setTaskId] = useState(null)
@@ -128,6 +131,26 @@ export default function DefenseScenarios() {
   const handleParameterChange = (key, value) => {
     setParameters(prev => ({ ...prev, [key]: value }))
   }
+
+  // 从本地缓存恢复攻击预设（由攻击页面“发送到防御”设置）
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('defense_attack_prefill_v1')
+      if (raw) {
+        const preset = JSON.parse(raw)
+        setAttackPreset(preset)
+        // 可选：根据预设调整模型/数据集默认值
+        if (preset?.params?.model_name) {
+          const mapped = Object.keys(backendModelMap).find(k => backendModelMap[k] === preset.params.model_name)
+          if (mapped) setSelectedModel(mapped)
+        }
+        if (preset?.params?.dataset_name) {
+          const mapped = Object.keys(backendDatasetMap).find(k => backendDatasetMap[k] === preset.params.dataset_name)
+          if (mapped) setSelectedDataset(mapped)
+        }
+      }
+    } catch (_) {}
+  }, [])
 
   // 恢复与持久化
   useEffect(() => {
@@ -222,7 +245,7 @@ export default function DefenseScenarios() {
       setCeleryTaskId(null)
       setTaskStatus(null)
       setProgress(0)
-      setTrainingProgress(0)
+    setTrainingProgress(0)
       setLogMessages([])
 
       addLogMessage('准备开始防御任务...')
@@ -273,6 +296,11 @@ export default function DefenseScenarios() {
           num_images: `${parameters.num_images}`,
           conf_threshold: `${parameters.conf_threshold}`,
           iou_threshold: `${parameters.iou_threshold}`,
+          // 指定攻击：若有预设则使用预设参数，否则不带攻击，由后端回退到“干净→防御”评估
+          ...(attackPreset?.params?.attack_name ? { attack_name: attackPreset.params.attack_name } : {}),
+          ...(attackPreset?.params?.eps ? { eps: attackPreset.params.eps } : {}),
+          ...(attackPreset?.params?.alpha ? { alpha: attackPreset.params.alpha } : {}),
+          ...(attackPreset?.params?.steps ? { steps: attackPreset.params.steps } : {}),
         })
         // 具体算法参数
         if (defenseType === 'gaussian_blur') {
@@ -471,6 +499,74 @@ export default function DefenseScenarios() {
                   </Select>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="card-hover border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>攻击预设</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs border ${attackPreset ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                  {attackPreset ? '已关联' : '未关联'}
+                </span>
+              </CardTitle>
+              <CardDescription>
+                将当前攻击配置作为防御评估的输入，便于“攻击→防御”联动
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {attackPreset ? (
+                <>
+                  <div className="text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">攻击类型</span>
+                      <span className="font-medium">
+                        <Badge variant="secondary">{attackPreset?.scenario === 'optical' ? '光电干扰' : '对抗攻击'}</Badge>
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">攻击算法</span>
+                      <span className="font-medium">{(attackPreset?.attack_name || '').toUpperCase()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">模型/数据集</span>
+                      <span className="font-medium">{attackPreset?.params?.model_name || '-'} / {attackPreset?.params?.dataset_name || '-'}</span>
+                    </div>
+                  </div>
+
+                  {/* 关键参数速览 */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {['eps','alpha','steps','patch_size','confidence','lr','initial_const','brightness_factor','noise_std','contrast_factor','distortion_type','severity','max_iter','overshoot'].map(k => (
+                      (attackPreset?.params?.[k] !== undefined) && (
+                        <div key={`preset-${k}`} className="flex justify-between border rounded p-2">
+                          <span className="text-muted-foreground">{k}</span>
+                          <span className="font-medium ml-2">{String(attackPreset.params[k])}</span>
+                        </div>
+                      )
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button variant="default" onClick={() => navigate('/attack-scenarios')}>
+                      前往攻击页面修改
+                    </Button>
+                    <Button variant="outline" onClick={() => { try { localStorage.removeItem('defense_attack_prefill_v1') } catch {} setAttackPreset(null) }}>
+                      清除预设
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-sm text-muted-foreground">
+                    当前未关联攻击预设。可前往攻击场景选择攻击算法与参数，并点击“发送到防御”进行联动评估。
+                  </div>
+                  <div>
+                    <Button variant="default" onClick={() => navigate('/attack-scenarios')}>
+                      前往攻击场景
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -1010,6 +1106,14 @@ export default function DefenseScenarios() {
                   {defenseAlgorithms[selectedDefenseType]?.find(a => a.id === selectedAlgorithm)?.name}
                 </span>
               </div>
+
+              {/* 新增：若有关联攻击预设，则在配置摘要中同步显示 */}
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">攻击算法</span>
+                <span className="text-sm font-medium">
+                  {attackPreset ? (attackPreset.attack_name || '').toUpperCase() : '未关联'}
+                </span>
+              </div>
               
               <Separator />
               
@@ -1069,12 +1173,12 @@ export default function DefenseScenarios() {
                       )}
                       <span className="flex-1" dangerouslySetInnerHTML={{ __html: log.message }} />
                       <span className="text-gray-400 text-[10px]">{log.timestamp}</span>
-                    </div>
+                </div>
                   ))
                 ) : (
                   <>
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="h-3 w-3 text-green-500" />
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
                       <span>准备就绪</span>
                     </div>
                   </>

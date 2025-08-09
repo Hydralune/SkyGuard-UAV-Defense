@@ -34,7 +34,8 @@ def run_defense_training(
     steps=None,
     attack_ratio=0.5,
     task_id=None,
-    result_file=None
+    result_file=None,
+    workers=2,
 ):
     """
     执行对抗训练防御
@@ -97,7 +98,8 @@ def run_defense_training(
             adv_eps=eps,
             adv_alpha=alpha,
             adv_steps=steps,
-            adv_attack=defense_type  # 使用指定的防御类型进行对抗训练
+            adv_attack=defense_type,  # 使用指定的防御类型进行对抗训练
+            workers=workers,
         )
         
         # 准备结果
@@ -147,6 +149,7 @@ if __name__ == "__main__":
     parser.add_argument("--attack_ratio", type=float, default=0.5, help="训练批次中使用对抗样本的比例")
     parser.add_argument("--task_id", type=str, default=None, help="任务ID")
     parser.add_argument("--result_file", type=str, default=None, help="结果保存文件路径")
+    parser.add_argument("--workers", type=int, default=2, help="DataLoader workers 数量，降低可减少内存占用")
     
     args = parser.parse_args()
     
@@ -170,5 +173,6 @@ if __name__ == "__main__":
         steps=args.steps,
         attack_ratio=args.attack_ratio,
         task_id=args.task_id,
-        result_file=args.result_file
+        result_file=args.result_file,
+        workers=args.workers,
     )

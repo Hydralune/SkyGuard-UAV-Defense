@@ -72,3 +72,4 @@ backend/adversarial_results/metrics/
 
 backend/models/runs/
 datasets/
+results/

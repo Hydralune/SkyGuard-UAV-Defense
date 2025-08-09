@@ -84,6 +84,7 @@ def train_visdrone(
     adv_steps: int = 10,
     adv_attack: str = "pgd",
     max_grad_steps: int = 3,  # YOPO特有参数
+    workers: int = 2,
 ):
     """Train a YOLOv8 model on the VisDrone dataset.
 
@@ -197,6 +198,7 @@ def train_visdrone(
         project=str(project_dir),
         name=model_name,
         device=device,
+        workers=workers,
     )
 
     # Ultralytics 将 best.pt 保存到 {project}/{name}/weights/best.pt

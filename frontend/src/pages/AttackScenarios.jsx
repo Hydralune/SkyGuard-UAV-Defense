@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react'
 
 export default function AttackScenarios() {
+  const navigate = useNavigate()
   const PERSIST_KEY = 'attack_scenarios_state_v1'
   const hasRestoredRef = useRef(false)
   const [selectedScenario, setSelectedScenario] = useState('adversarial')
@@ -283,6 +285,98 @@ export default function AttackScenarios() {
 
   const handleParameterChange = (key, value) => {
     setParameters(prev => ({ ...prev, [key]: value }))
+  }
+
+  // 生成后端需要的攻击参数（供“添加到防御”复用）
+  const buildBackendAttackParams = () => {
+    const base = {
+      attack_name: selectedAlgorithm,
+      model_name: backendModelMap[selectedModel] || selectedModel || 'yolov8s-visdrone',
+      dataset_name: backendDatasetMap[selectedDataset] || selectedDataset || 'VisDrone',
+      num_images: parameters.num_images || 10,
+      conf_threshold: parameters.conf_threshold || 0.25,
+      iou_threshold: parameters.iou_threshold || 0.5,
+    }
+
+    const p = {}
+    if (selectedScenario === 'adversarial') {
+      switch (selectedAlgorithm) {
+        case 'pgd':
+          p.eps = `${parameters.epsilon}`
+          p.alpha = `${parameters.alpha}`
+          p.steps = parameters.iterations
+          break
+        case 'fgsm':
+          p.eps = `${parameters.epsilon}`
+          p.steps = 1
+          break
+        case 'cw_l2':
+          p.confidence = parameters.confidence
+          p.steps = parameters.iterations
+          p.lr = parameters.lr
+          p.initial_const = parameters.initial_const
+          break
+        case 'dpatch':
+          p.patch_size = parameters.patch_size
+          p.steps = parameters.iterations
+          break
+        case 'deepfool':
+          p.max_iter = parameters.max_iter
+          p.overshoot = parameters.overshoot
+          break
+        case 'advpatch':
+          p.patch_size = parameters.patch_size
+          p.lr = parameters.learning_rate
+          p.steps = parameters.max_iter
+          p.random_locations = parameters.random_locations
+          p.num_patches = parameters.num_patches
+          break
+        default:
+          p.eps = `${parameters.epsilon}`
+          p.alpha = `${parameters.alpha}`
+          p.steps = parameters.iterations
+      }
+    } else if (selectedScenario === 'optical') {
+      switch (selectedAlgorithm) {
+        case 'brightness':
+          p.brightness_factor = parameters.brightness_factor
+          break
+        case 'gaussian':
+          p.noise_std = parameters.noise_std
+          break
+        case 'contrast':
+          p.contrast_factor = parameters.contrast_factor
+          break
+        case 'distortion':
+          p.distortion_type = parameters.distortion_type
+          p.severity = parameters.severity
+          break
+        case 'scene_transition':
+          p.transition_type = parameters.transition_type
+          p.severity = parameters.severity
+          break
+        default:
+          p.brightness = parameters.brightness
+          p.contrast = parameters.contrast
+          p.noise_level = parameters.noise_level
+      }
+    }
+
+    return { ...base, ...p }
+  }
+
+  // 添加到防御：把当前攻击作为预设写入 localStorage 并跳转
+  const handleSendToDefense = () => {
+    const preset = {
+      attack_name: selectedAlgorithm,
+      scenario: selectedScenario,
+      title: `${selectedScenario === 'adversarial' ? '对抗' : '光电'}·${selectedAlgorithm.toUpperCase()}`,
+      params: buildBackendAttackParams(),
+    }
+    try {
+      localStorage.setItem('defense_attack_prefill_v1', JSON.stringify(preset))
+    } catch (_) {}
+    navigate('/defense-scenarios')
   }
 
   // 获取攻击结果
@@ -627,6 +721,9 @@ export default function AttackScenarios() {
           <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
             导出配置
+          </Button>
+          <Button variant="default" onClick={handleSendToDefense} title="将当前攻击设为防御评估的输入">
+            发送到防御
           </Button>
         </div>
       </div>
