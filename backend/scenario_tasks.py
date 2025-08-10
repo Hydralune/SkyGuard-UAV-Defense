@@ -96,6 +96,8 @@ def _build_steps_from_scenario(scenario: Dict[str, Any]) -> List[Dict[str, Any]]
                 **({"distortion_type": per_attack["distortion_type"]} if "distortion_type" in per_attack else {}),
                 **({"severity": per_attack["severity"]} if "severity" in per_attack else {}),
                 **({"transition_type": per_attack["transition_type"]} if "transition_type" in per_attack else {}),
+                    # 兼容：部分前端将 advpatch 的最大迭代填写为 max_iter，这里映射为 steps
+                    **({"steps": int(per_attack["max_iter"]) } if "max_iter" in per_attack else {}),
             }
         })
 

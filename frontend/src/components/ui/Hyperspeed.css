@@ -1,0 +1,15 @@
+#lights {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: fixed; /* 固定为页面背景，不随滚动 */
+  inset: 0;
+  pointer-events: none; /* 不拦截鼠标，页面可正常交互 */
+}
+
+canvas {
+  width: 70%; /* 让整体视效更窄 */
+  height: 100%;
+  margin: 0 auto; /* 居中 */
+  display: block;
+}

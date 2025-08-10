@@ -22,7 +22,10 @@ import {
   Copy,
   Play,
   Eye,
-  FileText
+  FileText,
+  AlertTriangle,
+  CheckCircle,
+  ChevronDown
 } from 'lucide-react'
 
 export default function CustomScenarios() {
@@ -34,6 +37,12 @@ export default function CustomScenarios() {
   const [runProgress, setRunProgress] = useState(0)
   const [runStatusText, setRunStatusText] = useState('')
   const [runLogs, setRunLogs] = useState([])
+  const [editingId, setEditingId] = useState(null)
+  const importInputRef = useRef(null)
+  const [sysLogs, setSysLogs] = useState([])
+  const [sysLogsError, setSysLogsError] = useState(null)
+  const [sysLogsExpanded, setSysLogsExpanded] = useState(false)
+  const [showRunLogs, setShowRunLogs] = useState(false)
   const [scenarios, setScenarios] = useState([
     {
       id: 1,
@@ -232,9 +241,13 @@ export default function CustomScenarios() {
     return payload
   }
 
+  // 运行场景并在完成后跳转到可视化
   const runScenario = async (scenario) => {
     try {
       const body = buildScenarioPayload(scenario)
+      setIsRunning(true)
+      setRunProgress(0)
+      setRunStatusText('正在启动任务…')
       const res = await fetch('/scenarios/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -242,12 +255,67 @@ export default function CustomScenarios() {
       })
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
       const data = await res.json()
-      // 跳转可视化
-      navigate(`/visualization?task_id=${data.task_id}`)
+      const taskId = data.task_id
+      setRunTaskId(taskId)
+      setRunStatusText('任务已启动，正在执行…')
+
+      // 轮询场景进度，待完成后再跳转到可视化
+      let cancelled = false
+      const poll = async () => {
+        if (cancelled) return
+        try {
+          const r = await fetch(`/scenarios/${taskId}`)
+          if (r.ok) {
+            const j = await r.json()
+            if (typeof j.percent === 'number') setRunProgress(j.percent)
+            if (typeof j.message === 'string') setRunStatusText(j.message)
+            if (j.status === 'completed') {
+              setRunProgress(100)
+              setRunStatusText('场景执行完成，正在跳转可视化…')
+              navigate(`/visualization?task_id=${taskId}`)
+              return
+            }
+            if (j.status === 'failed') {
+              setRunStatusText(j.message || '场景执行失败')
+              setIsRunning(false)
+              return
+            }
+          }
+        } catch {}
+        setTimeout(poll, 2000)
+      }
+      poll()
+
+      // 返回一个取消函数（在组件卸载时终止轮询）
+      return () => { cancelled = true }
     } catch (e) {
       console.error('运行场景失败:', e)
+      setRunStatusText(`运行失败：${e.message || e}`)
+      setIsRunning(false)
     }
   }
+
+  // 供“已保存的场景”列表按钮使用的包装函数
+  const startScenarioRun = (scenario) => runScenario(scenario)
+
+  // 系统日志轮询（常驻卡片使用）
+  useEffect(() => {
+    let timer
+    const tick = async () => {
+      try {
+        const r = await fetch('/system/logs?limit=50')
+        if (!r.ok) throw new Error(`${r.status}`)
+        const j = await r.json()
+        setSysLogs(Array.isArray(j) ? j : [])
+        setSysLogsError(null)
+      } catch (e) {
+        setSysLogsError(e.message)
+      }
+      timer = setTimeout(tick, 5000)
+    }
+    tick()
+    return () => { if (timer) clearTimeout(timer) }
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -260,11 +328,31 @@ export default function CustomScenarios() {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline">
+          <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={async (e)=>{
+            try {
+              const file = e.target.files?.[0]
+              if (!file) return
+              const text = await file.text()
+              const arr = JSON.parse(text)
+              if (Array.isArray(arr)) setScenarios(arr)
+            } catch {}
+            if (importInputRef.current) importInputRef.current.value = ''
+          }} />
+          <Button variant="outline" onClick={()=>importInputRef.current?.click()}>
             <Upload className="h-4 w-4 mr-2" />
             导入场景
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={()=>{
+            try {
+              const blob = new Blob([JSON.stringify(scenarios,null,2)], { type: 'application/json' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = 'scenarios.json'
+              a.click()
+              URL.revokeObjectURL(url)
+            } catch {}
+          }}>
             <Download className="h-4 w-4 mr-2" />
             导出场景
           </Button>
@@ -359,6 +447,61 @@ export default function CustomScenarios() {
                           <SelectItem value="custom">自定义</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+
+                  {/* 评估选项 */}
+                  <div className="space-y-2">
+                    <Label className="text-base font-medium">评估选项</Label>
+                    <div className="space-y-2">
+                      <Label>评估图像数量</Label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="number"
+                          value={(currentScenario.parameters?.num_images ?? 10)}
+                          onChange={(e) => setParam('num_images', parseInt(e.target.value) || 10)}
+                          className="w-full"
+                          min="1"
+                          disabled={(currentScenario.parameters?.num_images ?? 10) === -1}
+                        />
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="use-all-images"
+                            checked={(currentScenario.parameters?.num_images ?? 10) === -1}
+                            onCheckedChange={(checked) => setParam('num_images', checked ? -1 : 10)}
+                          />
+                          <Label htmlFor="use-all-images" className="text-sm">使用全部图像</Label>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">评估图像数量，-1 表示全部</p>
+                    </div>
+
+                    {/* 置信度与IoU 阈值 */}
+                    <div className="space-y-2">
+                      <Label>置信度阈值: {typeof currentScenario.parameters?.conf_threshold === 'number' ? currentScenario.parameters.conf_threshold : 0.25}</Label>
+                      <input
+                        type="range"
+                        min={0.0}
+                        max={1.0}
+                        step={0.01}
+                        value={typeof currentScenario.parameters?.conf_threshold === 'number' ? currentScenario.parameters.conf_threshold : 0.25}
+                        onChange={(e) => setParam('conf_threshold', parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">检测置信度阈值</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>IoU阈值: {typeof currentScenario.parameters?.iou_threshold === 'number' ? currentScenario.parameters.iou_threshold : 0.5}</Label>
+                      <input
+                        type="range"
+                        min={0.1}
+                        max={1.0}
+                        step={0.01}
+                        value={typeof currentScenario.parameters?.iou_threshold === 'number' ? currentScenario.parameters.iou_threshold : 0.5}
+                        onChange={(e) => setParam('iou_threshold', parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground">检测重叠框 IoU 阈值</p>
                     </div>
                   </div>
                 </CardContent>
@@ -554,7 +697,7 @@ export default function CustomScenarios() {
                                   )}
                                   {attackId === 'scene_transition' && (
                                     <>
-                                      <div>
+                                  <div>
                                         <Label>跃变类型</Label>
                                         <Select onValueChange={(v)=>setAttackParam('scene_transition','transition_type',v)}>
                                           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -564,11 +707,11 @@ export default function CustomScenarios() {
                                             <SelectItem value="blur">blur</SelectItem>
                                           </SelectContent>
                                         </Select>
-                                      </div>
-                                      <div>
+                                  </div>
+                                  <div>
                                         <Label>严重程度</Label>
                                         <Input type="number" placeholder="0.5" step="0.05" onChange={(e)=>setAttackParam('scene_transition','severity',parseFloat(e.target.value)||0.5)} />
-                                      </div>
+                                  </div>
                                     </>
                                   )}
                                 </div>
@@ -641,18 +784,18 @@ export default function CustomScenarios() {
                                   {/* 预处理、防御、训练参数面板（简版） */}
                                   {defenseId === 'preprocessing' && (
                                     <>
-                                      <div>
+                                  <div>
                                         <Label>防御类型</Label>
                                         <Select onValueChange={(v)=>setParam('defense_type',v)}>
                                           <SelectTrigger><SelectValue placeholder="gaussian_blur" /></SelectTrigger>
-                                          <SelectContent>
+                                      <SelectContent>
                                             <SelectItem value="gaussian_blur">gaussian_blur</SelectItem>
                                             <SelectItem value="median_blur">median_blur</SelectItem>
                                             <SelectItem value="jpeg_compression">jpeg_compression</SelectItem>
                                             <SelectItem value="bit_depth_reduction">bit_depth_reduction</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
                                       <div>
                                         <Label>ksize</Label>
                                         <Input type="number" placeholder="5" onChange={(e)=>setParam('ksize',parseInt(e.target.value)||5)} />
@@ -678,11 +821,11 @@ export default function CustomScenarios() {
                                         <Input type="number" placeholder="0.35" step="0.01" onChange={(e)=>setParam('threshold',parseFloat(e.target.value)||0.35)} />
                                       </div>
                                       <div>
-                                        <Label>alpha_stats</Label>
+                                        <Label>显著性参数 alpha</Label>
                                         <Input type="number" placeholder="0.6" step="0.01" onChange={(e)=>setParam('alpha_stats',parseFloat(e.target.value)||0.6)} />
                                       </div>
                                       <div>
-                                        <Label>hf_ratio</Label>
+                                        <Label>高频比例 hf_ratio</Label>
                                         <Input type="number" placeholder="0.1" step="0.01" onChange={(e)=>setParam('hf_ratio',parseFloat(e.target.value)||0.1)} />
                                       </div>
                                     </>
@@ -800,31 +943,113 @@ export default function CustomScenarios() {
               预览
             </Button>
           </div>
+
+          {/* 按需固定在第一栏下方的两张卡片：系统执行日志 + 运行状态（上下堆叠，拉宽） */}
+          <div className="space-y-6 mt-2">
+            <Card className="card-hover">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle>系统执行日志</CardTitle>
+                  <CardDescription>来自 /system/logs 的全局攻防任务日志</CardDescription>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded p-1 hover:bg-muted/60"
+                  onClick={() => setSysLogsExpanded(v => !v)}
+                  aria-label="切换日志展开"
+                  title={sysLogsExpanded ? '收起' : '展开'}
+                >
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${sysLogsExpanded ? 'rotate-180' : ''}`} />
+                </button>
+              </CardHeader>
+              <CardContent className={`${sysLogsExpanded ? 'max-h-[520px]' : 'max-h-[260px]'} overflow-auto no-scrollbar`}>
+                {sysLogsError && (
+                  <div className="text-xs text-red-600 mb-2 flex items-center">
+                    <AlertTriangle className="h-3 w-3 mr-1" /> {sysLogsError}
+                  </div>
+                )}
+                {(() => {
+                  const previewCount = 6
+                  const logs = Array.isArray(sysLogs) ? (sysLogsExpanded ? sysLogs : sysLogs.slice(0, previewCount)) : []
+                  return (
+                    <div className="space-y-2 text-xs">
+                      {logs.map((log, idx) => (
+                        <div key={`syslog-embed-${idx}`} className="flex items-start justify-between border rounded p-2">
+                          <div className="flex-1 pr-2">
+                            <div className="flex items-center space-x-2">
+                              <span className={`inline-block w-2 h-2 rounded-full ${log.severity==='error'?'bg-red-500':log.severity==='success'?'bg-green-500':'bg-blue-500'}`}></span>
+                              <span className="font-medium">[{log.type}] {log.message}</span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground mt-1">
+                              {log.task_id ? `task:${log.task_id} ` : ''}
+                              {log.meta?.attack_name ? `attack:${log.meta.attack_name} ` : ''}
+                              {log.meta?.defense_type ? `defense:${log.meta.defense_type} ` : ''}
+                              {log.meta?.model_name ? `model:${log.meta.model_name} ` : ''}
+                              {log.meta?.dataset_name ? `data:${log.meta.dataset_name} ` : ''}
+                              {typeof log.meta?.percent==='number' ? `${log.meta.percent}%` : ''}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-gray-400">{new Date((typeof log.timestamp==='number'? log.timestamp*1000 : log.timestamp)).toLocaleTimeString()}</span>
+                        </div>
+                      ))}
+                      {Array.isArray(sysLogs) && sysLogs.length > previewCount && !sysLogsExpanded && (
+                        <div className="text-xs text-muted-foreground pt-1">已显示最近 {previewCount} 条，点击右上角展开查看全部…</div>
+                      )}
+                      {(!sysLogs || sysLogs.length===0) && (
+                        <div className="text-xs text-muted-foreground">暂无日志</div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </CardContent>
+            </Card>
+
+            <Card className="card-hover">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle>运行状态</CardTitle>
+                  <CardDescription>实时查看场景执行进度</CardDescription>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded p-1 hover:bg-muted/60"
+                  onClick={() => setShowRunLogs(v => !v)}
+                  aria-label="切换运行日志展开"
+                  title={showRunLogs ? '收起' : '展开'}
+                >
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showRunLogs ? 'rotate-180' : ''}`} />
+                </button>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-sm">{runTaskId ? `任务: ${runTaskId}` : '尚未运行'}</div>
+                <Progress value={runProgress} />
+                <div className="text-xs text-muted-foreground">{runStatusText}</div>
+                <div className={`${showRunLogs ? 'max-h-[360px] overflow-auto no-scrollbar' : ''}`}>
+                  {(() => {
+                    const previewCount = 6
+                    const logs = Array.isArray(runLogs) ? (showRunLogs ? runLogs : runLogs.slice(0, previewCount)) : []
+                    return (
+                      <div className="space-y-1 text-xs">
+                        {logs.map((l) => (
+                          <div key={`runlog-embed-${l.id}`} className="flex items-center justify-between">
+                            <span className={l.type==='error'?'text-red-600':l.type==='success'?'text-green-600':'text-gray-700'}>{l.message}</span>
+                            <span className="text-[10px] text-gray-400">{l.time}</span>
+                          </div>
+                        ))}
+                        {Array.isArray(runLogs) && runLogs.length > previewCount && !showRunLogs && (
+                          <div className="text-[11px] text-muted-foreground pt-1">已显示最近 {previewCount} 条，点击右上角展开查看全部…</div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* 右侧场景列表 */}
         <div className="space-y-6">
-          {/* 运行状态与日志 */}
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>运行状态</CardTitle>
-              <CardDescription>实时查看场景执行进度</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-sm">{runTaskId ? `任务: ${runTaskId}` : '尚未运行'}</div>
-              <Progress value={runProgress} />
-              <div className="text-xs text-muted-foreground">{runStatusText}</div>
-              <div className="space-y-1 max-h-40 overflow-y-auto text-xs">
-                {runLogs.map((l)=> (
-                  <div key={l.id} className="flex items-center justify-between">
-                    <span className={l.type==='error'?'text-red-600':l.type==='success'?'text-green-600':'text-gray-700'}>{l.message}</span>
-                    <span className="text-[10px] text-gray-400">{l.time}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="card-hover">
             <CardHeader>
               <CardTitle>已保存的场景</CardTitle>

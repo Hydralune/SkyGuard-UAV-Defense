@@ -90,7 +90,7 @@ function Sidebar({ className }) {
           <div className="flex items-center space-x-2 mb-6">
             <Shield className="h-8 w-8 text-primary" />
             <div>
-              <h2 className="text-lg font-semibold text-foreground">SkyGuard</h2>
+              <h2 className="text-lg font-semibold text-foreground">GuardUAV</h2>
               <p className="text-xs text-muted-foreground">低空无人智能体攻防演练系统</p>
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function Layout({ children }) {
           <SheetHeader className="px-4 pt-4">
             <SheetTitle>导航菜单</SheetTitle>
             <SheetDescription>
-              SkyGuard 低空无人智能体攻防演练系统
+              GuardUAV 低空无人智能体攻防演练系统
             </SheetDescription>
           </SheetHeader>
           <ScrollArea className="h-full">

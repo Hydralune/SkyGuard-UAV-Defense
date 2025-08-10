@@ -595,7 +595,7 @@ export default function Dashboard() {
             <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${logsExpanded ? 'rotate-180' : ''}`} />
           </button>
         </CardHeader>
-        <CardContent className={`${logsExpanded ? 'max-h-[520px]' : 'max-h-[260px]'} overflow-auto`}>
+        <CardContent className={`${logsExpanded ? 'max-h-[520px]' : 'max-h-[260px]'} overflow-auto no-scrollbar`}>
           {sysError && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>{sysError}</AlertDescription>
