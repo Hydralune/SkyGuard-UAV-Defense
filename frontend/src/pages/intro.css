@@ -7,9 +7,7 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-.bg-dim-overlay {
-  background: rgba(20, 20, 20, 0.2);
-}
+
 
 /* 大标题轻微黑色环绕阴影，增强对白底可读性 */
 .title-glow {

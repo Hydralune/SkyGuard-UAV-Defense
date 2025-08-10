@@ -40,7 +40,7 @@ export default function Intro() {
     <div className="relative min-h-screen bg-black overflow-hidden">
       {/* Iridescence 背景（透明玻璃感） */}
       <div className="absolute inset-0" aria-hidden="true">
-        <Iridescence color={[1, 1, 1]} mouseReact={true} amplitude={0.1} speed={1.0} opacity={0.4} />
+        <Iridescence color={[0.5, 0.6, 0.8]} mouseReact={true} amplitude={0.1} speed={1.0} opacity={0.4} />
         <div className="absolute inset-0 bg-dim-overlay" />
       </div>
 
@@ -56,9 +56,9 @@ export default function Intro() {
             </p>
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link to="/attack-scenarios">
+              <Link to="/">
                 <Button size="lg" className="rounded-full bg-white text-zinc-900 hover:bg-white/90 border-0 shadow-sm transition-colors">
-                  立即体验攻击场景
+                  立即体验
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -80,8 +80,8 @@ export default function Intro() {
                   key={idx}
                   className={cn(
                     'flex items-center gap-2 rounded-xl bg-white/5 backdrop-blur-xl border border-white/30',
-                    'shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 hover:scale-[1.03]',
-                    'transition transform duration-300',
+                    'shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10',
+                    'transition duration-300 transform-gpu hover:scale-[1.03]',
                     'relative overflow-hidden px-3 py-2'
                   )}
                 >
@@ -137,7 +137,7 @@ export default function Intro() {
                 desc: 'Docker Compose 一键启动，本地开发体验流畅，适合线下/线上路演。',
               },
             ].map((f, i) => (
-              <div key={i} className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 hover:scale-[1.03] transition transform duration-300 relative overflow-hidden">
+              <div key={i} className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 transition duration-300 transform-gpu hover:scale-[1.03] relative overflow-hidden">
                 <div className="flex items-center gap-3">
                   <f.icon className="h-5 w-5 text-cyan-300" />
                   <h3 className="text-base font-semibold">{f.title}</h3>
@@ -160,7 +160,7 @@ export default function Intro() {
             subtitle="前后端解耦 + 异步任务队列 + 统一结果接口，兼容 GPU 加速"
           />
           <div className="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 hover:scale-[1.03] transition transform duration-300 relative overflow-hidden">
+            <div className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 transition duration-300 transform-gpu hover:scale-[1.03] relative overflow-hidden">
               <h3 className="font-semibold flex items-center gap-2"><Layers className="h-4 w-4 text-cyan-300" /> 架构分层</h3>
               <ul className="mt-3 space-y-2 text-sm text-white/85">
                 <li>前端：React + Vite + TailwindCSS，页面路由与可视化呈现</li>
@@ -169,7 +169,7 @@ export default function Intro() {
                 <li>部署：Docker Compose 一键编排，生产静态站点由 Nginx 托管</li>
               </ul>
             </div>
-            <div className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 hover:scale-[1.03] transition transform duration-300 relative overflow-hidden">
+            <div className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 transition duration-300 transform-gpu hover:scale-[1.03] relative overflow-hidden">
               <h3 className="font-semibold flex items-center gap-2"><GitBranch className="h-4 w-4 text-cyan-300" /> 技术要点</h3>
               <ul className="mt-3 space-y-2 text-sm text-white/85">
                 <li>统一的结果目录：evaluation/adversarial/defense/scenario</li>
@@ -186,7 +186,7 @@ export default function Intro() {
               { icon: ShieldCheck, title: '防御能力', items: ['高斯/中值滤波', 'JPEG 压缩', '位深度降低', '对抗训练 PGD/FGM/YOPO/FREE*'] },
               { icon: BarChart3, title: '评估与可视化', items: ['类脆弱性/恢复度', '置信度分布变化', '时延与效率', '图像结果对比'] },
             ].map((b, i) => (
-              <div key={i} className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 hover:scale-[1.03] transition transform duration-300 relative overflow-hidden">
+              <div key={i} className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 transition duration-300 transform-gpu hover:scale-[1.03] relative overflow-hidden">
                 <div className="flex items-center gap-2">
                   <b.icon className="h-5 w-5 text-cyan-300" />
                   <h4 className="font-semibold">{b.title}</h4>
@@ -214,7 +214,7 @@ export default function Intro() {
               { icon: Eye, title: '结果呈现', desc: '统一可视化接口获取对比图、指标图与中间过程。' },
               { icon: FileText, title: '报告输出', desc: '按任务/场景导出数据与报告，便于路演与评审展示。' },
             ].map((step, i) => (
-              <li key={i} className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 hover:scale-[1.03] transition transform duration-300 relative overflow-hidden">
+            <li key={i} className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 transition duration-300 transform-gpu hover:scale-[1.03] relative overflow-hidden">
                 <div className="flex items-center gap-2">
                   <step.icon className="h-5 w-5 text-cyan-300" />
                   <h4 className="font-semibold">{step.title}</h4>
@@ -237,7 +237,7 @@ export default function Intro() {
               { title: '园区安防', desc: '在工业/电力/机场等敏感区域，构建攻防演练体系，提升感知鲁棒性。' },
               { title: '赛事与科研', desc: '提供可复现实验与完整报告链路。' },
             ].map((card, i) => (
-              <div key={i} className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 hover:scale-[1.03] transition transform duration-300 relative overflow-hidden">
+              <div key={i} className="rounded-2xl border border-white/30 bg-white/5 backdrop-blur-xl p-5 text-white shadow-[0_8px_40px_rgba(0,0,0,0.15)] hover:bg-white/10 transition duration-300 transform-gpu hover:scale-[1.03] relative overflow-hidden">
                 <h4 className="font-semibold">{card.title}</h4>
                 <p className="mt-2 text-sm text-white/90">{card.desc}</p>
               </div>
