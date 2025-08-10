@@ -40,7 +40,7 @@ export default function Intro() {
     <div className="relative min-h-screen bg-black overflow-hidden">
       {/* Iridescence 背景（透明玻璃感） */}
       <div className="absolute inset-0" aria-hidden="true">
-        <Iridescence color={[1, 1, 1]} mouseReact={false} amplitude={0.1} speed={1.0} opacity={0.4} />
+        <Iridescence color={[1, 1, 1]} mouseReact={true} amplitude={0.1} speed={1.0} opacity={0.4} />
         <div className="absolute inset-0 bg-dim-overlay" />
       </div>
 
@@ -99,7 +99,7 @@ export default function Intro() {
             title={
               <>
                 系统亮点
-                <span className="drop-glow no-text-shadow ml-2 bg-gradient-to-r from-sky-400 via-sky-500 to-indigo-400 bg-clip-text text-transparent">与应用价值</span>
+                <span className="ml-2 no-text-shadow text-cyan-300">与应用价值</span>
               </>
             }
             subtitle="围绕真实场景的鲁棒性安全挑战，强调可落地性与可解释性"
@@ -154,7 +154,7 @@ export default function Intro() {
             title={
               <>
                 系统架构
-                <span className="drop-glow no-text-shadow ml-2 bg-gradient-to-r from-sky-400 via-sky-500 to-indigo-400 bg-clip-text text-transparent">与技术栈</span>
+                <span className="ml-2 no-text-shadow text-cyan-300">与技术栈</span>
               </>
             }
             subtitle="前后端解耦 + 异步任务队列 + 统一结果接口，兼容 GPU 加速"

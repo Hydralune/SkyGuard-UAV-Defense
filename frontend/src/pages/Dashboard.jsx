@@ -240,7 +240,7 @@ export default function Dashboard() {
 
       {/* 演练状态和结果 */}
       {taskId && (
-        <Card className="border-2 border-blue-200">
+        <Card className="border-2 border-blue-200 dark:!border-white/30">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>演练状态</CardTitle>
@@ -297,12 +297,12 @@ export default function Dashboard() {
 
       {/* 系统状态概览 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="card-hover bg-blue-50 border-blue-200 text-blue-900 min-h-[128px]">
+        <Card className="card-hover bg-blue-50 border-blue-200 text-blue-900 min-h-[128px] dark:!bg-transparent dark:!border-white/30 dark:!text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">活跃演练</CardTitle>
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded p-1 hover:bg-blue-100/60"
+              className="inline-flex items-center justify-center rounded p-1 hover:bg-blue-100/60 dark:hover:bg-white/10"
               onClick={() => setDrillsExpanded(v => !v)}
               aria-label="切换活跃演练详情"
               title={drillsExpanded ? '收起' : '展开'}
@@ -329,12 +329,12 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-        <Card className="card-hover bg-green-50 border-green-200 text-green-900 min-h-[128px]">
+        <Card className="card-hover bg-green-50 border-green-200 text-green-900 min-h-[128px] dark:!bg-transparent dark:!border-white/30 dark:!text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">参与团队</CardTitle>
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded p-1 hover:bg-green-100/60"
+              className="inline-flex items-center justify-center rounded p-1 hover:bg-green-100/60 dark:hover:bg-white/10"
               onClick={() => setTeamsExpanded(v => !v)}
               aria-label="切换参与团队详情"
               title={teamsExpanded ? '收起' : '展开'}
@@ -361,12 +361,12 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-        <Card className="card-hover bg-yellow-50 border-yellow-200 text-yellow-900 min-h-[128px]">
+        <Card className="card-hover bg-yellow-50 border-yellow-200 text-yellow-900 min-h-[128px] dark:!bg-transparent dark:!border-white/30 dark:!text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">成功率</CardTitle>
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded p-1 hover:bg-yellow-100/60"
+              className="inline-flex items-center justify-center rounded p-1 hover:bg-yellow-100/60 dark:hover:bg-white/10"
               onClick={() => setSuccessExpanded(v => !v)}
               aria-label="切换成功率详情"
               title={successExpanded ? '收起' : '展开'}
@@ -393,12 +393,12 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-        <Card className="card-hover bg-red-50 border-red-200 text-red-900 min-h-[128px]">
+        <Card className="card-hover bg-red-50 border-red-200 text-red-900 min-h-[128px] dark:!bg-transparent dark:!border-white/30 dark:!text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">系统负载</CardTitle>
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded p-1 hover:bg-red-100/60"
+              className="inline-flex items-center justify-center rounded p-1 hover:bg-red-100/60 dark:hover:bg-white/10"
               onClick={() => setLoadExpanded(v => !v)}
               aria-label="切换系统负载详情"
               title={loadExpanded ? '收起' : '展开'}
@@ -430,7 +430,7 @@ export default function Dashboard() {
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Link to="/attack-scenarios">
-              <Card className="card-hover bg-red-50 border-red-200 text-red-900 cursor-pointer">
+              <Card className="card-hover bg-red-50 border-red-200 text-red-900 cursor-pointer dark:!bg-transparent dark:!border-white/30 dark:!text-white">
                 <CardHeader>
                   <div className="flex items-center space-x-2">
                     <Sword className="h-5 w-5 text-red-500" />
@@ -456,7 +456,7 @@ export default function Dashboard() {
             </Link>
 
             <Link to="/defense-scenarios">
-              <Card className="card-hover bg-green-50 border-green-200 text-green-900 cursor-pointer">
+              <Card className="card-hover bg-green-50 border-green-200 text-green-900 cursor-pointer dark:!bg-transparent dark:!border-white/30 dark:!text-white">
                 <CardHeader>
                   <div className="flex items-center space-x-2">
                     <ShieldCheck className="h-5 w-5 text-green-500" />
@@ -482,7 +482,7 @@ export default function Dashboard() {
             </Link>
 
             <Link to="/visualization">
-              <Card className="card-hover bg-blue-50 border-blue-200 text-blue-900 cursor-pointer">
+              <Card className="card-hover bg-blue-50 border-blue-200 text-blue-900 cursor-pointer dark:!bg-transparent dark:!border-white/30 dark:!text-white">
                 <CardHeader>
                   <div className="flex items-center space-x-2">
                     <Eye className="h-5 w-5 text-blue-500" />

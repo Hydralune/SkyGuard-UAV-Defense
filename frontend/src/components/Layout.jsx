@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import ThemeToggle from './ThemeToggle'
+import MagicBento from '@/components/ui/MagicBento'
 import {
   Shield,
   Sword,
@@ -87,13 +88,13 @@ function Sidebar({ className }) {
     <div className={cn("pb-12 dark:border-none dark:shadow-none", className)}>
       <div className="space-y-4 py-4">
         <div className="px-6 py-2">
-          <div className="flex items-center space-x-2 mb-6">
-            <Shield className="h-8 w-8 text-primary" />
+          <Link to="/intro" className="flex items-center space-x-2 mb-6 group cursor-pointer select-none">
+            <Shield className="h-8 w-8 text-primary group-hover:scale-105 transition-transform" />
             <div>
-              <h2 className="text-lg font-semibold text-foreground">GuardUAV</h2>
+              <h2 className="text-lg font-semibold text-foreground group-hover:text-primary">GuardUAV</h2>
               <p className="text-xs text-muted-foreground">低空无人智能体攻防演练系统</p>
             </div>
-          </div>
+          </Link>
           <div className="space-y-2">
             {navigation.map((item) => (
               <Link
@@ -127,10 +128,13 @@ export default function Layout({ children }) {
     let cn = null
     function createNest() {
       const isDark = document.documentElement.classList.contains('dark')
+      // 深色模式下禁用 canvas-nest
+      if (isDark) {
+        return
+      }
       cn = new CanvasNest(document.body, {
-        // color: isDark ? '255,255,255' : '51,153,255',
         color: '51,153,255',
-        opacity: isDark ? 1.0 : 0.8,
+        opacity: 0.8,
         zIndex: 0,
         count: 35,
       })
@@ -138,7 +142,10 @@ export default function Layout({ children }) {
     createNest()
     // 监听主题切换
     const observer = new MutationObserver(() => {
-      if (cn) cn.destroy()
+      if (cn) {
+        cn.destroy()
+        cn = null
+      }
       createNest()
     })
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
@@ -150,6 +157,21 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-background relative">
+      {/* 深色模式下使用 MagicBento 作为背景效果，替代 canvas-nest */}
+      <div className="absolute inset-0 -z-10 hidden dark:block pointer-events-none">
+        <MagicBento
+          textAutoHide={true}
+          enableStars={true}
+          enableSpotlight={true}
+          enableBorderGlow={true}
+          enableTilt={true}
+          enableMagnetism={true}
+          clickEffect={true}
+          spotlightRadius={300}
+          particleCount={12}
+          glowColor="132, 0, 255"
+        />
+      </div>
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetTrigger asChild>
           <Button
