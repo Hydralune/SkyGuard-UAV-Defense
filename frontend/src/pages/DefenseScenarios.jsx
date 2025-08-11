@@ -432,7 +432,6 @@ export default function DefenseScenarios() {
           </div>
         </header>
 
-        {/* MODIFICATION START: Changed from grid layout to vertical stack */}
         <Card className="card-hover">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -455,70 +454,72 @@ export default function DefenseScenarios() {
               </TabsList>
             </Tabs>
 
-            <div>
-              <Label htmlFor="model">模型</Label>
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择模型" />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      <div>
-                        <div className="font-medium">{model.name}</div>
-                        <div className="text-xs text-muted-foreground">{model.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="dataset">数据集</Label>
-              <Select value={selectedDataset} onValueChange={setSelectedDataset}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择数据集" />
-                </SelectTrigger>
-                <SelectContent>
-                  {datasets.map((dataset) => (
-                    <SelectItem key={dataset.id} value={dataset.id}>
-                      <div>
-                        <div className="font-medium">{dataset.name}</div>
-                        <div className="text-xs text-muted-foreground">{dataset.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="algorithm">防御算法</Label>
-              <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择算法" />
-                </SelectTrigger>
-                <SelectContent>
-                  {defenseAlgorithms[selectedDefenseType]?.map((algorithm) => (
-                    <SelectItem key={algorithm.id} value={algorithm.id}>
-                      <div className="flex items-center justify-between w-full">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <Label htmlFor="model">模型</Label>
+                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择模型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {models.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
                         <div>
-                          <div className="font-medium">{algorithm.name}</div>
-                          <div className="text-xs text-muted-foreground">{algorithm.description}</div>
+                          <div className="font-medium">{model.name}</div>
+                          <div className="text-xs text-muted-foreground">{model.description}</div>
                         </div>
-                        <Badge variant={
-                          algorithm.effectiveness === 'high' ? 'default' :
-                          algorithm.effectiveness === 'medium' ? 'secondary' :
-                          'outline'
-                        }>
-                          {algorithm.effectiveness === 'high' ? '高效' :
-                           algorithm.effectiveness === 'medium' ? '中等' : '基础'}
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="dataset">数据集</Label>
+                <Select value={selectedDataset} onValueChange={setSelectedDataset}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择数据集" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {datasets.map((dataset) => (
+                      <SelectItem key={dataset.id} value={dataset.id}>
+                        <div>
+                          <div className="font-medium">{dataset.name}</div>
+                          <div className="text-xs text-muted-foreground">{dataset.description}</div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="algorithm">防御算法</Label>
+                <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择算法" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {defenseAlgorithms[selectedDefenseType]?.map((algorithm) => (
+                      <SelectItem key={algorithm.id} value={algorithm.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <div>
+                            <div className="font-medium">{algorithm.name}</div>
+                            <div className="text-xs text-muted-foreground">{algorithm.description}</div>
+                          </div>
+                          <Badge variant={
+                            algorithm.effectiveness === 'high' ? 'default' :
+                            algorithm.effectiveness === 'medium' ? 'secondary' :
+                            'outline'
+                          }>
+                            {algorithm.effectiveness === 'high' ? '高效' :
+                             algorithm.effectiveness === 'medium' ? '中等' : '基础'}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -585,7 +586,7 @@ export default function DefenseScenarios() {
                   )}
             </CardContent>
         </Card>
-        {/* MODIFICATION END */}
+
 
         <Card className="card-hover">
           <CardHeader>

@@ -100,6 +100,7 @@ export default function CustomScenarios() {
     { id: 'freeadv', name: 'FreeAT训练', category: 'adversarial_training' },
     { id: 'yopo', name: 'YOPO训练', category: 'adversarial_training' },
     { id: 'freelb', name: 'FreeLB训练', category: 'adversarial_training' },
+    { id: 'genaf', name: 'GenAF训练', category: 'adversarial_training' },
     { id: 'preprocessing', name: '预处理防御', category: 'preprocessing' },
     { id: 'detection', name: '检测防御', category: 'detection' }
   ]
@@ -153,6 +154,41 @@ export default function CustomScenarios() {
       parameters: {},
       schedule: { enabled: false, sequence: [], timing: 'sequential' }
     })
+  }
+
+  const editScenario = (scenario) => {
+    setCurrentScenario({
+      ...scenario,
+      schedule: scenario.schedule || { enabled: false, sequence: [], timing: 'sequential' }
+    })
+    setEditingId(scenario.id)
+  }
+
+  const copyScenario = (scenario) => {
+    const copiedScenario = {
+      ...scenario,
+      id: scenarios.length + 1,
+      name: `${scenario.name} (副本)`,
+      created: new Date().toISOString().split('T')[0],
+      status: 'draft'
+    }
+    setScenarios(prev => [...prev, copiedScenario])
+  }
+
+  const deleteScenario = (scenarioId) => {
+    setScenarios(prev => prev.filter(s => s.id !== scenarioId))
+    if (editingId === scenarioId) {
+      setEditingId(null)
+      setCurrentScenario({
+        name: '',
+        description: '',
+        type: 'hybrid',
+        attacks: [],
+        defenses: [],
+        parameters: {},
+        schedule: { enabled: false, sequence: [], timing: 'sequential' }
+      })
+    }
   }
 
   // 本地持久化（加载）
@@ -233,6 +269,15 @@ export default function CustomScenarios() {
         threshold: p.threshold,
         alpha_stats: p.alpha_stats,
         hf_ratio: p.hf_ratio,
+        // GenAF相关参数
+        genaf_seed: p.genaf_seed,
+        genaf_gpu: p.genaf_gpu,
+        genaf_dataset: p.genaf_dataset,
+        genaf_batch_size: p.genaf_batch_size,
+        genaf_epochs: p.genaf_epochs,
+        genaf_save: p.genaf_save,
+        genaf_pre_dataset: p.genaf_pre_dataset,
+        genaf_victim: p.genaf_victim,
         // 若需要串联攻击
         attack_name: p.attack_name,
       },
@@ -830,7 +875,77 @@ export default function CustomScenarios() {
                                       </div>
                                     </>
                                   )}
-                                  {['pgd_training','fgm','freeadv','yopo','freelb'].includes(defenseId) && (
+                                  {defenseId === 'genaf' ? (
+                                    <>
+                                      <div>
+                                        <Label>随机种子</Label>
+                                        <Input type="number" placeholder="100" onChange={(e)=>setParam('genaf_seed',parseInt(e.target.value)||100)} />
+                                      </div>
+                                      <div>
+                                        <Label>GPU编号</Label>
+                                        <Input type="text" placeholder="0" onChange={(e)=>setParam('genaf_gpu',e.target.value)} />
+                                      </div>
+                                      <div>
+                                        <Label>数据集</Label>
+                                        <Select onValueChange={(v)=>setParam('genaf_dataset',v)}>
+                                          <SelectTrigger><SelectValue placeholder="stl10" /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="cifar10">CIFAR-10</SelectItem>
+                                            <SelectItem value="stl10">STL-10</SelectItem>
+                                            <SelectItem value="gtsrb">GTSRB</SelectItem>
+                                            <SelectItem value="imagenet">ImageNet</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label>批次大小</Label>
+                                        <Input type="number" placeholder="256" onChange={(e)=>setParam('genaf_batch_size',parseInt(e.target.value)||256)} />
+                                      </div>
+                                      <div>
+                                        <Label>训练轮数</Label>
+                                        <Input type="number" placeholder="50" onChange={(e)=>setParam('genaf_epochs',parseInt(e.target.value)||50)} />
+                                      </div>
+                                      <div>
+                                        <Label>保存最优模型</Label>
+                                        <Select onValueChange={(v)=>setParam('genaf_save',v==='true')}>
+                                          <SelectTrigger><SelectValue placeholder="false" /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="true">是</SelectItem>
+                                            <SelectItem value="false">否</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label>预训练数据集</Label>
+                                        <Select onValueChange={(v)=>setParam('genaf_pre_dataset',v)}>
+                                          <SelectTrigger><SelectValue placeholder="cifar10" /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="cifar10">CIFAR-10</SelectItem>
+                                            <SelectItem value="imagenet">ImageNet</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label>编码器类型</Label>
+                                        <Select onValueChange={(v)=>setParam('genaf_victim',v)}>
+                                          <SelectTrigger><SelectValue placeholder="deepclusterv2" /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="simclr">SimCLR</SelectItem>
+                                            <SelectItem value="byol">BYOL</SelectItem>
+                                            <SelectItem value="dino">DINO</SelectItem>
+                                            <SelectItem value="mocov3">MoCoV3</SelectItem>
+                                            <SelectItem value="mocov2plus">MoCoV2+</SelectItem>
+                                            <SelectItem value="nnclr">NNCLR</SelectItem>
+                                            <SelectItem value="ressl">ReSSL</SelectItem>
+                                            <SelectItem value="swav">SwAV</SelectItem>
+                                            <SelectItem value="vibcreg">VIBCREG</SelectItem>
+                                            <SelectItem value="wmse">WMSE</SelectItem>
+                                            <SelectItem value="deepclusterv2">DeepClusterV2</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </>
+                                  ) : ['pgd_training','fgm','freeadv','yopo','freelb'].includes(defenseId) && (
                                     <>
                                       <div>
                                         <Label>epochs</Label>

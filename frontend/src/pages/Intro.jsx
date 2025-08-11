@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import Iridescence from '@/components/ui/Iridescence'
 import './intro.css'
 import LensGlassCard from '@/components/ui/LensGlassCard'
+import { LiquidGlass } from '@liquidglass/react'
 
 function SectionTitle({ title, subtitle }) {
   return (
@@ -247,22 +248,36 @@ export default function Intro() {
 
         {/* 行动区 */}
         <section className="relative px-4 md:px-8 py-12 md:py-16 z-10">
-            <div className="mx-auto max-w-5xl rounded-3xl border border-white/20 bg-white/10 backdrop-blur-2xl p-8 text-center text-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)]">
-            <h3 className="title-glow-soft text-2xl md:text-3xl font-bold">准备好开始演示了吗？</h3>
-            <p className="mt-3 text-white/90">从攻击或防御场景入手，或在自定义场景中编排完整流程。</p>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Link to="/attack-scenarios">
-                <Button size="lg" className="rounded-full bg-white text-zinc-900 hover:bg-white/90 border-0 shadow-sm transition-colors">
-                  进入攻击场景
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <Link to="/custom-scenarios">
-                <Button size="lg" className="rounded-full bg-white/10 hover:bg-white/15 text-white border border-white/30 backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.25)] transition-colors">
-                  编排自定义场景
-                </Button>
-              </Link>
-            </div>
+          <div className="mx-auto max-w-5xl relative" style={{ height: '200px' }}>
+            <LiquidGlass
+              borderRadius={24}
+              blur={0.6}
+              contrast={1.3}
+              brightness={1.15}
+              saturation={1.3}
+              shadowIntensity={0.5}
+              elasticity={0.9}
+              style={{ width: '100%', height: '100%' }}
+              className="absolute inset-0"
+            >
+              <div className="p-8 h-full flex flex-col justify-center text-center text-white">
+                <h3 className="title-glow-soft text-2xl md:text-3xl font-bold">准备好开始演示了吗？</h3>
+                <p className="mt-3 text-white/90">从攻击或防御场景入手，或在自定义场景中编排完整流程。</p>
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                  <Link to="/attack-scenarios">
+                    <Button size="lg" className="rounded-full bg-white text-zinc-900 hover:bg-white/90 border-0 shadow-sm transition-colors">
+                      进入攻击场景
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link to="/custom-scenarios">
+                    <Button size="lg" className="rounded-full bg-white/10 hover:bg-white/15 text-white border border-white/30 backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.25)] transition-colors">
+                      编排自定义场景
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </LiquidGlass>
           </div>
         </section>
 
