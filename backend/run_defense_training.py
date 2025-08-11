@@ -75,6 +75,8 @@ def run_defense_training(
             steps = 5   # YOPO默认使用5步
         elif defense_type == "freelb":
             steps = 5   # FreeLB默认使用5步
+        elif defense_type == "genaf":
+            steps = 3   # GenAF默认使用3步
         else:
             steps = 3   # 其他类型默认使用3步
     
