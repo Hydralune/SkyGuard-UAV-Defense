@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { apiGet, API_ENDPOINTS } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -37,8 +38,7 @@ export default function ExerciseStatus() {
 
   const fetchSystemLoad = async () => {
     try {
-      const res = await fetch('/system/load')
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const res = await apiGet(API_ENDPOINTS.SYSTEM_LOAD)
       const data = await res.json()
       setSysLoad(data)
     } catch (e) {

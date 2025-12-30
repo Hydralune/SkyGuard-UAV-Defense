@@ -1,6 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { apiGet, apiPost, API_ENDPOINTS } from '@/lib/api'
+import { API_BASE_URL } from '@/config/api'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Link } from 'react-router-dom'
@@ -43,10 +45,7 @@ export default function Dashboard() {
       setError(null)
       setTaskStatus('PENDING')
       
-      const response = await fetch('http://localhost:8000/api/start-basic-drill', {
-        method: 'POST',
-      })
-      
+      const response = await apiPost(API_ENDPOINTS.START_BASIC_DRILL)
       const data = await response.json()
       setTaskId(data.task_id)
       
@@ -64,7 +63,7 @@ export default function Dashboard() {
     // 设置轮询间隔
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/get-result/${id}`)
+        const response = await apiGet(API_ENDPOINTS.GET_RESULT(id))
         const data = await response.json()
         
         setTaskStatus(data.status)
@@ -74,10 +73,10 @@ export default function Dashboard() {
           clearInterval(interval)
           setLoading(false)
           
-          // 设置结果图片
+          // 设置结果图片 - 使用 API_BASE_URL 构建完整 URL
           setResults({
-            beforeImageUrl: `http://localhost:8000${data.before_image_url}`,
-            afterImageUrl: `http://localhost:8000${data.after_image_url}`
+            beforeImageUrl: `${API_BASE_URL}${data.before_image_url}`,
+            afterImageUrl: `${API_BASE_URL}${data.after_image_url}`
           })
         } else if (data.status === 'ERROR') {
           // 任务出错，停止轮询
@@ -131,8 +130,7 @@ export default function Dashboard() {
 
   const fetchSystemLoad = async () => {
     try {
-      const res = await fetch('/system/load')
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const res = await apiGet(API_ENDPOINTS.SYSTEM_LOAD)
       const data = await res.json()
       setSysLoad(data)
     } catch (e) {
@@ -142,8 +140,7 @@ export default function Dashboard() {
 
   const fetchSystemLogs = async () => {
     try {
-      const res = await fetch('/system/logs?limit=20')
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const res = await apiGet(API_ENDPOINTS.SYSTEM_LOGS, { limit: 20 })
       const data = await res.json()
       setSysLogs(Array.isArray(data) ? data : [])
     } catch (e) {

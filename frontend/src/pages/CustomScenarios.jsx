@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { apiGet, apiPost, API_ENDPOINTS } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -293,12 +294,7 @@ export default function CustomScenarios() {
       setIsRunning(true)
       setRunProgress(0)
       setRunStatusText('正在启动任务…')
-      const res = await fetch('/scenarios/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      })
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const res = await apiPost(API_ENDPOINTS.SCENARIOS_RUN, body)
       const data = await res.json()
       const taskId = data.task_id
       setRunTaskId(taskId)
@@ -309,7 +305,7 @@ export default function CustomScenarios() {
       const poll = async () => {
         if (cancelled) return
         try {
-          const r = await fetch(`/scenarios/${taskId}`)
+          const r = await apiGet(API_ENDPOINTS.SCENARIOS_STATUS(taskId))
           if (r.ok) {
             const j = await r.json()
             if (typeof j.percent === 'number') setRunProgress(j.percent)
@@ -348,8 +344,7 @@ export default function CustomScenarios() {
     let timer
     const tick = async () => {
       try {
-        const r = await fetch('/system/logs?limit=50')
-        if (!r.ok) throw new Error(`${r.status}`)
+        const r = await apiGet(API_ENDPOINTS.SYSTEM_LOGS, { limit: 50 })
         const j = await r.json()
         setSysLogs(Array.isArray(j) ? j : [])
         setSysLogsError(null)

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { apiGet, API_ENDPOINTS } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -124,7 +125,7 @@ export default function Visualization() {
   const fetchRecentTasks = async () => {
     try {
       // 优先读新的 recent 列表；后备到 latest
-      const res = await fetch('/visualization/recent-tasks?limit=10')
+      const res = await apiGet(API_ENDPOINTS.VISUALIZATION_RECENT_TASKS, { limit: 10 })
       if (res.ok) {
         const list = await res.json()
         if (Array.isArray(list) && list.length) {
@@ -132,7 +133,7 @@ export default function Visualization() {
           return
         }
       }
-      const res2 = await fetch('/visualization/latest-task')
+      const res2 = await apiGet(API_ENDPOINTS.VISUALIZATION_LATEST_TASK)
       if (res2.ok) {
         const lt = await res2.json()
         if (lt?.task_id) setRecentTasks([lt])
@@ -149,8 +150,7 @@ export default function Visualization() {
   const fetchTaskResultsById = async (id) => {
     try {
       setLoading(true)
-      const response = await fetch(`/visualization/results/${id}`)
-      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
+      const response = await apiGet(API_ENDPOINTS.VISUALIZATION_RESULTS(id))
       const data = await response.json()
       setTaskResults(data)
       if (data?.images?.length) {
@@ -198,12 +198,8 @@ export default function Visualization() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/visualization/latest-task');
+      const response = await apiGet(API_ENDPOINTS.VISUALIZATION_LATEST_TASK);
       console.log('最新任务API响应状态:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`获取最新任务失败: ${response.status} ${response.statusText}`);
-      }
       
       const latestTask = await response.json();
       console.log('获取到最新任务:', latestTask);
@@ -243,15 +239,11 @@ export default function Visualization() {
         setError(null);
         
         // 获取可视化结果 - 使用代理路径
-        const apiUrl = `/visualization/results/${taskId}`;
+        const apiUrl = API_ENDPOINTS.VISUALIZATION_RESULTS(taskId);
         console.log(`尝试获取结果: ${apiUrl}`);
         
-        const response = await fetch(apiUrl);
+        const response = await apiGet(apiUrl);
         console.log('任务结果API响应状态:', response.status);
-        
-      if (!response.ok) {
-          throw new Error(`获取结果失败: ${response.status} ${response.statusText}`);
-        }
         
         const data = await response.json();
         console.log('获取到的可视化结果:', data);

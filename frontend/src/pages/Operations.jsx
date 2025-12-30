@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { apiGet, API_ENDPOINTS } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -57,8 +58,7 @@ export default function Operations() {
 
   const fetchSystemLoad = async () => {
     try {
-      const res = await fetch('/system/load')
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const res = await apiGet(API_ENDPOINTS.SYSTEM_LOAD)
       const data = await res.json()
       setSysLoad(data)
       // 推入历史
@@ -97,8 +97,7 @@ export default function Operations() {
 
   const fetchSystemLogs = async () => {
     try {
-      const res = await fetch('/system/logs?limit=50')
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+      const res = await apiGet(API_ENDPOINTS.SYSTEM_LOGS, { limit: 50 })
       const data = await res.json()
       setSystemLogs(Array.isArray(data) ? data.map(l => ({
         time: typeof l.timestamp === 'number' ? new Date(l.timestamp * 1000).toLocaleTimeString() : l.timestamp,

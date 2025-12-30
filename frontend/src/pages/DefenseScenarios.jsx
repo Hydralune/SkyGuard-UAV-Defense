@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { apiGet, apiPost, API_ENDPOINTS } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -217,8 +218,7 @@ export default function DefenseScenarios() {
     if (celeryTaskId && isRunning) {
       intervalId = setInterval(async () => {
         try {
-          const response = await fetch(`/api/task/${celeryTaskId}`)
-          if (!response.ok) throw new Error(`获取任务状态失败: ${response.status}`)
+          const response = await apiGet(API_ENDPOINTS.TASK_STATUS(celeryTaskId))
           const data = await response.json()
           setTaskStatus(data)
           if (data.progress) setProgress(data.progress)
@@ -291,8 +291,7 @@ export default function DefenseScenarios() {
           attack_ratio: `${parameters.adversarial_ratio}`,
         })
 
-        const response = await fetch(`/api/defense/train?${params.toString()}`, { method: 'POST' })
-        if (!response.ok) throw new Error(`API返回错误: ${response.status}`)
+        const response = await apiPost(API_ENDPOINTS.DEFENSE_TRAIN, null, Object.fromEntries(params))
         const data = await response.json()
         setTaskId(data.task_id)
         setCeleryTaskId(data.celery_task_id)
@@ -332,8 +331,7 @@ export default function DefenseScenarios() {
           params.append('bits', `${parameters.bits}`)
         }
 
-        const response = await fetch(`/api/defense/run?${params.toString()}`, { method: 'POST' })
-        if (!response.ok) throw new Error(`API返回错误: ${response.status}`)
+        const response = await apiPost(API_ENDPOINTS.DEFENSE_RUN, null, Object.fromEntries(params))
         const data = await response.json()
         setTaskId(data.task_id)
         setCeleryTaskId(data.celery_task_id)
@@ -374,8 +372,7 @@ export default function DefenseScenarios() {
           if (attackPreset?.params?.alpha) params.append('alpha_attack', attackPreset.params.alpha)
           if (attackPreset?.params?.steps) params.append('steps', attackPreset.params.steps)
 
-          const response = await fetch(`/api/defense/detect?${params.toString()}`, { method: 'POST' })
-          if (!response.ok) throw new Error(`API返回错误: ${response.status}`)
+          const response = await apiPost(API_ENDPOINTS.DEFENSE_DETECT, null, Object.fromEntries(params))
           const data = await response.json()
           setTaskId(data.task_id)
           setCeleryTaskId(data.celery_task_id)

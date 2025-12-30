@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { apiGet, apiPost, API_ENDPOINTS } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -151,11 +152,7 @@ export default function AttackScenarios() {
       // 创建轮询间隔，每2秒检查一次任务状态
       intervalId = setInterval(async () => {
         try {
-          const response = await fetch(`/api/task/${celeryTaskId}`);
-          if (!response.ok) {
-            throw new Error(`获取任务状态失败: ${response.status}`);
-          }
-          
+          const response = await apiGet(API_ENDPOINTS.TASK_STATUS(celeryTaskId));
           const data = await response.json();
           console.log('任务状态更新:', data);
           
@@ -207,7 +204,7 @@ export default function AttackScenarios() {
     if (celeryTaskId && isRunning) {
       (async () => {
         try {
-          const response = await fetch(`/api/task/${celeryTaskId}`);
+          const response = await apiGet(API_ENDPOINTS.TASK_STATUS(celeryTaskId));
           if (response.ok) {
             const data = await response.json();
             setTaskStatus(data);
@@ -397,11 +394,7 @@ export default function AttackScenarios() {
       // 尝试获取结果文件列表
       try {
         // 使用可视化API获取结果
-        const response = await fetch(`/visualization/results/${taskId}`);
-        if (!response.ok) {
-          throw new Error(`获取结果失败: ${response.status}`);
-        }
-        
+        const response = await apiGet(API_ENDPOINTS.VISUALIZATION_RESULTS(taskId));
         const data = await response.json();
         console.log('获取到的可视化结果:', data);
         
@@ -631,18 +624,10 @@ export default function AttackScenarios() {
       }
       
       // 调用API
-      const apiUrl = `/api/attack/run`;
-      const urlWithQuery = `${apiUrl}?${attackParams.toString()}`;
-      console.log(`调用API: ${urlWithQuery}`);
+      const apiUrl = API_ENDPOINTS.ATTACK_RUN;
+      console.log(`调用API: ${apiUrl}?${attackParams.toString()}`);
       
-      const response = await fetch(urlWithQuery, {
-        method: 'POST'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API返回错误: ${response.status}`);
-      }
-      
+      const response = await apiPost(apiUrl, null, Object.fromEntries(attackParams));
       const data = await response.json();
       setTaskId(data.task_id);
       setCeleryTaskId(data.celery_task_id);
